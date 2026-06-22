@@ -1,29 +1,55 @@
 # EDI Data Hub — Product Roadmap (v1 Working Draft)
 
 **Owner:** Keagan
-**Status:** In active build — Phases 1–3 COMPLETE (Milestone **M1 "It's real"** reached); Phase 4 (North Star) is next. See **Build Progress** below.
+**Status:** In active build — Phases **0–10 code-complete in the repo** (Milestones M1, M2, M3, M4, M5 all reached in code). Outstanding before first paying external customer: **production deploy / operator wiring** (`ops/PRE_PRODUCTION_TODO.md`), **UI overhaul** (`PHASE_UI_PLAN.md`, gates open), and **Phase 11 Commercialization + Phase 12 External Pilot**. See **Build Progress** below.
 **Build agent:** Claude Opus 4.8
 **Initial test environment / free pilot user:** Your employer (internal only)
 **Commercial model:** Standalone product, sold by you, independent of OverAI/Perygee
 
 ---
 
-## Build Progress  *(living status — updated as phases land)*
+## Build Progress  *(living status — updated 2026-06-22)*
 
-**Where we are:** Phases **1–3 complete and verified**; Milestone **M1 ("It's real")** reached. Phase **4 — Transaction Lifecycle Stitching** (the North Star, Milestone M2) is planned (`PHASE_4_SPRINT_PLAN.md`) and ready to start. **63 automated tests** passing (58 backend + 5 web); typecheck, lint, and the web build are all green.
+**Where we are:** Code for Phases **0 through 10 is in the repo**. Milestones **M1 ("It's real")**, **M2 ("Core value" — lifecycle stitching)**, **M3 ("Internal MVP" — monitoring + alerting)**, **M4 ("Sellable" — multi-tenant, RBAC, audit)**, and **M5 ("Production-ready" — retention, rate limits, load-test harness, runbooks)** are all reached *in code*. **278 automated test cases** across 39 files (183 API + 46 parser + 15 db + 34 web); typecheck, lint, and the web build are all green.
+
+**What "code-complete" does NOT mean:** the production deploy is not done. `ops/PRE_PRODUCTION_TODO.md` is the operator checklist of credentialed / wall-clock work that has to happen before an external customer can use the hub — Terraform applies, Clerk live keys, ECS scheduled tasks, the first restore drill in staging. Code is in; environments are not.
 
 | Phase | Status | What exists now |
 |---|---|---|
-| 0 — Decisions & Scaffolding | ✅ Substantially done | npm-workspaces monorepo (`api` / `web` / `edi-parser` / `db` / `shared`), TypeScript project refs, ESLint + Prettier, GitHub Actions CI, `docker-compose` (Postgres + MinIO + SFTP). *Pending: a cloud "hello world" deploy + a formal one-page ADR (deferred until first deploy is needed).* |
-| 1 — Ingestion Spike | ✅ Complete | `POST /ingest/upload` + SFTP folder-watch over one shared pipeline; raw bytes streamed to S3/MinIO; SHA-256; ISA-control-number dedup; structured pino logging; S3 retry/backoff; full failure-mode coverage; `/health`. **Verified end-to-end against real Postgres + S3** (smoke test passed on the pilot machine). |
-| 2 — X12 Parser & Structured Storage | ✅ Complete | `@edi/edi-parser` decomposes ISA→GS→ST/SE→segment→element (batched-safe); persisted to `interchanges / functional_groups / transactions / segments / elements`; **850 + 810** typed interpreters + semantic labels + business keys (PO/invoice); deviation tolerance (Z-segments, 5010, CRLF, etc.); per-transaction `PARSE_ERROR` that preserves sibling transactions; idempotent re-parse + `npm run backfill`. |
-| 3 — Data Hub UI *(M1)* | ✅ Complete | React + Vite + Tailwind app: filterable/paginated transactions list, detail view (typed header + line items + labeled element tree), **raw-vs-parsed toggle**, global search (PO/invoice/ISA), URL-reflected filters, loading/empty/error states. New read API: list filters, `/partners`, `/raw-files/:id/content`, `/search`, `/transactions/:id`. |
-| 4 — Lifecycle Stitching *(M2 · North Star)* | ▶ **Next** | Planned in `PHASE_4_SPRINT_PLAN.md` (link 850/855/856/810 by PO + 997 acks; chronological status-aware timeline). |
-| 5 – 12 | ⏳ Not started | Per the phase plan below. |
+| 0 — Decisions & Scaffolding | ✅ Substantially done | npm-workspaces monorepo (`api` / `web` / `edi-parser` / `db` / `shared`), TypeScript project refs, ESLint + Prettier, GitHub Actions CI, `docker-compose` (Postgres + MinIO + SFTP). *Still pending: a cloud "hello world" deploy + a formal one-page ADR; **the repo is not yet under git / not pushed to a remote** — fix before next change lands.* |
+| 1 — Ingestion Spike | ✅ Complete | `POST /ingest/upload` + SFTP folder-watch over one shared pipeline; raw bytes streamed to S3/MinIO; SHA-256; ISA-control-number dedup; structured logging; S3 retry/backoff; full failure-mode coverage; `/health`. Verified end-to-end against real Postgres + S3 on the pilot machine. |
+| 2 — X12 Parser & Structured Storage | ✅ Complete | `@edi/edi-parser` decomposes ISA→GS→ST/SE→segment→element; persisted to `interchanges / functional_groups / transactions / segments / elements`; **850 + 810** typed interpreters + semantic labels + business keys (PO/invoice); deviation tolerance (Z-segments, 5010, CRLF, etc.); per-transaction `PARSE_ERROR` that preserves sibling transactions; idempotent re-parse + `npm run backfill`. |
+| 3 — Data Hub UI *(M1)* | ✅ Complete | React + Vite + Tailwind app: filterable/paginated transactions list, detail view (typed header + line items + labeled element tree), **raw-vs-parsed toggle**, global search (PO/invoice/ISA), URL-reflected filters, loading/empty/error states. Read API: list filters, `/partners`, `/raw-files/:id/content`, `/search`, `/transactions/:id`. |
+| 4 — Lifecycle Stitching *(M2 · North Star)* | ✅ Code-complete | `services/lifecycle.ts` + `routes/lifecycle.ts` + `LifecyclePage.tsx`; 850/855/856/810 linked by PO; 997 acks linked to their referenced group/transaction; chronological status-aware timeline; missing-document gaps surfaced rather than errored. Covered by `apps/api/test/lifecycle.test.ts` + `apps/web/test/LifecyclePage.test.tsx`. |
+| 5 — 997/999 Acknowledgment Intelligence | ✅ Code-complete | `services/ack-decoder.ts` parses AK1/AK2/AK3/AK4/AK5 + IK segments; `services/rejection.ts` exposes per-partner rejection rates; ack-to-original linkage stored on `Transaction` (acked group / transaction controls + status). Covered by `ack-decoder.test.ts`. |
+| 6 — Trading Partner Configuration | ✅ Code-complete | `TradingPartner` model + `routes/partners-config.ts` + `services/partners.ts` + `PartnersConfigPage.tsx`: supported sets, SLA windows per transaction type, escalation contacts (email-only — phone/Slack handles deferred to §12), connectivity metadata. Consumed by detection in Phase 7. |
+| 7 — Monitoring & Alerting *(M3)* | ✅ Code-complete | `services/detection.ts` + `services/alerts.ts` + `services/notifier.ts` + `routes/alerts.ts` + `AlertsPage.tsx`: missing-ack detection vs. partner SLA; rejection-rate spike detection; email (SES) + Slack webhook delivery; alert history + acknowledgment. **Scheduler is cron / Windows Task Scheduler against `npm run detect`** — BullMQ deferred (see §12). |
+| 8 — Outbound Visibility & Second Ingestion Channel | ✅ Code-complete | Outbound `generated → transmitted → confirmed` state surfaced (`OutboundStage.tsx`, `confirmed-at` backfill). Channel registry abstraction: `apps/api/src/channels/{registry,drop-folder,as2,types}.ts`; second channel is **AS2** (OpenAS2 container under `infra/openas2`, covered by `as2.test.ts` + `channels-registry.test.ts`). |
+| 9 — Multi-Tenancy, Auth & Security *(M4)* | ✅ Code-complete | `Tenant` + `User` + `AuditEvent` models; `packages/db/src/tenant-extension.ts` enforces tenant scoping on every multi-tenant model; `apps/api/src/plugins/rbac.ts` enforces `viewer/ops/admin`; `services/audit.ts` `withAudit` wraps every mutating route; Clerk integration (`webhooks.ts` + `CLERK_SETUP.md`); secrets via AWS Secrets Manager (`services/secrets.ts` + `infra/secrets.tf`). Covered by `isolation.test.ts`, `route-role-matrix.test.ts`, `audit.test.ts`, `auth.test.ts`, `tenant-context.test.ts`, `tenant-extension.test.ts`. |
+| 10 — Production Readiness & Operations *(M5)* | ✅ Code-complete | Retention worker (`services/retention.ts` + `scripts/run-retention.ts`) — per-tenant TTLs on raw files / parsed tree / audit / alerts. Rate limits (`rate-limit.test.ts`, per-tenant + per-IP buckets, `X-RateLimit-*` headers, `429 + Retry-After`). Security headers (`security-headers.test.ts`). Observability: `/internal/metrics` + `/readiness` + CloudWatch log group (`infra/logs.tf`). Backups: `infra/backups.tf` + `infra/backup-task.tf` + `ops/scripts/restore-from-pgdump.sh` + `ops/RESTORE_LOG.md`. Load test harness: `ops/load/k6` + `ops/load/baseline.md`. Runbooks: `ops/RUNBOOKS.md` + `ops/SUPPORT.md`. *Pending: actually applying Terraform, running the first restore drill, running k6 against staging — see `ops/PRE_PRODUCTION_TODO.md`.* |
+| UI Overhaul *(cross-phase polish)* | 📝 Draft | `PHASE_UI_PLAN.md` written 2026-06-22, decision gates A/B/C open (accent color, dark mode, component library). Scope rule: must serve lifecycle/alerts readability — not theming for theming's sake. |
+| 11 — Commercialization Layer | ⏳ Not started | Stripe billing, subscription tiers, self-serve onboarding, ToS / Privacy / DPA, marketing site. Resolve Gate 4 (self-serve vs. direct sales). |
+| 12 — Pilot → First External Customer *(M6)* | ⏳ Not started | Recruit 1–2 non-employer design partners; convert to first paid contract. |
 
-**Sprint plans:** `PHASE_1_SPRINT_PLAN.md`, `PHASE_2_SPRINT_PLAN.md`, `PHASE_3_SPRINT_PLAN.md`, `PHASE_4_SPRINT_PLAN.md`. Parsing deviation catalog: `docs/EDI_DEVIATIONS.md`.
+**Sprint plans on disk:** `PHASE_8_SPRINT_PLAN.md`, `PHASE_9_SPRINT_PLAN.md`, `PHASE_10_SPRINT_PLAN.md`, `PHASE_UI_PLAN.md`. *(PHASE_1–7 sprint plans were used in-flight and are no longer kept once the phase shipped; the BUILD_PLAN is the canonical record.)* Parsing deviation catalog: `docs/EDI_DEVIATIONS.md`. Security sign-off list: `SECURITY_CHECKLIST.md`. Operator deploy checklist: `ops/PRE_PRODUCTION_TODO.md`.
 
-**Decisions confirmed so far:** SaaS (not on-prem); AWS S3 / MinIO object storage + PostgreSQL; passive-copy ingestion (SFTP / authenticated upload); first sets **850 + 810** parsed (855/856/997 arrive in Phase 4/5); X12 **4010** primary with 5010 tolerated; **single-tenant first** (multi-tenancy in Phase 9); UI **ungated on localhost** for the internal pilot (real auth in Phase 9); parsing runs **inline** for now (BullMQ deferred to Phase 7).
+**Decisions confirmed so far:** SaaS (not on-prem); AWS (S3, RDS, ECS, ALB, SES, Secrets Manager, CloudWatch) + MinIO locally; passive-copy ingestion (SFTP, authenticated upload, AS2); first sets **850 + 810** parsed end-to-end, 855/856/997 linked through lifecycle + ack decoder; X12 **4010** primary with 5010 tolerated; **multi-tenant** with tenant context + RBAC + audit (Phase 9 retrofit done); auth via **Clerk** (live keys still to be wired per `ops/PRE_PRODUCTION_TODO.md`); detection scheduler is **cron / Task Scheduler** (BullMQ deferred — see §12).
+
+## What's left to do
+
+**1. Foundation gap (do today):** put the repo under git and push to a private remote. Currently no `.git/` directory exists.
+
+**2. Production deploy (operator work, ~1–2 weeks wall-clock):** work through `ops/PRE_PRODUCTION_TODO.md` end-to-end — Terraform applies for VPC/RDS/ALB/S3/Secrets, populate Secrets Manager with live values, wire Clerk live keys + webhook, ECS task definitions for API + retention worker, run the first backup-restore drill in staging, run k6 against the deployed staging URL to confirm load targets. Until this is done, M5 is reached in code only.
+
+**3. UI Overhaul (1–2 sprints):** resolve `PHASE_UI_PLAN.md` decision gates A/B/C, then execute. Hold the scope to lifecycle/alerts readability — apply the anti-drift rule.
+
+**4. Phase 11 — Commercialization (4–6 weeks):** Stripe + tiers, self-serve onboarding flow, customer-facing docs, marketing/landing site, ToS / Privacy / DPA. Resolve **Gate 4** (self-serve vs. direct sales) before starting.
+
+**5. Phase 12 — First external customer:** recruit 1–2 non-employer design partners; structured feedback loop; convert to first paid contract. **M6 — In market.**
+
+**6. Open Questions from §10 that are still open in writing:** **Q7 (data rights / IP ownership re: employer)** and **Q11 (business entity)** — both flagged as blockers in the original plan, both ungated and now eight phases past their stated gate. Resolve and record before commercialization.
+
+**7. Deferred-not-rejected items in §12** — review the list at the start of each Phase 11/12 sprint; some (BullMQ scheduler, per-tenant `OUR_ISA_IDS` if not yet done, PagerDuty, ML rejection-rate detection) may belong in the commercial tier rather than the base build.
 
 ---
 
@@ -140,44 +166,51 @@ Use TypeScript throughout — both frontend and backend. EDI parsing is a data t
 **Effort:** 3–4 weeks.
 **Milestone — "It's real."**
 
-### Phase 4 — Transaction Lifecycle Stitching *(North Star)*  ▶ NEXT
+### Phase 4 — Transaction Lifecycle Stitching *(North Star)*  ✅ CODE-COMPLETE *(M2 reached)*
 **Goal:** Link related transactions into one business-transaction view.
 **Tangible result:** Enter a PO number → see the 850, 855, 856, 810, and all associated 997s in chronological order, each with a status indicator.
 **Exit criteria:** A real PO from your pilot renders a complete, correct lifecycle. Missing-document cases shown as gaps, not errors.
 **Effort:** 3–5 weeks.
 **Milestone — Core product value achieved.**
 
-### Phase 5 — 997/999 Acknowledgment Intelligence
+### Phase 5 — 997/999 Acknowledgment Intelligence  ✅ CODE-COMPLETE
 **Goal:** Turn 997s into an operational signal.
 **Tangible result:** A rejected 997 shows exactly which segment and element failed, in plain English.
 **Effort:** 2–3 weeks.
 
-### Phase 6 — Trading Partner Configuration Layer
+### Phase 6 — Trading Partner Configuration Layer  ✅ CODE-COMPLETE
 **Goal:** Give the system a definition of "normal" per partner.
 **Effort:** ~2 weeks.
 
-### Phase 7 — Monitoring & Alerting
+### Phase 7 — Monitoring & Alerting  ✅ CODE-COMPLETE *(M3 reached)*
 **Goal:** Move from "view what happened" to "tell me when something's wrong."
 **Tangible result:** Alert when an expected acknowledgment doesn't arrive within a partner's configured SLA window.
 **Effort:** 3–4 weeks.
 **Milestone — Internal MVP (M3).**
 
-### Phase 8 — Outbound Visibility & Second Ingestion Channel
+### Phase 8 — Outbound Visibility & Second Ingestion Channel  ✅ CODE-COMPLETE
+Second channel landed as **AS2** (OpenAS2). Outbound state model: generated → transmitted → confirmed.
 **Effort:** 2–4 weeks.
 
-### Phase 9 — Multi-Tenancy, Auth & Security Hardening
+### Phase 9 — Multi-Tenancy, Auth & Security Hardening  ✅ CODE-COMPLETE *(M4 reached)*
 **Goal:** Convert a validated single-company tool into a secure product you can sell.
+Tenant context + Prisma extension, RBAC (`viewer/ops/admin`), audit log on every mutation, Clerk auth, AWS Secrets Manager. Isolation, role-matrix, and audit tests in place.
 **Effort:** 4–6 weeks.
 **Milestone — "Sellable" boundary (M4).**
 
-### Phase 10 — Production Readiness & Operations
+### Phase 10 — Production Readiness & Operations  ✅ CODE-COMPLETE *(M5 reached in code)*
+Retention worker, rate limits, security headers, observability endpoints, CloudWatch log group, backups + restore script, k6 load harness, runbooks. **Deploy / drill work tracked in `ops/PRE_PRODUCTION_TODO.md`** — until that is signed off, M5 is reached in code only.
 **Effort:** 2–4 weeks.
 **Milestone — Production-ready (M5).**
 
-### Phase 11 — Commercialization Layer
+### UI Overhaul *(cross-phase polish)*  📝 DRAFT
+`PHASE_UI_PLAN.md` written 2026-06-22. Decision gates A (accent color), B (dark-mode timing), C (component library) are open. Scope must serve lifecycle/alerts readability — anti-drift rule applies.
+
+### Phase 11 — Commercialization Layer  ⏳ NOT STARTED
+Stripe + tiers, self-serve onboarding, customer-facing docs, marketing site, ToS / Privacy / DPA. Resolve Gate 4 (self-serve vs. direct sales) first.
 **Effort:** 4–6 weeks.
 
-### Phase 12 — Pilot → First External Customer
+### Phase 12 — Pilot → First External Customer  ⏳ NOT STARTED
 **Milestone — In market (M6).**
 
 ---
