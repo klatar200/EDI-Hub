@@ -1,0 +1,6 @@
+**/dist/**
+**/build/**
+**/node_modules/**
+**/generated/**
+**/*.tsbuildinfo
+package-lock.json

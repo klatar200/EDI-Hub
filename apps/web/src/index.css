@@ -1,0 +1,213 @@
+@import 'tailwindcss';
+
+/* ─────────────────────────────────────────────────────────────────────
+   UI Phase Sprint 1 — Design tokens (light + dark).
+
+   Tailwind v4: @theme registers light-mode defaults as CSS custom
+   properties. The `.dark` scope below overrides them for dark mode.
+   `@custom-variant dark` rewires the `dark:` Tailwind utility prefix
+   to fire on any ancestor with class="dark" (we toggle that on <html>
+   from ThemeProvider).
+
+   Anchors:
+     - Brand:   indigo (Linear-adjacent, calm professional).
+     - Status:  green / amber / red / blue for success / warn / error / info.
+     - Neutral: surface tokens swap between light and dark.
+     - Mono:    JetBrains Mono for raw EDI; Inter for UI.
+   ───────────────────────────────────────────────────────────────────── */
+
+@custom-variant dark (&:where(.dark, .dark *));
+
+@theme {
+  /* Typography */
+  --font-sans: 'Inter', ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  --font-mono: 'JetBrains Mono', ui-monospace, 'SF Mono', 'Cascadia Code', Menlo, Consolas, monospace;
+
+  /* Brand — indigo. Same scale in light + dark; the surrounding surface
+     tokens shift instead, so the brand stays consistent across themes. */
+  --color-brand-50:  oklch(0.96 0.02 282);
+  --color-brand-100: oklch(0.92 0.04 282);
+  --color-brand-200: oklch(0.85 0.08 282);
+  --color-brand-300: oklch(0.76 0.12 282);
+  --color-brand-400: oklch(0.66 0.17 282);
+  --color-brand-500: oklch(0.55 0.22 282);
+  --color-brand-600: oklch(0.47 0.22 282);
+  --color-brand-700: oklch(0.39 0.20 282);
+  --color-brand-800: oklch(0.32 0.16 282);
+  --color-brand-900: oklch(0.25 0.12 282);
+
+  /* Surface + foreground — LIGHT defaults. */
+  --color-surface-bg:     oklch(0.99 0.003 250);
+  --color-surface-card:   oklch(1.00 0.000 0);
+  --color-surface-muted:  oklch(0.97 0.005 250);
+  --color-surface-border: oklch(0.92 0.010 250);
+  --color-surface-ring:   oklch(0.85 0.020 250);
+
+  --color-fg:             oklch(0.20 0.020 260);
+  --color-fg-muted:       oklch(0.45 0.010 260);
+  --color-fg-subtle:      oklch(0.60 0.010 260);
+
+  /* Status — LIGHT defaults. */
+  --color-success-50:  oklch(0.96 0.04 155);
+  --color-success-500: oklch(0.62 0.16 155);
+  --color-success-700: oklch(0.48 0.13 155);
+
+  --color-warn-50:     oklch(0.97 0.05 80);
+  --color-warn-500:    oklch(0.72 0.16 80);
+  --color-warn-700:    oklch(0.55 0.14 80);
+
+  --color-error-50:    oklch(0.96 0.04 25);
+  --color-error-500:   oklch(0.60 0.20 25);
+  --color-error-700:   oklch(0.48 0.18 25);
+
+  --color-info-50:     oklch(0.96 0.03 240);
+  --color-info-500:    oklch(0.62 0.16 240);
+  --color-info-700:    oklch(0.50 0.15 240);
+
+  /* Radii + shadows */
+  --radius-xs: 0.25rem;
+  --radius-sm: 0.375rem;
+  --radius-md: 0.5rem;
+  --radius-lg: 0.75rem;
+  --radius-xl: 1rem;
+
+  --shadow-xs: 0 1px 2px 0 oklch(0.20 0.020 260 / 0.04);
+  --shadow-sm: 0 2px 4px 0 oklch(0.20 0.020 260 / 0.06), 0 1px 2px 0 oklch(0.20 0.020 260 / 0.04);
+  --shadow-md: 0 4px 12px -2px oklch(0.20 0.020 260 / 0.08), 0 2px 4px 0 oklch(0.20 0.020 260 / 0.04);
+  --shadow-lg: 0 12px 32px -8px oklch(0.20 0.020 260 / 0.12), 0 4px 8px 0 oklch(0.20 0.020 260 / 0.06);
+
+  /* Motion — keep these tight. Functional transitions only (hover, open/close).
+     Reduced-motion overrides below collapse them to instant. */
+  --duration-fast:  120ms;  /* hover, focus, small flips */
+  --duration-med:   200ms;  /* dropdown open, modal fade */
+  --duration-slow:  280ms;  /* drawer slide, full-page transitions */
+  --ease-out:       cubic-bezier(0.16, 1, 0.3, 1);   /* deceleration, "settle" */
+  --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);  /* symmetric, default */
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Dark-mode overrides. Triggered by class="dark" on <html> (set by
+   ThemeProvider). Brand colors stay the same; surfaces invert; foreground
+   contrast adjusts. Status backgrounds get a touch darker so they don't
+   blow out on a dark surface.
+   ───────────────────────────────────────────────────────────────────── */
+
+.dark {
+  --color-surface-bg:     oklch(0.14 0.010 260);
+  --color-surface-card:   oklch(0.18 0.012 260);
+  --color-surface-muted:  oklch(0.22 0.014 260);
+  --color-surface-border: oklch(0.28 0.016 260);
+  --color-surface-ring:   oklch(0.40 0.020 260);
+
+  --color-fg:             oklch(0.96 0.005 260);
+  --color-fg-muted:       oklch(0.72 0.012 260);
+  --color-fg-subtle:      oklch(0.56 0.012 260);
+
+  --color-success-50:  oklch(0.22 0.05 155);
+  --color-success-500: oklch(0.66 0.16 155);
+  --color-success-700: oklch(0.80 0.13 155);
+
+  --color-warn-50:     oklch(0.24 0.06 80);
+  --color-warn-500:    oklch(0.76 0.16 80);
+  --color-warn-700:    oklch(0.86 0.13 80);
+
+  --color-error-50:    oklch(0.22 0.06 25);
+  --color-error-500:   oklch(0.66 0.20 25);
+  --color-error-700:   oklch(0.82 0.16 25);
+
+  --color-info-50:     oklch(0.22 0.05 240);
+  --color-info-500:    oklch(0.68 0.16 240);
+  --color-info-700:    oklch(0.82 0.13 240);
+
+  /* Shadows on dark surfaces use a darker base so they don't disappear. */
+  --shadow-xs: 0 1px 2px 0 oklch(0.05 0.010 260 / 0.30);
+  --shadow-sm: 0 2px 4px 0 oklch(0.05 0.010 260 / 0.35), 0 1px 2px 0 oklch(0.05 0.010 260 / 0.25);
+  --shadow-md: 0 4px 12px -2px oklch(0.05 0.010 260 / 0.45), 0 2px 4px 0 oklch(0.05 0.010 260 / 0.30);
+  --shadow-lg: 0 12px 32px -8px oklch(0.05 0.010 260 / 0.55), 0 4px 8px 0 oklch(0.05 0.010 260 / 0.40);
+
+  color-scheme: dark;
+}
+
+/* Webfonts */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap');
+
+@layer base {
+  html {
+    color-scheme: light;
+  }
+  body {
+    font-family: var(--font-sans);
+    background-color: var(--color-surface-bg);
+    color: var(--color-fg);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  *:focus-visible {
+    outline: 2px solid var(--color-brand-500);
+    outline-offset: 2px;
+    border-radius: var(--radius-xs);
+  }
+  code, kbd, samp, pre {
+    font-family: var(--font-mono);
+  }
+}
+
+/* Reduced motion — respect the OS-level user preference. Collapse every
+   transition + animation to a near-zero duration. Functional state changes
+   still happen, but the motion disappears. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 1ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 1ms !important;
+    scroll-behavior: auto !important;
+  }
+}
+
+/* ─────────────────────────────────────────────────────────────────────
+   Print stylesheet — Lifecycle pages get screenshot'd / PDF'd for
+   vendor handoffs. Print output strips chrome, forces light surfaces,
+   and breaks cleanly across pages.
+   ───────────────────────────────────────────────────────────────────── */
+@media print {
+  /* Always print in light mode so vendors see consistent output
+     regardless of the operator's UI preference. */
+  html, .dark {
+    color-scheme: light;
+    --color-surface-bg:     #ffffff;
+    --color-surface-card:   #ffffff;
+    --color-surface-muted:  #f6f6f7;
+    --color-surface-border: #d1d5db;
+    --color-fg:             #111827;
+    --color-fg-muted:       #4b5563;
+    --color-fg-subtle:      #6b7280;
+  }
+  body { background: #ffffff !important; }
+  /* App-level chrome we always hide in print: the sticky nav header. */
+  header { display: none !important; }
+  /* Per-element opt-out — components use `print:hidden` on action
+     buttons (Print, Retry, View, Acknowledge, expand/collapse). */
+  .print\:hidden { display: none !important; }
+  /* Don't break a timeline event card across pages mid-row. */
+  li[data-kind] { break-inside: avoid; }
+  /* Tighten timeline rail dot stroke on white — the ring-4 rings
+     blend with the page so keep them but with a stronger color. */
+  main { padding: 0 !important; }
+}
+
+/* Compat utilities — kept until pages adopt typed primitives in later sprints. */
+@layer components {
+  .input,
+  .select {
+    @apply block w-full rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] px-3 py-1.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-fg-subtle)] shadow-xs transition focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30;
+  }
+  .btn {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] px-3 py-1.5 text-sm font-medium text-[var(--color-fg)] shadow-xs transition hover:bg-[var(--color-surface-muted)] active:bg-[var(--color-surface-muted)] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-1.5 rounded-md border border-transparent bg-[var(--color-brand-500)] px-3 py-1.5 text-sm font-medium text-white shadow-xs transition hover:bg-[var(--color-brand-600)] active:bg-[var(--color-brand-700)] disabled:cursor-not-allowed disabled:opacity-40;
+  }
+  .card {
+    @apply rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs;
+  }
+}

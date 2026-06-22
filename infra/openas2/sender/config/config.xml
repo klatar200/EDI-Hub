@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OpenAS2 sender — Phase 8 Sprint 2 local sandbox skeleton.
+
+  Polls /opt/openas2/data/outbox (mapped to infra/openas2/sender/outbox on the
+  host) and POSTs each file as an AS2 message to the receiver daemon at
+  http://openas2-receiver:10080/HTTPReceiver. Replace placeholders per
+  infra/openas2/README.md.
+-->
+<openas2>
+  <certificates classname="org.openas2.cert.PKCS12CertificateFactory"
+                filename="%home%/data/certs/keystore.p12"
+                password="changeit"/>
+
+  <partnerships classname="org.openas2.partner.XMLPartnershipFactory"
+                filename="%home%/config/partnerships.xml"/>
+
+  <commandProcessor classname="org.openas2.cmd.processor.StreamCommandProcessor"
+                    portid="4322"/>
+
+  <processor classname="org.openas2.processor.DefaultProcessor"
+             pendingMDN="%home%/data/pending-mdn"
+             pendingMDNinfo="%home%/data/pending-mdn-info">
+    <module classname="org.openas2.processor.receiver.AS2DirectoryPollingModule"
+            outboxdir="%home%/data/outbox"
+            errordir="%home%/data/error"
+            interval="5"
+            defaults="sender.as2_id=PARTNER, receiver.as2_id=HUB"
+            sendfilename="true"/>
+
+    <module classname="org.openas2.processor.sender.AS2SenderModule"/>
+
+    <module classname="org.openas2.processor.receiver.AS2MDNReceiverModule"
+            port="10082"
+            errordir="%home%/data/error"/>
+  </processor>
+</openas2>

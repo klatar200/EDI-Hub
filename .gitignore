@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+build/
+*.tsbuildinfo
+
+# Prisma generated client
+packages/db/generated/
+
+# Environment / secrets — never commit
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+logs/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/*
+!.vscode/extensions.json
+
+# Local data volumes
+.data/
+tmp/
+
+
+
+# SFTP drop folders (local dev)
+.sftp/

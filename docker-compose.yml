@@ -1,0 +1,116 @@
+# Local development infrastructure for the EDI Data Hub ingestion spike.
+# Postgres = structured data. MinIO = S3-compatible object storage for raw
+# files. SFTP = a stand-in trading-partner drop folder (Sprint 2).
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: edi-postgres
+    environment:
+      POSTGRES_USER: edi
+      POSTGRES_PASSWORD: edi
+      POSTGRES_DB: edi_hub
+    ports:
+      - '5432:5432'
+    volumes:
+      - ./.data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U edi -d edi_hub']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  minio:
+    image: minio/minio:latest
+    container_name: edi-minio
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    ports:
+      - '9000:9000' # S3 API
+      - '9001:9001' # Web console
+    volumes:
+      - ./.data/minio:/data
+    healthcheck:
+      test: ['CMD', 'mc', 'ready', 'local']
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  # One-shot job: create the bucket and enable versioning (raw file is sacred).
+  minio-init:
+    image: minio/mc:latest
+    container_name: edi-minio-init
+    depends_on:
+      minio:
+        condition: service_started
+    entrypoint: >
+      /bin/sh -c "
+      until (mc alias set local http://minio:9000 minioadmin minioadmin) do echo 'waiting for minio'; sleep 1; done;
+      mc mb --ignore-existing local/edi-raw-files;
+      mc version enable local/edi-raw-files;
+      mc anonymous set none local/edi-raw-files;
+      echo 'bucket ready';
+      "
+
+  # Stand-in trading-partner SFTP drop. Files uploaded to /incoming land in
+  # apps/api/.sftp/incoming on the host — the folder the API's watcher actually
+  # watches (the dev server runs with its cwd at apps/api). The watcher then
+  # moves them to apps/api/.sftp/processed (or /failed).
+  # Credentials: edi / edi on port 2222.  e.g.
+  #   sftp -P 2222 edi@localhost   then  put sample_850.edi incoming/
+  sftp:
+    image: atmoz/sftp:latest
+    container_name: edi-sftp
+    command: edi:edi:::incoming
+    ports:
+      - '2222:22'
+    volumes:
+      - ./apps/api/.sftp/incoming:/home/edi/incoming
+
+  # ─────────────────────────────────────────────────────────────
+  # Phase 8 Sprint 2 — AS2 receive sandbox (profile-gated).
+  #
+  # Two OpenAS2 instances simulate a real partner pair locally:
+  #   - openas2-receiver: the "hub" side. Receives AS2 messages on :10080,
+  #     decrypts + verifies, and drops plaintext EDI into a host folder
+  #     the API's AS2 channel watches (apps/api/.as2/inbox).
+  #   - openas2-sender:   the "partner" side. Used by tests / manual sends
+  #     to POST AS2 messages at the receiver.
+  #
+  # Both are profile-gated so `docker compose up` keeps the dev environment
+  # lean. Bring them up with:
+  #     docker compose --profile as2 up
+  #
+  # Certificates and partnership XML are NOT shipped — they need to be
+  # generated locally per the steps in infra/openas2/README.md before these
+  # services will start cleanly.
+  # ─────────────────────────────────────────────────────────────
+  openas2-receiver:
+    # Pin to a digest you've verified locally before relying on this in CI.
+    # freightdesk/openas2 is the actively-maintained published image. Pin to a
+    # digest you've verified locally before relying on this in CI.
+    image: freightdesk/openas2:latest
+    container_name: edi-openas2-receiver
+    profiles: ['as2']
+    ports:
+      - '10080:10080' # AS2 HTTP receive
+    volumes:
+      - ./infra/openas2/receiver/config:/opt/openas2/config:ro
+      - ./infra/openas2/receiver/data:/opt/openas2/data
+      # Decrypted, signature-verified EDI lands here — the hub's AS2 channel
+      # watches the same folder on the host side.
+      - ./apps/api/.as2/inbox:/opt/openas2/data/inbox
+
+  openas2-sender:
+    # freightdesk/openas2 is the actively-maintained published image. Pin to a
+    # digest you've verified locally before relying on this in CI.
+    image: freightdesk/openas2:latest
+    container_name: edi-openas2-sender
+    profiles: ['as2']
+    depends_on:
+      - openas2-receiver
+    volumes:
+      - ./infra/openas2/sender/config:/opt/openas2/config:ro
+      - ./infra/openas2/sender/data:/opt/openas2/data
+      - ./infra/openas2/sender/outbox:/opt/openas2/data/outbox

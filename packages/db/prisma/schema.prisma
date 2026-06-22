@@ -1,0 +1,454 @@
+// EDI Data Hub — Prisma schema
+//
+// Phase 1: `raw_files` (the sacred raw transmission, anchored to its S3 object).
+// Phase 2: the decomposed tree — interchanges -> functional_groups ->
+// transactions -> segments -> elements — every row tracing back to a raw_file.
+// Phase 4: lifecycle linkage on `transactions` — shipmentId, 997 ack-linkage
+// (acked group/transaction controls + status), and direction (inbound/outbound).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+/// Lifecycle status of an ingested raw file.
+///
+/// Phase 10 Sprint 3 — added `ARCHIVED`: the retention worker flips
+/// raw files past their TTL to this status (and removes the underlying
+/// S3 object) instead of deleting the row, so lineage from a parsed
+/// transaction back to its source file survives.
+enum RawFileStatus {
+  RECEIVED
+  DUPLICATE
+  PARSED
+  PARSE_ERROR
+  UNRECOGNIZED_FORMAT
+  FAILED
+  ARCHIVED
+}
+
+/// How a raw file physically arrived. Passive copies only.
+/// Phase 8 Sprint 2 added 'as2' — the OpenAS2 daemon decrypts and drops
+/// the plaintext EDI into a watched folder; we never sit in the live path.
+enum SourceChannel {
+  upload
+  sftp
+  as2
+}
+
+/// Direction of a transaction relative to "us" (the hub's operator).
+/// Computed at parse time by comparing the interchange sender / receiver IDs
+/// against the configured OUR_ISA_IDS list. `unknown` when neither side matches.
+enum Direction {
+  inbound
+  outbound
+  unknown
+}
+
+/// Phase 6 — status of a configured trading partner.
+enum PartnerStatus {
+  active
+  disabled
+}
+
+/// Phase 9 Sprint 1 — a single isolated customer of the hub. Every
+/// multi-tenant table FKs to this; the Prisma extension (Sprint 1.2) refuses
+/// to run a query without an active tenant context, so cross-tenant reads
+/// are structurally impossible in normal code paths.
+///
+/// Clerk Organizations are the source of identity: `clerkOrgId` is populated
+/// by the Clerk webhook in Sprint 2 and is unique. Pre-Sprint-2 the column
+/// is nullable so the pilot tenant (seeded by the Phase 9.1 migration) can
+/// exist before Clerk is wired up.
+///
+/// `ourIsaIds` moves here from the env var so direction resolution and
+/// partner resolution become tenant-scoped (Sprint 1.4).
+model Tenant {
+  id          String   @id @default(uuid()) @db.Uuid
+  displayName String   @map("display_name")
+  clerkOrgId  String?  @unique @map("clerk_org_id")
+  ourIsaIds   String[] @default([]) @map("our_isa_ids")
+  /// Phase 10 Sprint 3 — per-tenant TTLs in days. The retention worker
+  /// reads this on every sweep. Shape:
+  ///   { "rawFiles": 540, "parsedTree": 540, "auditEvents": 365, "alerts": 365 }
+  /// Defaults baked into the migration; admins can override per tenant
+  /// in a future phase. Set a value to 0 to disable retention for that
+  /// category (audit log uses this in regulated industries).
+  retention   Json     @default("{\"rawFiles\":540,\"parsedTree\":540,\"auditEvents\":365,\"alerts\":365}")
+  /// Phase 10 Sprint 3.4 — tenant soft-delete. Set when an admin calls
+  /// DELETE /tenants/me. The retention worker hard-deletes the tenant +
+  /// every tenant-scoped row 30 days after this timestamp.
+  deletedAt   DateTime? @map("deleted_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  tradingPartners  TradingPartner[]
+  rawFiles         RawFile[]
+  interchanges     Interchange[]
+  functionalGroups FunctionalGroup[]
+  transactions     Transaction[]
+  segments         Segment[]
+  elements         Element[]
+  alerts           Alert[]
+  users            User[]
+  auditEvents      AuditEvent[]
+
+  @@map("tenants")
+}
+
+/// Phase 9 Sprint 4 — Audit log of every state-changing action taken by a
+/// user or system actor. The route layer wraps each mutation in a Prisma
+/// `$transaction` that also calls `emitAudit` — if the audit insert fails,
+/// the data write rolls back too. Coverage stays honest (silent audit gaps
+/// are worse than user-facing errors).
+///
+/// `actorId` is nullable so webhook-driven writes (the Clerk org-provision
+/// webhook, scripts running outside an authenticated request, and dev-
+/// fallback when Clerk is not configured) can still emit rows without a
+/// real User reference. `action` is a stable string like `partner.create`,
+/// `alert.ack`, `user.role-change`; the GET /audit route filters on it.
+/// `payloadDiff` is `{ before?, after? }` or any partial JSON the writer
+/// wants to preserve for forensic context.
+model AuditEvent {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// User.id (uuid). Null for webhook + dev-fallback + scripted actions.
+  actorId     String?  @map("actor_id") @db.Uuid
+  /// Stable verb, e.g. `partner.create`, `partner.update`, `partner.delete`,
+  /// `alert.ack`, `alert.snooze`, `user.role-change`, `user.delete`.
+  action      String
+  /// What kind of row this event mutated: `tradingPartner`, `alert`, `user`.
+  targetType  String   @map("target_type")
+  /// The id of the mutated row (uuid as text — leaving the column flexible
+  /// for non-uuid targets in future, e.g. composite keys).
+  targetId    String   @map("target_id")
+  /// `{ before?, after? }` JSON. Either side may be omitted (create has no
+  /// before; delete has no after).
+  payloadDiff Json     @default("{}") @map("payload_diff")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([tenantId, createdAt])
+  @@index([actorId])
+  @@index([action])
+  @@map("audit_events")
+}
+
+/// Phase 9 Sprint 2 — RBAC role on every User. Defaults to `viewer`; the
+/// Clerk webhook promotes the org creator to `admin`. Subsequent additions
+/// stay `viewer` until an admin promotes them via the Users page.
+enum UserRole {
+  admin
+  ops
+  viewer
+}
+
+/// Phase 9 Sprint 2 — a person who can sign into the hub. Identity is owned
+/// by Clerk (`clerkUserId`); the User row carries the tenant scope + role +
+/// cached display fields. A user who belongs to multiple Clerk organizations
+/// has one User row per tenant — role and scope live with the User row, not
+/// the Clerk identity.
+model User {
+  id          String   @id @default(uuid()) @db.Uuid
+  tenantId    String   @map("tenant_id") @db.Uuid
+  tenant      Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// Clerk user id (`user_*`). Unique within a tenant — see the composite
+  /// index for the exact constraint.
+  clerkUserId String   @map("clerk_user_id")
+  email       String
+  displayName String?  @map("display_name")
+  role        UserRole @default(viewer)
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@unique([tenantId, clerkUserId])
+  @@index([tenantId])
+  @@index([clerkUserId])
+  @@map("users")
+}
+
+/// Phase 6 — a configured trading partner profile. Sprint 1 ships identity,
+/// notes, and contacts; Sprint 2 layers supported-set / flow / ack-override
+/// JSONB; Sprint 3 layers SLA JSONB. `tenantId` is nullable now and will be
+/// populated + indexed in Phase 9 multi-tenancy.
+model TradingPartner {
+  id              String        @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — promoted from nullable to required. Enforced by
+  /// the Prisma extension on every write.
+  tenantId        String        @map("tenant_id") @db.Uuid
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  displayName     String        @map("display_name")
+  /// ISA sender identifiers this partner sends FROM (inbound to us).
+  isaSenderIds    String[]      @map("isa_sender_ids")
+  /// ISA receiver identifiers this partner is sent TO (outbound from us).
+  isaReceiverIds  String[]      @map("isa_receiver_ids")
+  status          PartnerStatus @default(active)
+  notes           String?
+  /// Phase 6 Sprint 2 — partner-configurable parser/lifecycle inputs.
+  /// Empty allow list (`[]`) means "accept any set" (backward compat).
+  supportedSets     String[]      @default([]) @map("supported_sets")
+  /// Per-partner lifecycle flow definitions: `[{ name, entrySetId, steps[] }]`.
+  /// Empty array means "use the shipped defaults" (standard / grocery).
+  lifecycleFlows    Json          @default("[]") @map("lifecycle_flows")
+  /// Per-partner ack-code overrides keyed by AK field, e.g.
+  /// `{ AK304: { "8": "Custom phrasing" }, AK403: { ... } }`.
+  ackCodeOverrides  Json          @default("{}") @map("ack_code_overrides")
+  /// Phase 6 Sprint 3 — per-(set, direction) SLA windows:
+  /// `[{ setId, direction, withinMinutes, expectedAckSetId? }]`.
+  /// Empty array means no SLA — Phase 7's missing-ack detector skips the
+  /// partner. Calendar-aware (business-hours / weekday-only) SLAs go to
+  /// BUILD_PLAN §12 Future Features.
+  slaWindows        Json          @default("[]") @map("sla_windows")
+  /// Phase 6 Sprint 1 — email-only contacts as `[{ name, email, role }]`.
+  /// Phase 6 + Future Features will layer phone / Slack / on-call.
+  contacts        Json          @default("[]")
+  /// Phase 8 Sprint 3 — connectivity metadata per Gate C:
+  ///   { channel: 'AS2' | 'SFTP' | 'VAN' | 'API' | 'EMAIL',
+  ///     endpoint: string,
+  ///     technicalContact: string,
+  ///     notes?: string }
+  /// Empty object `{}` means "not yet configured" — the lifecycle UI hides
+  /// the channel chip in that case. Credentials are never stored here; they
+  /// live in the env / secrets manager and are referenced by name from
+  /// `endpoint` or `notes`.
+  connectivity    Json          @default("{}")
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+
+  @@index([tenantId])
+  @@index([status])
+  @@map("trading_partners")
+}
+
+
+/// Phase 7 — what kind of alert was emitted.
+enum AlertType {
+  MISSING_ACK
+  REJECTION_RATE_SPIKE
+  STALE_TRAFFIC
+}
+
+/// Phase 7 — alert lifecycle status.
+enum AlertStatus {
+  active
+  acknowledged
+  resolved
+}
+
+/// Phase 7 — severity, used by the UI for coloring + sorting.
+enum AlertSeverity {
+  info
+  warning
+  critical
+}
+
+/// Phase 7 — a single emitted alert. Idempotent on `dedupeKey`: detection
+/// reruns update `lastSeenAt` on an existing row rather than inserting a duplicate.
+model Alert {
+  id              String        @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope.
+  tenantId        String        @map("tenant_id") @db.Uuid
+  tenant          Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  /// Nullable: some alerts are scoped to a partner, others are global.
+  partnerId       String?       @map("partner_id") @db.Uuid
+  type            AlertType
+  severity        AlertSeverity @default(warning)
+  title           String
+  body            String
+  /// `(partnerId|global, type, sourceRef)` uniqueness anchor — rerunning the
+  /// same detection on the same source doesn't insert another row.
+  dedupeKey       String        @unique @map("dedupe_key")
+  /// Structured pointer back at the originator (txn id, group control, etc.).
+  sourceRef       Json          @default("{}") @map("source_ref")
+  status          AlertStatus   @default(active)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  lastSeenAt      DateTime      @default(now()) @map("last_seen_at")
+  /// Set when status flips to acknowledged or resolved.
+  acknowledgedAt  DateTime?     @map("acknowledged_at")
+  acknowledgedBy  String?       @map("acknowledged_by")
+  /// Suppress further duplicate alerts (same dedupeKey) until this time.
+  /// Phase 7 Sprint 1 leaves this unused; Sprint 3 will set it for snooze.
+  suppressUntil   DateTime?     @map("suppress_until")
+
+  @@index([partnerId])
+  @@index([type])
+  @@index([status])
+  @@index([createdAt])
+  @@index([tenantId, createdAt])
+  @@map("alerts")
+}
+
+/// One row per ingested EDI transmission file.
+model RawFile {
+  id           String        @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope.
+  tenantId     String        @map("tenant_id") @db.Uuid
+  tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  s3Key        String        @unique @map("s3_key")
+  fileHash     String        @map("file_hash")
+  isaControlNumber String?   @unique @map("isa_control_number")
+  source       SourceChannel
+  status       RawFileStatus @default(RECEIVED)
+  errorMessage String?       @map("error_message")
+  ingestedAt   DateTime      @default(now()) @map("ingested_at")
+
+  /// The decomposed interchange (Phase 2). Null until parsed.
+  interchange  Interchange?
+
+  @@index([fileHash])
+  @@index([ingestedAt])
+  @@index([tenantId, ingestedAt])
+  @@map("raw_files")
+}
+
+/// ISA envelope — one per raw file (one interchange per transmission).
+model Interchange {
+  id               String   @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope. Copied from the parent rawFile
+  /// at create time so every leaf row carries it (no joins required to filter).
+  tenantId         String   @map("tenant_id") @db.Uuid
+  tenant           Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  rawFileId        String   @unique @map("raw_file_id") @db.Uuid
+  isaControlNumber String   @map("isa_control_number")
+  senderId         String   @map("sender_id")
+  receiverId       String   @map("receiver_id")
+  /// ISA12 interchange control version (e.g. "00401").
+  version          String
+  /// IEA01 declared group count (null if absent/unparseable).
+  declaredGroupCount Int?   @map("declared_group_count")
+  elementSeparator    String @map("element_separator")
+  subElementSeparator String @map("sub_element_separator")
+  segmentTerminator   String @map("segment_terminator")
+  parsedAt         DateTime @default(now()) @map("parsed_at")
+
+  rawFile          RawFile  @relation(fields: [rawFileId], references: [id], onDelete: Cascade)
+  functionalGroups FunctionalGroup[]
+
+  @@index([tenantId])
+  @@map("interchanges")
+}
+
+/// GS/GE functional group.
+model FunctionalGroup {
+  id                       String @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope.
+  tenantId                 String @map("tenant_id") @db.Uuid
+  tenant                   Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  interchangeId            String @map("interchange_id") @db.Uuid
+  /// GS01 functional identifier code (e.g. "PO", "IN").
+  functionalIdCode         String @map("functional_id_code")
+  /// GS06 group control number.
+  controlNumber            String @map("control_number")
+  /// GS08 version (e.g. "004010"). Surfaces 4010 vs 5010.
+  version                  String
+  /// GE01 declared transaction count (null if absent).
+  declaredTransactionCount Int?   @map("declared_transaction_count")
+
+  interchange  Interchange   @relation(fields: [interchangeId], references: [id], onDelete: Cascade)
+  transactions Transaction[]
+
+  @@index([interchangeId])
+  @@index([tenantId])
+  @@map("functional_groups")
+}
+
+/// ST/SE transaction set (an 850, 810, ...).
+model Transaction {
+  id                   String @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope.
+  tenantId             String @map("tenant_id") @db.Uuid
+  tenant               Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  functionalGroupId    String @map("functional_group_id") @db.Uuid
+  /// ST01 transaction set identifier ("850", "810", ...).
+  transactionSetId     String @map("transaction_set_id")
+  /// ST02 transaction control number.
+  controlNumber        String @map("control_number")
+  /// SE01 declared segment count (null if absent).
+  declaredSegmentCount Int?   @map("declared_segment_count")
+  /// Actual segments counted (incl. ST and SE).
+  segmentCount         Int    @map("segment_count")
+
+  // Business identifiers — populated by the set parsers in Sprint 2 (nullable now).
+  poNumber      String? @map("po_number")
+  invoiceNumber String? @map("invoice_number")
+  purpose       String?
+
+  // Phase 4 Sprint 1 — lifecycle linkage fields.
+  /// 856 shipment id (BSN02). Null for non-shipment sets.
+  shipmentId          String? @map("shipment_id")
+  /// 997/999 only — the GS06 of the functional group being acknowledged (from AK1).
+  ackedGroupControl   String? @map("acked_group_control")
+  /// 997/999 only — JSON array of { setId, control, status } from AK2/AK5 pairs.
+  ackedTxnControls    Json?   @map("acked_txn_controls")
+  /// 997/999 only — overall group acknowledgment status from AK9 (A/E/R).
+  ackStatus           String? @map("ack_status")
+  /// `inbound` / `outbound` / `unknown` relative to OUR_ISA_IDS at parse time.
+  direction           Direction @default(unknown)
+  /// Phase 6 Sprint 2 — soft per-transaction config signal.
+  configFlag          String?   @map("config_flag")
+
+  /// Phase 8 Sprint 1 — outbound lifecycle timestamps.
+  generatedAt         DateTime? @map("generated_at")
+  transmittedAt       DateTime? @map("transmitted_at")
+  confirmedAt         DateTime? @map("confirmed_at")
+
+  functionalGroup FunctionalGroup @relation(fields: [functionalGroupId], references: [id], onDelete: Cascade)
+  segments        Segment[]
+
+  @@index([functionalGroupId])
+  @@index([transactionSetId])
+  @@index([poNumber])
+  @@index([invoiceNumber])
+  @@index([shipmentId])
+  @@index([ackedGroupControl])
+  @@index([direction])
+  @@index([configFlag])
+  @@index([confirmedAt])
+  @@index([tenantId])
+  @@map("transactions")
+}
+
+/// A single segment within a transaction (ST..SE inclusive).
+model Segment {
+  id            String @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope.
+  tenantId      String @map("tenant_id") @db.Uuid
+  tenant        Tenant @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  transactionId String @map("transaction_id") @db.Uuid
+  /// Segment tag, e.g. "BEG", "PO1".
+  tag           String
+  /// 0-based ordinal within the transaction.
+  position      Int
+
+  transaction Transaction @relation(fields: [transactionId], references: [id], onDelete: Cascade)
+  elements    Element[]
+
+  @@index([transactionId])
+  @@index([tag])
+  @@index([tenantId])
+  @@map("segments")
+}
+
+/// A single data element within a segment.
+model Element {
+  id        String  @id @default(uuid()) @db.Uuid
+  /// Phase 9 Sprint 1 — required tenant scope.
+  tenantId  String  @map("tenant_id") @db.Uuid
+  tenant    Tenant  @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  segmentId String  @map("segment_id") @db.Uuid
+  /// 1-based position within the segment (element 1 = e.g. BEG01).
+  index     Int
+  value     String
+  /// Human-meaningful label (e.g. "PO number"). Populated in Sprint 2.
+  semanticLabel String? @map("semantic_label")
+
+  segment Segment @relation(fields: [segmentId], references: [id], onDelete: Cascade)
+
+  @@index([segmentId])
+  @@index([tenantId])
+  @@map("elements")
+}

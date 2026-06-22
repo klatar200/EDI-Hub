@@ -1,0 +1,54 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  OpenAS2 receiver — Phase 8 Sprint 2 local sandbox skeleton.
+
+  Replace `%home%`-style placeholders below per the steps in
+  infra/openas2/README.md before bringing the receiver up. Certificates are
+  NOT committed; generate them locally first.
+
+  Receives AS2 on http://0.0.0.0:10080/HTTPReceiver, decrypts + verifies the
+  payload, and writes the plaintext EDI to /opt/openas2/data/inbox — which
+  the docker-compose volume maps to apps/api/.as2/inbox on the host.
+-->
+<openas2>
+  <certificates classname="org.openas2.cert.PKCS12CertificateFactory"
+                filename="%home%/data/certs/keystore.p12"
+                password="changeit"/>
+
+  <partnerships classname="org.openas2.partner.XMLPartnershipFactory"
+                filename="%home%/config/partnerships.xml"/>
+
+  <commandProcessor classname="org.openas2.cmd.processor.StreamCommandProcessor"
+                    portid="4321"/>
+
+  <processor classname="org.openas2.processor.DefaultProcessor"
+             pendingMDN="%home%/data/pending-mdn"
+             pendingMDNinfo="%home%/data/pending-mdn-info">
+    <module classname="org.openas2.processor.receiver.AS2DirectoryPollingModule"
+            outboxdir="%home%/data/outbox"
+            errordir="%home%/data/error"
+            interval="5"
+            defaults="sender.as2_id=HUB, receiver.as2_id=PARTNER"
+            sendfilename="true"/>
+
+    <module classname="org.openas2.processor.sender.AS2SenderModule"/>
+
+    <module classname="org.openas2.processor.receiver.AS2ReceiverModule"
+            port="10080"
+            errordir="%home%/data/error"/>
+
+    <module classname="org.openas2.processor.receiver.AS2MDNReceiverModule"
+            port="10081"
+            errordir="%home%/data/error"/>
+
+    <module classname="org.openas2.processor.storage.MessageFileModule"
+            filename="%home%/data/inbox/$sender.as2_id$-$msg.headers.message-id$.edi"
+            protocol="as2"
+            tempdir="%home%/data/temp"/>
+
+    <module classname="org.openas2.processor.storage.MDNFileModule"
+            filename="%home%/data/mdn/$mdn.msg.sender.as2_id$-$mdn.msg.headers.message-id$.mdn"
+            protocol="as2"
+            tempdir="%home%/data/temp"/>
+  </processor>
+</openas2>

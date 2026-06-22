@@ -1,0 +1,40 @@
+{
+  "name": "@edi/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "scripts": {
+    "dev": "tsc --build && dotenv -e ../../.env -- tsx watch src/index.ts",
+    "build": "tsc --build",
+    "clean": "tsc --build --clean",
+    "start": "node dist/index.js",
+    "smoke": "tsc --build && dotenv -e ../../.env -- tsx test/smoke.ts",
+    "backfill": "dotenv -e ../../.env -- tsx src/scripts/backfill-parse.ts",
+    "backfill-confirmed-at": "dotenv -e ../../.env -- tsx src/scripts/backfill-confirmed-at.ts",
+    "seed-pilot-tenant": "dotenv -e ../../.env -- tsx src/scripts/seed-pilot-tenant.ts",
+    "attach-pilot-org": "dotenv -e ../../.env -- tsx src/scripts/attach-pilot-org.ts",
+    "seed-pilot-admin": "dotenv -e ../../.env -- tsx src/scripts/seed-pilot-admin.ts",
+    "test": "tsc --build && node --test --import tsx test/*.test.ts",
+    "detect": "dotenv -e ../../.env -- tsx src/scripts/run-detection.ts"
+  },
+  "dependencies": {
+    "@aws-sdk/client-s3": "^3.717.0",
+    "@aws-sdk/client-ses": "^3.717.0",
+    "@aws-sdk/lib-storage": "^3.717.0",
+    "@clerk/backend": "^1.21.0",
+    "@edi/db": "*",
+    "@edi/edi-parser": "*",
+    "@edi/shared": "*",
+    "@fastify/multipart": "^9.0.3",
+    "chokidar": "^4.0.3",
+    "fastify": "^5.2.0",
+    "fastify-plugin": "^5.0.1",
+    "svix": "^1.45.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "dotenv-cli": "^8.0.0",
+    "tsx": "^4.19.2"
+  }
+}

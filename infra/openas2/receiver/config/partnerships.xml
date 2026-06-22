@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!--
+  Receiver-side partnership skeleton.
+
+  Declares the two partner IDs and the inbound partnership the sender will
+  match against. The keys (HUB / PARTNER) must match the certificate aliases
+  you generated in step 1 of infra/openas2/README.md.
+-->
+<partnerships>
+  <partner name="HUB" as2_id="HUB" x509_alias="hub" email="hub@example.test"/>
+  <partner name="PARTNER" as2_id="PARTNER" x509_alias="partner" email="partner@example.test"/>
+
+  <partnership name="partner-to-hub">
+    <partner_id partnerid="sender" name="PARTNER"/>
+    <partner_id partnerid="receiver" name="HUB"/>
+    <attribute name="protocol" value="as2"/>
+    <attribute name="subject" value="Test EDI message"/>
+    <attribute name="content_type" value="application/EDI-X12"/>
+    <attribute name="encrypt" value="3des"/>
+    <attribute name="sign" value="sha-256"/>
+    <attribute name="as2_mdn_to" value="partner@example.test"/>
+    <attribute name="as2_mdn_options" value="signed-receipt-protocol=optional, pkcs7-signature; signed-receipt-micalg=optional, sha-256"/>
+    <attribute name="as2_receipt_option" value="http://openas2-receiver:10081"/>
+  </partnership>
+</partnerships>

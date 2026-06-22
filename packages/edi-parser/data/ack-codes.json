@@ -1,0 +1,45 @@
+{
+  "_source": "X12 standard wording for 997/999 acknowledgment codes. Per X12 spec — do not paraphrase; partner-specific overrides belong in Phase 6 trading-partner config.",
+  "AK304": {
+    "1": "Unrecognized segment ID",
+    "2": "Unexpected segment",
+    "3": "Required Segment Missing",
+    "4": "Loop Occurs Over Maximum Times",
+    "5": "Segment Exceeds Maximum Use",
+    "6": "Segment Not in Defined Transaction Set",
+    "7": "Segment Not in Proper Sequence",
+    "8": "Segment Has Data Element Errors"
+  },
+  "AK403": {
+    "1": "Mandatory data element missing",
+    "2": "Conditional required data element missing",
+    "3": "Too many data elements",
+    "4": "Data element too short",
+    "5": "Data element too long",
+    "6": "Invalid character in data element",
+    "7": "Invalid code value",
+    "8": "Invalid Date",
+    "9": "Invalid Time",
+    "10": "Exclusion Condition Violated",
+    "12": "Too many repetitions",
+    "13": "Too many components"
+  },
+  "AK501": {
+    "A": "Accepted",
+    "E": "Accepted but errors were noted",
+    "M": "Rejected, message authentication code (MAC) failed",
+    "P": "Partially accepted, at least one transaction set was rejected",
+    "R": "Rejected",
+    "W": "Rejected, assurance failed validity tests",
+    "X": "Rejected, content after decryption could not be analyzed"
+  },
+  "AK901": {
+    "A": "Accepted",
+    "E": "Accepted but errors were noted",
+    "M": "Rejected, message authentication code (MAC) failed",
+    "P": "Partially accepted, at least one transaction set was rejected",
+    "R": "Rejected",
+    "W": "Rejected, assurance failed validity tests",
+    "X": "Rejected, content after decryption could not be analyzed"
+  }
+}
