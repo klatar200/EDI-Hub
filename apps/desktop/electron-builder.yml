@@ -1,0 +1,129 @@
+# D6 Sprint 1 — electron-builder config for unsigned Windows installer.
+#
+# Run from this directory via `npm run dist`. The wrapper script first
+# builds @edi/api (which recursively builds @edi/shared, @edi/db,
+# @edi/edi-parser), then @edi/web (vite build), then this package, then
+# electron-builder. After a successful build, the .exe lives in
+# apps/desktop/dist-installer/.
+#
+# Design choices worth knowing:
+#
+#  - `asar: false` — everything is plain files under resources/app/, not
+#    a single archive. We trade install-size compression for dramatically
+#    simpler path handling: spawn(prismaCli), spawn(apiEntry), and the
+#    embedded-postgres native binary all need real filesystem paths.
+#    With asar enabled, every one of those would need an asarUnpack
+#    pattern and the code would have to distinguish asar paths from real
+#    ones. We already ship a ~200MB Postgres binary; saving a couple of
+#    MB on app source is not worth the complexity.
+#
+#  - `extraResources` for the React build, Prisma schema, and Prisma
+#    migrations. They aren't reachable via require.resolve (they're not
+#    Node modules), so they need a stable, predictable location at
+#    process.resourcesPath/<name>/.
+#
+#  - `npmRebuild: false` + `nodeGypRebuild: false` — workspaces hoist
+#    deps to the repo root. The native binaries we ship (Postgres,
+#    Prisma engine) are prebuilt; we never want electron-builder to
+#    invoke node-gyp on them.
+#
+#  - `nsis.perMachine: false` — per-user install means no UAC prompt on
+#    install. Customer admins can still install machine-wide via the
+#    /allusers flag. `deleteAppDataOnUninstall: false` preserves the
+#    user's pgdata + raw files on uninstall so an accidental uninstall
+#    doesn't lose customer data.
+
+appId: com.edihub.desktop
+productName: EDI Hub
+copyright: Copyright © 2026 Keagan Latarewicz
+
+# Workspace hoisting: `electron` is installed at the repo-root
+# `node_modules/`, not at `apps/desktop/node_modules/`. electron-builder
+# walks the local package.json to discover the version and falls over.
+# Stating it explicitly here matches the actually-installed version
+# (verify with `node -p "require('electron/package.json').version"` at
+# the repo root). Bump when you bump the devDep.
+electronVersion: "32.3.3"
+
+asar: false
+
+directories:
+  output: dist-installer
+
+# Files packaged into resources/app/. Everything below this is what
+# Electron sees as its app tree at runtime.
+files:
+  - dist/**/*
+  - package.json
+  # Exclude noisy / unnecessary things from any dependency that does
+  # ship them. electron-builder's defaults already exclude a lot.
+  - "!**/test/**"
+  - "!**/__tests__/**"
+  - "!**/*.test.{js,ts,mjs}"
+  - "!**/*.map"
+  # Force-include the Prisma generated client. electron-builder's
+  # default walker excludes dotfile-prefixed directories from
+  # node_modules; `.prisma/client/` contains the generated client +
+  # Windows query-engine binary that Prisma loads at runtime. Without
+  # this, the API child crashes immediately on first DB call with
+  # "Cannot find module '.prisma/client'".
+  - "**/node_modules/.prisma/**/*"
+
+# The React build is served at runtime by @fastify/static which reads
+# from disk. The Prisma schema + migrations are read by `prisma migrate
+# deploy`. None of these are Node modules, so they live in
+# `process.resourcesPath/...` instead of node_modules.
+extraResources:
+  - from: ../web/dist
+    to: web/dist
+  - from: ../../packages/db/prisma/schema.prisma
+    to: prisma/schema.prisma
+  - from: ../../packages/db/prisma/migrations
+    to: prisma/migrations
+  # Force-copy the Prisma generated client into the packaged node_modules
+  # tree. electron-builder's default file walker only descends into
+  # directories declared as production dependencies — `.prisma/client/`
+  # is a generated sibling sitting next to `@prisma/client`, so the
+  # walker never visits it. Copying via `extraResources` with a `to:`
+  # path inside `resources/app/node_modules/` puts the generated client
+  # exactly where `require('.prisma/client')` looks for it at runtime.
+  - from: ../../node_modules/.prisma/client
+    to: app/node_modules/.prisma/client
+
+win:
+  target: nsis
+  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # D6 Sprint 2 — code signing.
+  #
+  # Signing is driven entirely by env vars so we don't store secrets in
+  # this file or have to swap configs between local dev and CI. The
+  # standard electron-builder contract is:
+  #
+  #   CSC_LINK          — absolute path to a .pfx file OR a base64-
+  #                       encoded blob of the .pfx contents
+  #   CSC_KEY_PASSWORD  — passphrase for the .pfx
+  #
+  # When both are set, electron-builder runs signtool.exe against the
+  # NSIS installer + the unpacked EDI Hub.exe. When either is empty (the
+  # default for any developer or contributor), the unsigned build path
+  # we shipped in Sprint 1 is used — no SmartScreen warning suppression,
+  # but the install still works.
+  #
+  # See apps/desktop/CODE_SIGNING.md for the full procurement +
+  # GitHub-secret + verification flow.
+
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+  perMachine: false
+  deleteAppDataOnUninstall: false
+
+# No code signing yet — D6 Sprint 2.
+# No publish target — D7 wires this up.
+publish: null
+
+# Workspace setup — never rebuild native deps. The Postgres binary and
+# the Prisma engine are prebuilt for Windows x64; recompiling either
+# would require a build toolchain we don't want to depend on.
+npmRebuild: false
+nodeGypRebuild: false

@@ -1,0 +1,106 @@
+# D6 Sprint 2 — signed Windows installer release pipeline.
+#
+# Triggers on any pushed tag matching `v*` (e.g. `v0.1.0`,
+# `v0.0.1-alpha`). Builds the desktop installer on a fresh Windows
+# runner, signs it with the EV code-signing cert restored from repo
+# secrets, and attaches the signed `.exe` to a GitHub Release.
+#
+# Secrets the workflow expects:
+#
+#   CSC_LINK_B64        — base64-encoded contents of the EV cert .pfx.
+#                         electron-builder accepts a base64 string in
+#                         CSC_LINK directly; we decode here to keep the
+#                         secret out of process env trees.
+#   CSC_KEY_PASSWORD    — passphrase for the .pfx
+#
+# When either secret is absent the workflow still completes but produces
+# an UNSIGNED installer (matches local dev) and adds a warning to the
+# Actions summary so a forgotten secret doesn't silently ship an
+# unsigned release.
+#
+# See apps/desktop/CODE_SIGNING.md for the full setup walkthrough.
+
+name: release
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write   # required to create the GitHub Release
+
+jobs:
+  windows-installer:
+    name: Build + sign Windows installer
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Generate Prisma client
+        run: npm run db:generate -w @edi/db
+
+      - name: Restore EV signing cert from secret
+        id: restore_cert
+        shell: pwsh
+        env:
+          CSC_LINK_B64: ${{ secrets.CSC_LINK_B64 }}
+        run: |
+          if (-not $env:CSC_LINK_B64) {
+            Write-Host "::warning::CSC_LINK_B64 secret is not configured; building UNSIGNED installer."
+            "signing=false" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+            exit 0
+          }
+          $pfxPath = "$env:RUNNER_TEMP\code-signing.pfx"
+          [System.IO.File]::WriteAllBytes(
+            $pfxPath,
+            [Convert]::FromBase64String($env:CSC_LINK_B64)
+          )
+          # Expose the file path to subsequent steps via the standard
+          # electron-builder env-var contract.
+          "CSC_LINK=$pfxPath" | Out-File -FilePath $env:GITHUB_ENV -Append
+          "signing=true" | Out-File -FilePath $env:GITHUB_OUTPUT -Append
+
+      - name: Build + (optionally) sign the installer
+        env:
+          # CSC_LINK was wired into GITHUB_ENV in the prior step when the
+          # secret was present. CSC_KEY_PASSWORD is passed straight from
+          # the secret — electron-builder reads both env vars.
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+        run: npm run dist -w @edi/desktop
+
+      - name: Clean up the restored PFX
+        # Defensive; the runner is ephemeral anyway, but never leave a
+        # PFX lying around longer than necessary.
+        if: always()
+        shell: pwsh
+        run: |
+          $pfxPath = "$env:RUNNER_TEMP\code-signing.pfx"
+          if (Test-Path $pfxPath) { Remove-Item -Force $pfxPath }
+
+      - name: Upload installer to GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          # The exact artifact path is electron-builder's default
+          # template: `<productName>-<version>-<arch>.<ext>`. With
+          # productName "EDI Hub" and arch x64 this is "EDI Hub-X.Y.Z-x64.exe".
+          files: |
+            apps/desktop/dist-installer/EDI Hub-*-x64.exe
+            apps/desktop/dist-installer/EDI Hub-*-x64.exe.blockmap
+            apps/desktop/dist-installer/latest.yml
+          draft: false
+          prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
+          fail_on_unmatched_files: true
+          body: |
+            Automated release of EDI Hub ${{ github.ref_name }}.
+
+            Signing: ${{ steps.restore_cert.outputs.signing == 'true' && 'signed with EV cert' || '⚠️ UNSIGNED (CSC_LINK_B64 secret missing)' }}
