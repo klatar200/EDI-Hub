@@ -770,6 +770,39 @@
 
 ---
 
+## OPTIONAL SPRINTS (polish — not blocking)
+
+Deferred cleanup items surfaced during D7 auto-update verification. Schedule
+these when log noise or polish matters more than the next feature phase. None
+block D8–D9 or selling the desktop SKU.
+
+### OPTIONAL-D1 — Desktop boot log noise cleanup
+
+**Objective:** Remove scary-but-harmless warnings from packaged Windows installs
+so support logs are easier to read.
+
+**Scope:**
+
+| Item | Fix |
+|---|---|
+| `EPERM: chmod postgres.exe` under `Program Files` | Catch and ignore in `main.ts` — Windows cannot chmod binaries in a per-machine install path; Postgres still starts. |
+| `database "edihub" already exists` logged as ERROR | Treat as expected on relaunch in `ensureDatabase()`; downgrade to debug or swallow the known message. |
+| `disableWebInstaller is set to false` | Already fixed in v0.0.6-alpha (`autoUpdater.disableWebInstaller = true`); verify on current release only. |
+| Clerk development-keys warning in release builds | Release workflow bakes `VITE_CLERK_PUBLISHABLE_KEY`; switch to **production** Clerk keys (`pk_live_…`) before selling and document in `CLERK_SETUP.md`. |
+
+**Exit criteria:**
+
+| # | Check | Pass condition |
+|---|---|---|
+| OD1.1 | No EPERM unhandled rejection on packaged Windows launch | Launch with `--enable-logging`; no `UnhandledPromiseRejectionWarning` for chmod |
+| OD1.2 | No ERROR line for existing database on relaunch | Second launch logs clean Postgres boot |
+| OD1.3 | No disableWebInstaller warning | Absent on v0.0.6+ installs |
+| OD1.4 | Production Clerk key documented | `CLERK_SETUP.md` or desktop README notes live-key requirement for shipped builds |
+
+**Effort:** ~0.5 sprint (small, focused diff).
+
+---
+
 ## OPEN QUESTIONS — ANSWERED
 
 | # | Question | Answer |

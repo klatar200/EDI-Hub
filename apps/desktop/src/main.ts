@@ -37,6 +37,7 @@ import { setTimeout as delay } from 'node:timers/promises';
 import { closeSplash, openSplash, updateSplash } from './splash.js';
 import { installApplicationMenu } from './menu.js';
 import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
+import { enforceLicenseGate } from './license-window.js';
 
 // D4 Sprint 3 — cold-start timing baseline. Captured at module load (the
 // earliest point we control). Compared against the main window's
@@ -484,10 +485,13 @@ async function shutdown(reason: string): Promise<void> {
 
 app.whenReady().then(async () => {
   try {
-    // D4 Sprint 3 — install the native menu before anything else so the
-    // app respects standard OS-level keyboard shortcuts (Cmd/Ctrl-Q) even
-    // while the splash is up.
     installApplicationMenu();
+    // D8 Sprint 1 — trial / license gate before Postgres or API boot.
+    const allowed = await enforceLicenseGate(app.getPath('userData'));
+    if (!allowed) {
+      app.quit();
+      return;
+    }
     // Detect first launch BEFORE startPostgres() runs initdb. The
     // PG_VERSION file appears as soon as initdb succeeds, so checking
     // afterwards would always read "subsequent launch."

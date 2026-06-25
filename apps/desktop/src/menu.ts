@@ -14,6 +14,7 @@
 import { app, dialog, Menu, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
 import { manualCheckForUpdates } from './auto-update.js';
+import { showEnterLicenseKeyMenu } from './license-window.js';
 
 export function installApplicationMenu(): void {
   const template: MenuItemConstructorOptions[] = [
@@ -67,6 +68,13 @@ export function installApplicationMenu(): void {
                 void shell.openPath(app.getPath('userData'));
               }
             });
+          },
+        },
+        { type: 'separator' },
+        {
+          label: 'Enter License Key',
+          click: () => {
+            void showEnterLicenseKeyMenu(app.getPath('userData'));
           },
         },
         { type: 'separator' },
