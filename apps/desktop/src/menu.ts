@@ -5,12 +5,15 @@
  * Standard `role:` items handle the Edit submenu so OS-level shortcuts
  * (Cmd/Ctrl-C, Cmd/Ctrl-V, etc.) work without any handler glue.
  *
- * "Check for Updates" is a stub — wired up in D7 when electron-updater
- * is configured. Menu items are intentionally NOT removed when disabled
- * so the user sees the feature exists.
+ * "Check for Updates" calls into `auto-update.ts` which uses
+ * electron-updater to poll the GitHub Releases feed. The same machinery
+ * runs silently in the background at startup; the menu item just
+ * surfaces every state through a dialog so a manual click always
+ * produces visible feedback.
  */
 import { app, dialog, Menu, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
+import { manualCheckForUpdates } from './auto-update.js';
 
 export function installApplicationMenu(): void {
   const template: MenuItemConstructorOptions[] = [
@@ -69,9 +72,11 @@ export function installApplicationMenu(): void {
         { type: 'separator' },
         {
           label: 'Check for Updates',
-          enabled: false, // D7 wires this to electron-updater.
           click: () => {
-            // Intentionally empty — gated by enabled:false until D7.
+            // Manual trigger — surfaces every state through a dialog
+            // (no update / downloading / error). The background
+            // checkForUpdates call in main.ts is the silent path.
+            void manualCheckForUpdates();
           },
         },
       ],

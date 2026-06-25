@@ -36,6 +36,7 @@ import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { closeSplash, openSplash, updateSplash } from './splash.js';
 import { installApplicationMenu } from './menu.js';
+import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
 
 // D4 Sprint 3 — cold-start timing baseline. Captured at module load (the
 // earliest point we control). Compared against the main window's
@@ -382,6 +383,11 @@ async function openMainWindow(): Promise<void> {
     const elapsed = Date.now() - launchTs;
     console.log(`[edi-hub] cold-start ${elapsed}ms (firstLaunch=${isFirstLaunch})`);
     closeSplash();
+    // D7 Sprint 1 — kick off the silent background update check and
+    // surface the "What's new" dialog if a prior launch finished
+    // applying an update. Both are no-ops in dev mode.
+    void consumePendingWhatsNew();
+    initAutoUpdater();
   });
   await mainWindow.loadURL(resolveWebUrl());
 }

@@ -118,9 +118,25 @@ nsis:
   perMachine: false
   deleteAppDataOnUninstall: false
 
-# No code signing yet — D6 Sprint 2.
-# No publish target — D7 wires this up.
-publish: null
+# D7 Sprint 1 — auto-update feed via GitHub Releases.
+#
+# `provider: github` tells electron-builder to:
+#   1. Generate `latest.yml` next to the installer at build time.
+#      That file is the manifest electron-updater polls for new versions.
+#   2. (When run with `--publish always`) upload everything to the
+#      matching GitHub Release.
+#
+# We do NOT use `electron-builder --publish` from CI — the release.yml
+# workflow uploads via softprops/action-gh-release@v2 instead, so the
+# GITHUB_TOKEN it already has stays in charge of release creation. The
+# only effect of this block in CI is the `latest.yml` generation.
+#
+# `owner` / `repo` must match the repo electron-updater polls. If you
+# fork this repo, update both lines.
+publish:
+  provider: github
+  owner: klatar200
+  repo: EDI-Hub
 
 # Workspace setup — never rebuild native deps. The Postgres binary and
 # the Prisma engine are prebuilt for Windows x64; recompiling either
