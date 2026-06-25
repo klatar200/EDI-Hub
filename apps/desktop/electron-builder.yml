@@ -92,7 +92,13 @@ extraResources:
 
 win:
   target: nsis
-  artifactName: "${productName}-${version}-${arch}.${ext}"
+  # MUST be URL-safe — no spaces. `productName` stays "EDI Hub" for the
+  # Start-menu / Add-Remove-Programs label, but GitHub Releases mangles
+  # spaces in uploaded asset names (→ dots) while electron-builder's
+  # `latest.yml` mangles them differently (→ hyphens). That mismatch
+  # makes electron-updater 404. Keep artifact + blockmap + latest.yml
+  # aligned on one hyphenated basename.
+  artifactName: "EDI-Hub-${version}-${arch}.${ext}"
   # D6 Sprint 2 — code signing.
   #
   # Signing is driven entirely by env vars so we don't store secrets in
