@@ -76,7 +76,23 @@ jobs:
           # secret was present. CSC_KEY_PASSWORD is passed straight from
           # the secret — electron-builder reads both env vars.
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
-        run: npm run dist -w @edi/desktop
+          # Vite reads VITE_* env vars at build time and bakes them
+          # into the bundled JS. The publishable key is intentionally
+          # client-visible (Clerk's pk_*… split); the secret key never
+          # leaves the server.
+          #
+          # When this secret isn't set, the bundled web app renders the
+          # `<MissingClerkKey>` banner instead of the dashboard. CI
+          # treats absence as a hard error (we don't want to ship
+          # release builds that bake an empty key).
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${VITE_CLERK_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::VITE_CLERK_PUBLISHABLE_KEY repo secret is not set; refusing to build a release with a missing Clerk key."
+            exit 1
+          fi
+          npm run dist -w @edi/desktop
+        shell: bash
 
       - name: Clean up the restored PFX
         # Defensive; the runner is ephemeral anyway, but never leave a
