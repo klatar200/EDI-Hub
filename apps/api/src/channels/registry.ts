@@ -6,27 +6,23 @@
  * holds the handles for graceful shutdown, and exposes a health snapshot for
  * the /health route.
  *
- * Boot semantics:
- *   - If a channel is `enabled: false`, we record it as `disabled` and skip start.
- *   - If `start()` throws, we record the error as `status: 'error'` and continue
- *     booting the rest. The API stays up; the operator sees the failure on /health.
- *   - If `start()` succeeds, we record it as `running` and add it to the
- *     shutdown list.
- *
- * This shape is what makes adding a Phase 8 third channel (and a future fourth)
- * a structural change rather than a rewrite — see BUILD_PLAN §5 Phase 8 goal.
+ * Desktop track D8 Sprint 2 — adds an optional `desktop-drop` channel that is
+ * configured from `<userData>/config.json` after the first-run wizard completes.
  */
 import type { IngestionDeps } from '../services/ingestion.js';
 import type { AppConfig } from '../config.js';
 import type { ChannelHealth, IngestionChannel } from './types.js';
 import { startSftpChannel } from '../sftp/watcher.js';
 import { startAs2Channel } from './as2.js';
+import { DESKTOP_DROP_CHANNEL_NAME, startDesktopDropChannel } from './desktop-drop.js';
 
 export interface ChannelRegistry {
   /** Snapshot of every channel (including disabled / errored ones). */
   health(): ChannelHealth[];
   /** Gracefully shut down all running channels. Safe to call once. */
   closeAll(): Promise<void>;
+  /** Desktop track D8 Sprint 2 — start or restart the user-chosen drop folder. */
+  ensureDesktopDropFolder(watchDir: string): Promise<void>;
 }
 
 interface ChannelEntry {
@@ -37,10 +33,10 @@ interface ChannelEntry {
 export async function startConfiguredChannels(
   deps: IngestionDeps,
   config: AppConfig,
+  opts: { desktopDropFolder?: string | null } = {},
 ): Promise<ChannelRegistry> {
   const entries: ChannelEntry[] = [];
 
-  // SFTP — configured since Phase 1.
   entries.push(
     await startOne({
       enabled: config.sftp.enabled,
@@ -51,7 +47,6 @@ export async function startConfiguredChannels(
     }),
   );
 
-  // AS2 — added in Phase 8 Sprint 2.
   entries.push(
     await startOne({
       enabled: config.as2.enabled,
@@ -61,6 +56,48 @@ export async function startConfiguredChannels(
       start: () => startAs2Channel(deps, config.as2),
     }),
   );
+
+  if (opts.desktopDropFolder) {
+    entries.push(
+      await startOne({
+        enabled: true,
+        name: DESKTOP_DROP_CHANNEL_NAME,
+        source: 'sftp',
+        detail: { watchDir: opts.desktopDropFolder },
+        start: () => startDesktopDropChannel(deps, opts.desktopDropFolder!),
+      }),
+    );
+  } else {
+    entries.push({
+      channel: null,
+      health: {
+        name: DESKTOP_DROP_CHANNEL_NAME,
+        source: 'sftp',
+        status: 'disabled',
+        detail: { watchDir: '' },
+      },
+    });
+  }
+
+  async function ensureDesktopDropFolder(watchDir: string): Promise<void> {
+    const idx = entries.findIndex((e) => e.health.name === DESKTOP_DROP_CHANNEL_NAME);
+    if (idx < 0) return;
+
+    const existing = entries[idx]!.channel;
+    if (existing) {
+      await existing.close().catch((err) => {
+        deps.logger.error({ err }, 'desktop-drop close failed before restart');
+      });
+    }
+
+    entries[idx] = await startOne({
+      enabled: true,
+      name: DESKTOP_DROP_CHANNEL_NAME,
+      source: 'sftp',
+      detail: { watchDir },
+      start: () => startDesktopDropChannel(deps, watchDir),
+    });
+  }
 
   return {
     health: () => entries.map((e) => e.health),
@@ -73,6 +110,7 @@ export async function startConfiguredChannels(
         }
       }
     },
+    ensureDesktopDropFolder,
   };
 }
 
@@ -93,7 +131,6 @@ async function startOne(opts: StartOneOptions): Promise<ChannelEntry> {
   }
   try {
     const channel = await opts.start();
-    // Use the channel's own status when available — it knows its watchDir, etc.
     return { channel, health: channel.status() };
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

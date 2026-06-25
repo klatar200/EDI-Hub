@@ -519,3 +519,44 @@ export interface PreviewTrailEntry {
   at: string;
 }
 
+/** Desktop track D8 Sprint 2 — persisted hub config in `<userData>/config.json`.
+ *  Electron auto-update also stores `pendingWhatsNew` in the same file. */
+export interface HubConfig {
+  firstRunComplete?: boolean;
+  dropFolderPath?: string;
+  telemetryEnabled?: boolean;
+  /** Wizard step 2 — admin confirmed Clerk redirect URIs for this server. */
+  clerkRedirectVerified?: boolean;
+  /** D7 — version awaiting a one-time "What's new" dialog after relaunch. */
+  pendingWhatsNew?: string;
+}
+
+/** GET /api/setup — first-run wizard state for the signed-in tenant. */
+export interface SetupStatusResponse {
+  /** False on a fresh desktop install until the wizard completes. Always true in SaaS. */
+  firstRunComplete: boolean;
+  dropFolderPath: string | null;
+  telemetryEnabled: boolean | null;
+  /** True once at least one raw file exists for this tenant. */
+  hasIngested: boolean;
+  /** False until the admin confirms Clerk redirect URIs in the wizard. */
+  clerkRedirectVerified: boolean;
+  /** Desktop installs only — false in SaaS where setup is N/A. */
+  desktopMode: boolean;
+}
+
+/** PATCH /api/setup — partial hub config updates from the wizard. */
+export interface SetupPatchInput {
+  dropFolderPath?: string;
+  telemetryEnabled?: boolean;
+  clerkRedirectVerified?: boolean;
+  firstRunComplete?: boolean;
+}
+
+/** Public server addressing surfaced on GET /health for Clerk redirect setup. */
+export interface HealthServerInfo {
+  port: number;
+  /** Origins to add to Clerk Allowed redirect URIs (includes localhost + LAN IPs). */
+  redirectOrigins: string[];
+}
+

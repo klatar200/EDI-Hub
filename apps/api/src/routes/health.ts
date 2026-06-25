@@ -15,14 +15,16 @@
  */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { ChannelHealth } from '../channels/types.js';
+import type { HealthServerInfo } from '@edi/shared';
+import { buildHealthServerInfo } from '../services/server-address.js';
 
 interface LivenessResponse {
   status: 'ok';
-  // Kept for backward compat with anything scraping the old endpoint.
-  // Always 'connected' / 'reachable' — real checks are on /readiness.
   db: 'connected';
   s3: 'reachable';
   channels: ChannelHealth[];
+  /** Desktop track D8 Sprint 2 — server addressing for Clerk redirect setup. */
+  server?: HealthServerInfo;
 }
 
 export async function healthRoutes(
@@ -35,6 +37,7 @@ export async function healthRoutes(
       db: 'connected',
       s3: 'reachable',
       channels: app.channels?.health() ?? [],
+      server: buildHealthServerInfo(app.config.port),
     };
     return reply.code(200).send(body);
   });

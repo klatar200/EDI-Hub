@@ -50,6 +50,18 @@ export function Layout(): JSX.Element {
   });
   const unread = activeAlerts.data?.items.length ?? 0;
 
+  const setupQ = useQuery({
+    queryKey: ['setup'],
+    queryFn: () => api.setup.get(),
+    refetchInterval: 30_000,
+    retry: false,
+  });
+  const showDropBanner =
+    setupQ.data?.desktopMode === true &&
+    setupQ.data.firstRunComplete === true &&
+    setupQ.data.hasIngested === false &&
+    setupQ.data.dropFolderPath;
+
   const primaryNav: NavItem[] = [
     { to: '/', label: 'Transactions', end: true },
     { to: '/ingestions', label: 'Ingestions' },
@@ -143,6 +155,19 @@ export function Layout(): JSX.Element {
           </div>
         </div>
       </header>
+
+      {showDropBanner ? (
+        <div
+          className="border-b border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-6 py-2 text-center text-sm text-[var(--color-brand-800)]"
+          data-testid="drop-folder-banner"
+        >
+          Drop an EDI file into{' '}
+          <code className="rounded bg-white/60 px-1.5 py-0.5 font-mono text-xs">
+            {setupQ.data!.dropFolderPath}
+          </code>{' '}
+          to ingest it.
+        </div>
+      ) : null}
 
       <main className="mx-auto max-w-[1400px] px-6 py-6">
         <Outlet />

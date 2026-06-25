@@ -39,6 +39,7 @@ import { installApplicationMenu } from './menu.js';
 import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
 import { enforceLicenseGate } from './license-window.js';
 import { registerDesktopRuntime, clearDesktopRuntime } from './desktop-runtime.js';
+import { registerFolderPickerIpc } from './folder-picker.js';
 
 // Electron resolves `app.getPath('userData')` from `app.getName()`, which
 // defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
@@ -457,6 +458,8 @@ async function boot(): Promise<void> {
     // in Node mode or it opens a window instead of executing the script.
     // eslint-disable-next-line @typescript-eslint/naming-convention
     ELECTRON_RUN_AS_NODE: '1',
+    // D8 Sprint 2 — API reads/writes first-run wizard config alongside Electron.
+    EDI_HUB_USER_DATA_DIR: userData,
   };
   if (process.env.CORS_ALLOWED_ORIGINS) {
     apiEnv.CORS_ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS;
@@ -507,6 +510,7 @@ async function shutdown(reason: string): Promise<void> {
 
 app.whenReady().then(async () => {
   try {
+    registerFolderPickerIpc(() => mainWindow);
     installApplicationMenu();
     // D8 Sprint 1 — trial / license gate before Postgres or API boot.
     const allowed = await enforceLicenseGate(app.getPath('userData'));

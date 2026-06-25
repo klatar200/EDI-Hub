@@ -53,11 +53,13 @@ test('registry reports both channels as disabled when neither is enabled', async
   const deps: IngestionDeps = { s3: fakeS3, storage: new S3StorageAdapter(fakeS3, cfg({}).s3.bucket), prisma: fakePrisma, config: cfg({}), logger: noopLogger };
   const reg = await startConfiguredChannels(deps, deps.config);
   const h = reg.health();
-  assert.equal(h.length, 2);
+  assert.equal(h.length, 3);
   const sftp = h.find((c) => c.name === 'sftp')!;
   const as2 = h.find((c) => c.name === 'as2')!;
+  const desktop = h.find((c) => c.name === 'desktop-drop')!;
   assert.equal(sftp.status, 'disabled');
   assert.equal(as2.status, 'disabled');
+  assert.equal(desktop.status, 'disabled');
   await reg.closeAll();
 });
 

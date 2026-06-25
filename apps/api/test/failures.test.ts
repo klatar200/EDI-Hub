@@ -211,6 +211,7 @@ test('GET /health reports channel statuses when the registry is decorated', asyn
   app.channels = {
     health: () => channels,
     closeAll: async () => {},
+    ensureDesktopDropFolder: async () => {},
   };
 
   const res = await app.inject({ method: 'GET', url: '/health' });
