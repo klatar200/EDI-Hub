@@ -40,6 +40,7 @@ import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
 import { enforceLicenseGate } from './license-window.js';
 import { registerDesktopRuntime, clearDesktopRuntime } from './desktop-runtime.js';
 import { registerFolderPickerIpc } from './folder-picker.js';
+import { installFileLogger } from './file-logger.js';
 
 // Electron resolves `app.getPath('userData')` from `app.getName()`, which
 // defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
@@ -510,6 +511,7 @@ async function shutdown(reason: string): Promise<void> {
 
 app.whenReady().then(async () => {
   try {
+    installFileLogger();
     registerFolderPickerIpc(() => mainWindow);
     installApplicationMenu();
     // D8 Sprint 1 — trial / license gate before Postgres or API boot.

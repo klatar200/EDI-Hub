@@ -26,6 +26,20 @@ import { dirname, join } from 'node:path';
 import { autoUpdater } from 'electron-updater';
 import type { UpdateInfo } from 'electron-updater';
 
+/** True when `candidate` is strictly newer than `current` (0.0.x semver). */
+function isNewerVersion(candidate: string, current: string): boolean {
+  const core = (v: string) => v.split('-')[0]!.split('.').map((n) => Number.parseInt(n, 10));
+  const c = core(candidate);
+  const r = core(current);
+  for (let i = 0; i < 3; i++) {
+    const a = c[i] ?? 0;
+    const b = r[i] ?? 0;
+    if (a > b) return true;
+    if (a < b) return false;
+  }
+  return false;
+}
+
 // Note on the import shape: electron-updater is a CJS module that
 // sets `__esModule: true` on its module.exports. That trips up the
 // default-import-with-__importDefault pattern we use for @prisma/client
@@ -83,6 +97,12 @@ export function initAutoUpdater(): void {
   autoUpdater.disableWebInstaller = true;
 
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    if (!isNewerVersion(info.version, app.getVersion())) {
+      console.warn(
+        `[edi-hub] auto-update: ignoring downloaded v${info.version} — not newer than v${app.getVersion()}`,
+      );
+      return;
+    }
     console.log(`[edi-hub] auto-update: downloaded v${info.version}, will install on next quit`);
     const cfg = readConfig();
     cfg.pendingWhatsNew = info.version;
@@ -140,6 +160,21 @@ export async function manualCheckForUpdates(): Promise<void> {
         title: 'Check for Updates',
         message: "You're on the latest version of EDI Hub.",
         detail: `Running version ${app.getVersion()}.`,
+        buttons: ['OK'],
+      });
+      return;
+    }
+    // Guard against a corrupted release feed offering a downgrade (happened
+    // when v0.0.10-alpha was tagged before package.json was bumped).
+    if (!isNewerVersion(newVersion, app.getVersion())) {
+      await dialog.showMessageBox({
+        type: 'warning',
+        title: 'Check for Updates',
+        message: 'No newer version is available.',
+        detail:
+          `You are running v${app.getVersion()}. The update server reported ` +
+          `v${newVersion}, which is not newer — the release feed may be out of ` +
+          'sync. Download the latest installer manually from GitHub Releases.',
         buttons: ['OK'],
       });
       return;
