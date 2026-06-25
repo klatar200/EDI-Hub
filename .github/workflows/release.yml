@@ -93,10 +93,14 @@ jobs:
           # The exact artifact path is electron-builder's default
           # template: `<productName>-<version>-<arch>.<ext>`. With
           # productName "EDI Hub" and arch x64 this is "EDI Hub-X.Y.Z-x64.exe".
+          #
+          # D6 Sprint 2 attaches just the installer + its blockmap. The
+          # `latest.yml` auto-update feed file is only generated when
+          # electron-builder.yml has a `publish:` target — D7 wires that
+          # up and re-adds the line here.
           files: |
             apps/desktop/dist-installer/EDI Hub-*-x64.exe
             apps/desktop/dist-installer/EDI Hub-*-x64.exe.blockmap
-            apps/desktop/dist-installer/latest.yml
           draft: false
           prerelease: ${{ contains(github.ref, '-alpha') || contains(github.ref, '-beta') || contains(github.ref, '-rc') }}
           fail_on_unmatched_files: true
