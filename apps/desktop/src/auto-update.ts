@@ -79,6 +79,8 @@ export function initAutoUpdater(): void {
 
   autoUpdater.autoDownload = true;
   autoUpdater.autoInstallOnAppQuit = true;
+  // NSIS full installer only — no web installer stub.
+  autoUpdater.disableWebInstaller = true;
 
   autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
     console.log(`[edi-hub] auto-update: downloaded v${info.version}, will install on next quit`);
@@ -96,9 +98,9 @@ export function initAutoUpdater(): void {
     console.log('[edi-hub] auto-update: no update available');
   });
 
-  // Fire and forget. checkForUpdates returns a promise but we don't
-  // need to await it — events drive the rest.
-  void autoUpdater.checkForUpdates().catch((err) => {
+  // Fire and forget. checkForUpdates returns a promise; attach a catch so
+  // a 404 on the release asset doesn't surface as an unhandled rejection.
+  void autoUpdater.checkForUpdates().catch((err: unknown) => {
     console.error('[edi-hub] auto-update: initial check failed:', err);
   });
 }
