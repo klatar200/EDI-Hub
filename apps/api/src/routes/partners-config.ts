@@ -12,7 +12,7 @@
  *   - 404 NOT_FOUND on a missing id
  *   - 409 ISA_OVERLAP when another partner already claims one of these ISA IDs
  */
-import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
+import type { FastifyInstance, FastifyPluginOptions, FastifyReply } from 'fastify';
 import type {
   ApiErrorResponse,
   PartnerConfigInput,
@@ -32,7 +32,7 @@ import {
   validatePartnerInput,
 } from '../services/partners.js';
 
-function badBody(reply: import('fastify').FastifyReply, err: Error): import('fastify').FastifyReply {
+function badBody(reply: FastifyReply, err: Error): FastifyReply {
   const body: ApiErrorResponse = {
     error: {
       code: 'INVALID_BODY',

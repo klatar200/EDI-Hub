@@ -67,7 +67,7 @@ export class SecretsManagerSecretSource implements SecretSource {
     // dependency tree — the package is only installed in production images
     // where SM_PREFIX is set. TS would otherwise error on the missing
     // module declaration even though this branch never runs in dev.
-    // @ts-ignore — optional production-only dep, install only in prod image
+    // @ts-expect-error — optional production-only dep, install only in prod image
     const mod = await import('@aws-sdk/client-secrets-manager');
     this.client = new mod.SecretsManagerClient({ region: this.region });
     this.GetSecretValueCommand = mod.GetSecretValueCommand;

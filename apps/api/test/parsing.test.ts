@@ -9,6 +9,7 @@ import type { PrismaClient } from '@prisma/client';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { computeDirection, parseAndStore, type ParsingDeps } from '../src/services/parsing.js';
 import type { AppConfig } from '../src/config.js';
+import type { StorageAdapter } from '../src/storage/interface.js';
 
 
 // D3 Sprint 1 - tests don't actually exercise the storage path here; the
@@ -19,7 +20,7 @@ const noopStorage = {
   async upload(key: string) { return { key }; },
   async download() { return Buffer.alloc(0); },
   buildKey(id: string) { return `raw/test/${id}.edi`; },
-} as unknown as import('../src/storage/interface.js').StorageAdapter;
+} as unknown as StorageAdapter;
 
 // Phase 9 Sprint 1.4 — parseAndStore now requires an active tenant context
 // (it reads OUR_ISA_IDS from the tenant row). beforeEach uses enterWith so
