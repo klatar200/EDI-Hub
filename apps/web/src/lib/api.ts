@@ -16,6 +16,8 @@ import type {
   PartnersResponse,
   RejectionRateResponse,
   SearchResponse,
+  SetupPatchInput,
+  SetupStatusResponse,
   TradingPartnerRecord,
   TransactionListResponse,
   TransactionSummary,
@@ -199,6 +201,12 @@ export const api = {
     update: (id: string, input: PartnerConfigInput) =>
       send<TradingPartnerRecord>('PATCH', `/partners-config/${id}`, input),
     remove: (id: string) => sendVoid('DELETE', `/partners-config/${id}`),
+  },
+  /** Desktop track D8 Sprint 2 — first-run wizard state. */
+  setup: {
+    get: () => get<SetupStatusResponse>('/setup'),
+    patch: (input: SetupPatchInput) => send<SetupStatusResponse>('PATCH', '/setup', input),
+    verifyAuth: () => send<{ ok: boolean }>('POST', '/setup/verify-auth', {}),
   },
   rawFileContentUrl: (id: string) => `${BASE}/raw-files/${id}/content`,
   rawContent: async (id: string): Promise<string> => {

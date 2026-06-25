@@ -32,12 +32,64 @@ import { LifecyclePage } from './pages/LifecyclePage.tsx';
 import { MetricsPage } from './pages/MetricsPage.tsx';
 import { PartnersConfigPage } from './pages/PartnersConfigPage.tsx';
 import { AlertsPage } from './pages/AlertsPage.tsx';
+import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
+import { useQuery } from '@tanstack/react-query';
+import { api } from './lib/api.ts';
+import { useHasRole } from './lib/useRole.tsx';
 
 function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element {
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface-bg)] p-6">
       {children}
     </div>
+  );
+}
+
+function SetupGate(): JSX.Element {
+  const isAdmin = useHasRole('admin');
+  const setupQ = useQuery({
+    queryKey: ['setup'],
+    queryFn: () => api.setup.get(),
+    retry: false,
+    staleTime: 10_000,
+  });
+
+  if (setupQ.isLoading) {
+    return (
+      <CenteredCard>
+        <p className="text-sm text-[var(--color-fg-muted)]">Loading setup…</p>
+      </CenteredCard>
+    );
+  }
+
+  const status = setupQ.data;
+  if (status?.desktopMode && !status.firstRunComplete) {
+    if (isAdmin) return <FirstRunWizardPage />;
+    return (
+      <CenteredCard>
+        <p className="max-w-md text-center text-sm text-[var(--color-fg-muted)]">
+          An administrator needs to complete the first-run setup before you can use EDI Hub.
+          Ask an admin to sign in and finish the setup wizard.
+        </p>
+      </CenteredCard>
+    );
+  }
+
+  return (
+    <Routes>
+      <Route element={<Layout />}>
+        <Route path="/" element={<TransactionsPage />} />
+        <Route path="/transactions/:id" element={<TransactionDetailPage />} />
+        <Route path="/ingestions" element={<IngestionsPage />} />
+        <Route path="/search" element={<SearchPage />} />
+        <Route path="/lifecycle/:po" element={<LifecyclePage />} />
+        <Route path="/metrics" element={<MetricsPage />} />
+        <Route path="/partners-config" element={<PartnersConfigPage />} />
+        <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/users" element={<UsersPage />} />
+        <Route path="*" element={<Navigate to="/" replace />} />
+      </Route>
+    </Routes>
   );
 }
 
@@ -61,22 +113,7 @@ function OrgGate(): JSX.Element {
       </CenteredCard>
     );
   }
-  return (
-    <Routes>
-      <Route element={<Layout />}>
-        <Route path="/" element={<TransactionsPage />} />
-        <Route path="/transactions/:id" element={<TransactionDetailPage />} />
-        <Route path="/ingestions" element={<IngestionsPage />} />
-        <Route path="/search" element={<SearchPage />} />
-        <Route path="/lifecycle/:po" element={<LifecyclePage />} />
-        <Route path="/metrics" element={<MetricsPage />} />
-        <Route path="/partners-config" element={<PartnersConfigPage />} />
-        <Route path="/alerts" element={<AlertsPage />} />
-        <Route path="/users" element={<UsersPage />} />
-        <Route path="*" element={<Navigate to="/" replace />} />
-      </Route>
-    </Routes>
-  );
+  return <SetupGate />;
 }
 
 export function App(): JSX.Element {

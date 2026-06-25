@@ -13,6 +13,7 @@ import { startConfiguredChannels } from './channels/registry.js';
 import { disconnectPrisma } from '@edi/db';
 import { loadConfig } from './config.js';
 import { applySecretsFromManager } from './services/secrets.js';
+import { readHubConfig, isDesktopHubMode } from './services/hub-config.js';
 import { createJobsAdapter } from './jobs/factory.js';
 import {
   createDetectionHandler,
@@ -34,9 +35,14 @@ async function main(): Promise<void> {
     await ensureBucket(app.s3, app.config.s3.bucket);
   }
 
+  const hubCfg = isDesktopHubMode() ? readHubConfig() : {};
+  const desktopDropFolder =
+    hubCfg.firstRunComplete && hubCfg.dropFolderPath ? hubCfg.dropFolderPath : null;
+
   const channels = await startConfiguredChannels(
     { s3: app.s3, storage: app.storage, prisma: app.prisma, config: app.config, logger: app.log },
     app.config,
+    { desktopDropFolder },
   );
   // Expose the registry to the health route via the Fastify decorator.
   app.decorate('channels', channels);

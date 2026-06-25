@@ -28,6 +28,7 @@ import { searchRoutes } from '../src/routes/search.js';
 import { lifecycleRoutes } from '../src/routes/lifecycle.js';
 import { metricsRoutes } from '../src/routes/metrics.js';
 import { partnersConfigRoutes } from '../src/routes/partners-config.js';
+import { setupRoutes } from '../src/routes/setup.js';
 import { alertsRoutes } from '../src/routes/alerts.js';
 import { userRoutes } from '../src/routes/users.js';
 import { auditRoutes } from '../src/routes/audit.js';
@@ -72,6 +73,7 @@ const EXPECTED: Record<string, Role> = {
   'GET /api/users': 'viewer',
   'GET /api/ingest/:id': 'viewer',
   'GET /api/ingest': 'viewer',
+  'GET /api/setup': 'viewer',
 
   // Ops actions
   'PATCH /api/alerts/:id/ack': 'ops',
@@ -86,6 +88,8 @@ const EXPECTED: Record<string, Role> = {
   'GET /api/audit': 'admin',
   'DELETE /api/tenants/me': 'admin',
   'POST /api/tenants/me/undelete': 'admin',
+  'PATCH /api/setup': 'admin',
+  'POST /api/setup/verify-auth': 'admin',
 
   // Ops-only mutating action — file upload is operational, not admin.
   'POST /api/ingest/upload': 'ops',
@@ -135,6 +139,7 @@ test('every registered route declares the requiredRole expected by the policy', 
       await apiScope.register(lifecycleRoutes);
       await apiScope.register(metricsRoutes);
       await apiScope.register(partnersConfigRoutes);
+      await apiScope.register(setupRoutes);
       await apiScope.register(alertsRoutes);
       await apiScope.register(userRoutes);
       await apiScope.register(auditRoutes);
