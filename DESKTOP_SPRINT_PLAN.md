@@ -698,25 +698,27 @@
 
 1. Add a "Export Backup" item to the Help menu (or a dedicated Settings page).
 2. Backup action:
-   - Stop the API child (Postgres stays running — backup reads directly from it).
-   - Run `pg_dump -Fc -d edihub -h localhost -p 5433 -f <userData>/backup.pgdump` using the bundled Postgres `pg_dump` binary from `<userData>/postgres/bin/`.
-   - Use `archiver` (npm package) to zip `<userData>/backup.pgdump` + `<userData>/raw/` into a timestamped file `edi-hub-backup-YYYYMMDD-HHmmss.zip`. Show a native save dialog.
-   - Restart the API child after the dump completes.
+   - Stop the API child (Postgres must also stop — `embedded-postgres` does
+     not ship `pg_dump` / `pg_restore`, only `postgres` + `initdb`).
+   - Zip `<userData>/pgdata/` + `<userData>/raw/` + `manifest.json` into
+     `edi-hub-backup-YYYYMMDD-HHmmss.zip`. Show a native save dialog.
+   - Restart Postgres + API after the archive is written.
 3. Add a "Restore from Backup" item. Action:
    - Show a file picker (`.zip` files only).
    - Confirm dialog: "This will replace all current data. Are you sure?"
-   - Stop the API child.
-   - Unzip the archive to a temp directory.
-   - Run `pg_restore -d edihub -h localhost -p 5433 --clean --if-exists <tempdir>/backup.pgdump` using the bundled binary.
-   - Copy `<tempdir>/raw/` to `<userData>/raw/`, overwriting existing files.
-   - Restart the API child and reload the BrowserWindow.
-4. Write a test that: exports a backup, drops and recreates the `edihub` database, restores the backup, and confirms a known transaction row and a raw file are intact.
+   - Stop the API child and Postgres.
+   - Unzip the archive to a temp directory; validate `manifest.json` +
+     `pgdata/PG_VERSION`.
+   - Replace `<userData>/pgdata/` and `<userData>/raw/` from the archive.
+   - Restart Postgres, run `prisma migrate deploy`, restart API, reload window.
+4. Write a test that: exports a backup zip, applies it to a fresh userData
+   tree, and confirms pgdata + raw files round-trip intact.
 
 **Exit criteria (scorecard):**
 
 | # | Check | Pass condition |
 |---|---|---|
-| S17.1 | Backup creates a valid ZIP | ZIP contains `backup.pgdump` and `raw/` directory |
+| S17.1 | Backup creates a valid ZIP | ZIP contains `manifest.json`, `pgdata/`, and `raw/` |
 | S17.2 | Restore from backup on same machine | After restore, previously ingested transaction is visible in UI |
 | S17.3 | Restore on fresh machine | Copy backup ZIP to a machine with a fresh install → restore → data visible |
 | S17.4 | Restore while app is running | API stops, restore completes, API restarts, UI reloads |

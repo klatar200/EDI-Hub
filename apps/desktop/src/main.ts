@@ -38,6 +38,7 @@ import { closeSplash, openSplash, updateSplash } from './splash.js';
 import { installApplicationMenu } from './menu.js';
 import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
 import { enforceLicenseGate } from './license-window.js';
+import { registerDesktopRuntime, clearDesktopRuntime } from './desktop-runtime.js';
 
 // Electron resolves `app.getPath('userData')` from `app.getName()`, which
 // defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
@@ -279,6 +280,7 @@ async function runMigrations(databaseUrl: string): Promise<void> {
 
 let apiChild: ChildProcess | null = null;
 let restartedOnce = false;
+let currentApiEnv: Record<string, string> | null = null;
 
 async function startApiChild(env: Record<string, string>): Promise<void> {
   const entry = resolveApiEntry();
@@ -459,18 +461,33 @@ async function boot(): Promise<void> {
   if (process.env.CORS_ALLOWED_ORIGINS) {
     apiEnv.CORS_ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS;
   }
+  currentApiEnv = apiEnv;
   await startApiChild(apiEnv);
   updateSplash('api', 'done');
 
   console.log('[edi-hub] boot step 5: opening BrowserWindow...');
   updateSplash('window', 'running');
-  // D4 Sprint 2 — renderer and API share the same origin
-  // (http://127.0.0.1:3000), so api.ts's default BASE of '/api' is the
-  // correct same-origin relative path. No --edi-api-base override needed
-  // unless a developer enables the Vite-hot-reload mode (in which case
-  // they set EDI_DESKTOP_RENDERER_URL + run Vite separately + set
-  // CORS_ALLOWED_ORIGINS — see resolveWebUrl() for the contract).
   await openMainWindow();
+
+  registerDesktopRuntime({
+    userDataDir: userData,
+    appVersion: app.getVersion(),
+    stopApi: stopApiChild,
+    startApi: async () => {
+      if (!currentApiEnv) throw new Error('API environment is not initialized.');
+      await startApiChild(currentApiEnv);
+    },
+    stopPostgres,
+    startPostgresStack: async () => {
+      const { databaseUrl } = await startPostgres();
+      await runMigrations(databaseUrl);
+    },
+    reloadMainWindow: async () => {
+      if (mainWindow && !mainWindow.isDestroyed()) {
+        await mainWindow.loadURL(resolveWebUrl());
+      }
+    },
+  });
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -482,6 +499,7 @@ async function shutdown(reason: string): Promise<void> {
   if (isShuttingDown) return;
   isShuttingDown = true;
   console.log(`[edi-hub] shutdown: ${reason}`);
+  clearDesktopRuntime();
   if (mainWindow && !mainWindow.isDestroyed()) mainWindow.close();
   await stopApiChild();
   await stopPostgres();

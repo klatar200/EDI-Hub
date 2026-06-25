@@ -16,6 +16,9 @@ Full path example: `C:\Users\<you>\AppData\Roaming\EDI Hub\`
 
 **In the app:** Help → **Open Data Folder** (v0.0.8-alpha+).
 
+**Backup / restore (v0.0.9-alpha+):** Help → **Export Backup** / **Restore from Backup**.
+Archives contain `pgdata/` + `raw/` + `manifest.json`.
+
 **In logs:** every launch prints `[edi-hub] userData: ...` when run with
 `--enable-logging`.
 

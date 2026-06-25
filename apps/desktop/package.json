@@ -1,7 +1,7 @@
 {
   "name": "@edi/desktop",
   "productName": "EDI Hub",
-  "version": "0.0.8-alpha",
+  "version": "0.0.9-alpha",
   "private": true,
   "description": "EDI Hub desktop installer \u2014 Electron shell, embedded Postgres, local file storage.",
   "main": "./dist/main.js",
@@ -15,11 +15,14 @@
   "dependencies": {
     "@edi/api": "*",
     "@edi/db": "*",
+    "archiver": "^7.0.1",
     "electron-updater": "^6.3.9",
     "embedded-postgres": "17.10.0-beta.17",
+    "extract-zip": "^2.0.1",
     "prisma": "^6.1.0"
   },
   "devDependencies": {
+    "@types/archiver": "^6.0.3",
     "@types/node": "^22.10.2",
     "electron": "^32.2.7",
     "electron-builder": "^25.1.8"
