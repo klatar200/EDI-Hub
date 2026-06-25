@@ -1,6 +1,6 @@
 {
   "name": "@edi/desktop",
-  "version": "0.0.3-alpha",
+  "version": "0.0.4-alpha",
   "private": true,
   "description": "EDI Hub desktop installer \u2014 Electron shell, embedded Postgres, local file storage.",
   "main": "./dist/main.js",
