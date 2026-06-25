@@ -23,13 +23,16 @@
 import { app, dialog, shell } from 'electron';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
+import { autoUpdater } from 'electron-updater';
 import type { UpdateInfo } from 'electron-updater';
 
-// electron-updater is CommonJS; this is the canonical interop shape for
-// pulling `autoUpdater` out under our ESM-style build (same pattern we
-// use for @prisma/client elsewhere in the repo).
-import electronUpdaterPkg from 'electron-updater';
-const { autoUpdater } = electronUpdaterPkg;
+// Note on the import shape: electron-updater is a CJS module that
+// sets `__esModule: true` on its module.exports. That trips up the
+// default-import-with-__importDefault pattern we use for @prisma/client
+// — `.default` is undefined on this package because there is no
+// default export, only named ones. A plain named import compiles to
+// `require('electron-updater').autoUpdater`, which is exactly what we
+// want.
 
 interface PersistedConfig {
   /** Set on `update-downloaded`. Read + cleared on next launch when
