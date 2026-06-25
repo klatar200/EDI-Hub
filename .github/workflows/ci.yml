@@ -56,6 +56,15 @@ jobs:
       - name: Generate Prisma client
         run: npm run db:generate
 
+      # Compile the workspace packages (@edi/shared, @edi/db,
+      # @edi/edi-parser, @edi/api) so their .d.ts outputs exist on disk.
+      # Each GitHub Actions job runs on a fresh runner — the artifacts
+      # from the `build` job don't carry over, so we recreate them here
+      # before tsc --noEmit (inside the apps/web build) tries to resolve
+      # `import type { ... } from '@edi/shared'` and fails.
+      - name: Compile workspace packages
+        run: npm run typecheck
+
       - name: Build apps/web
         run: npm run build --workspace=@edi/web
 
