@@ -70,8 +70,11 @@ test('loads raw bytes and cross-highlights a clicked segment', async () => {
   const rawLine = await screen.findByText('BEG*00*PO-12345');
   fireEvent.click(rawLine);
   await waitFor(() => {
-    // the clicked raw line is highlighted
-    expect(rawLine.className).toContain('bg-amber-100');
+    // The clicked raw line is highlighted. The UI Phase migration moved
+    // the highlight color from a literal Tailwind class (`bg-amber-100`)
+    // to a token-based one (`bg-[var(--color-brand-50)]`); this assertion
+    // tracks the current rendering.
+    expect(rawLine.className).toContain('bg-[var(--color-brand-50)]');
   });
 });
 
