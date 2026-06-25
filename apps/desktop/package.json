@@ -8,7 +8,8 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "dev": "npm run build --workspace=@edi/web && tsc --build && electron .",
-    "dist": "npm run build --workspace=@edi/api && npm run build --workspace=@edi/web && tsc --build && electron-builder build --publish never"
+    "dist": "npm run build --workspace=@edi/api && npm run build --workspace=@edi/web && tsc --build && electron-builder build --publish never",
+    "test": "tsc --build && node --test --import tsx test/*.test.ts"
   },
   "dependencies": {
     "@edi/api": "*",
