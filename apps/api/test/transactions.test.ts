@@ -19,7 +19,10 @@ const config = {
   ourIsaIds: [],
   notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
   clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
 } as AppConfig;
 
 const fakeS3 = { config: { requestHandler: {}, maxAttempts: 1, endpointProvider: () => ({ url: new URL('http://localhost:9000') }) }, async send() { return {}; } } as unknown as S3Client;
@@ -80,7 +83,7 @@ function fakePrisma(): PrismaClient {
 
 test('GET /transactions/:id returns the typed interpretation + labeled tree', async () => {
   const app = await buildServer({ config, s3: fakeS3, prisma: fakePrisma() });
-  const res = await app.inject({ method: 'GET', url: '/transactions/txn-1' });
+  const res = await app.inject({ method: 'GET', url: '/api/transactions/txn-1' });
   assert.equal(res.statusCode, 200);
   const body = res.json();
 
@@ -99,7 +102,7 @@ test('GET /transactions/:id returns the typed interpretation + labeled tree', as
 
 test('GET /transactions/:id 404s for an unknown id', async () => {
   const app = await buildServer({ config, s3: fakeS3, prisma: fakePrisma() });
-  const res = await app.inject({ method: 'GET', url: '/transactions/nope' });
+  const res = await app.inject({ method: 'GET', url: '/api/transactions/nope' });
   assert.equal(res.statusCode, 404);
   assert.equal(res.json().error.code, 'NOT_FOUND');
   await app.close();
@@ -107,12 +110,12 @@ test('GET /transactions/:id 404s for an unknown id', async () => {
 
 test('GET /transactions?po= finds by PO number', async () => {
   const app = await buildServer({ config, s3: fakeS3, prisma: fakePrisma() });
-  const hit = await app.inject({ method: 'GET', url: '/transactions?po=PO-12345' });
+  const hit = await app.inject({ method: 'GET', url: '/api/transactions?po=PO-12345' });
   assert.equal(hit.statusCode, 200);
   assert.equal(hit.json().count, 1);
   assert.equal(hit.json().items[0].id, 'txn-1');
 
-  const miss = await app.inject({ method: 'GET', url: '/transactions?po=PO-NOPE' });
+  const miss = await app.inject({ method: 'GET', url: '/api/transactions?po=PO-NOPE' });
   assert.equal(miss.json().count, 0);
   await app.close();
 });

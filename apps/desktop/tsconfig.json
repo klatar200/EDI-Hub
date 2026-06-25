@@ -1,0 +1,17 @@
+{
+  "extends": "../../tsconfig.base.json",
+  "compilerOptions": {
+    "rootDir": "./src",
+    "outDir": "./dist",
+    "types": ["node"],
+    // Electron's main process runs as CommonJS; Node16 module/resolution
+    // honors the package's `exports` map (D4 Sprint 1 noted this was
+    // required for `embedded-postgres`, which only exposes its types via
+    // the `exports` field) while still emitting CommonJS at the file
+    // boundary.
+    "module": "Node16",
+    "moduleResolution": "Node16",
+    "verbatimModuleSyntax": false
+  },
+  "include": ["src/**/*"]
+}

@@ -10,6 +10,17 @@ import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { computeDirection, parseAndStore, type ParsingDeps } from '../src/services/parsing.js';
 import type { AppConfig } from '../src/config.js';
 
+
+// D3 Sprint 1 - tests don't actually exercise the storage path here; the
+// fakes write straight to in-memory maps. We just need a typed object that
+// satisfies the StorageAdapter interface so IngestionDeps/ParsingDeps
+// typecheck under the new shape.
+const noopStorage = {
+  async upload(key: string) { return { key }; },
+  async download() { return Buffer.alloc(0); },
+  buildKey(id: string) { return `raw/test/${id}.edi`; },
+} as unknown as import('../src/storage/interface.js').StorageAdapter;
+
 // Phase 9 Sprint 1.4 — parseAndStore now requires an active tenant context
 // (it reads OUR_ISA_IDS from the tenant row). beforeEach uses enterWith so
 // the ALS context propagates into the test body that runs immediately after.
@@ -26,7 +37,10 @@ const config = {
   ourIsaIds: [],
   notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
   clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
 } as AppConfig;
 
 const noopLogger = { info() {}, warn() {}, error() {}, debug() {}, fatal() {}, trace() {}, child() { return noopLogger; } } as never;
@@ -116,30 +130,35 @@ function makeDeps(content: Buffer, state: FakeState, ourIsaIds: string[] = [], p
           : null;
       },
     },
-    tradingPartner: {
+    tradingPartner: (() => {
       // Phase 6 — return a stubbed partner row when seeded; otherwise null
       // (no partner configured → existing behavior).
-      async findFirst() {
-        if (!partner) return null;
-        return {
-          id: 'p-1', tenantId: null, displayName: 'Stub',
-          isaSenderIds: partner.isaSenderIds ?? [],
-          isaReceiverIds: partner.isaReceiverIds ?? [],
-          status: 'active',
-          notes: null,
-          contacts: [],
-          supportedSets: partner.supportedSets ?? [],
-          lifecycleFlows: [],
-          ackCodeOverrides: {},
-          createdAt: new Date(),
-          updatedAt: new Date(),
-        };
-      },
-    },
+      //
+      // Desktop track D1 Sprint 3 — Option A switched resolvePartnerByIsa from
+      // findFirst-with-array-operators to findMany + JS membership, so we now
+      // stub both shapes against the same single-partner fixture.
+      const stubRow = () => ({
+        id: 'p-1', tenantId: null, displayName: 'Stub',
+        isaSenderIds: partner?.isaSenderIds ?? [],
+        isaReceiverIds: partner?.isaReceiverIds ?? [],
+        status: 'active',
+        notes: null,
+        contacts: [],
+        supportedSets: partner?.supportedSets ?? [],
+        lifecycleFlows: [],
+        ackCodeOverrides: {},
+        createdAt: new Date(),
+        updatedAt: new Date(),
+      });
+      return {
+        async findFirst() { return partner ? stubRow() : null; },
+        async findMany() { return partner ? [stubRow()] : []; },
+      };
+    })(),
     async $transaction(fn: (tx: unknown) => unknown) { return fn(self); },
   } as unknown as PrismaClient;
   void content;
-  return { s3, prisma: self, config: { ...config, ourIsaIds }, logger: noopLogger };
+  return { s3, storage: noopStorage, prisma: self, config: { ...config, ourIsaIds }, logger: noopLogger };
 }
 
 test('parseAndStore persists the interchange tree and marks the file PARSED', async () => {

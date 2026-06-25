@@ -23,7 +23,14 @@ import type {
 import type { InterpretedTransaction } from '@edi/edi-parser';
 import type { TransactionRejection } from '@edi/shared';
 
-const BASE = (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+// Desktop track D4 Sprint 2 — base URL is same-origin in every deployment:
+//   - SaaS:    CloudFront serves the React build, /api/* is reverse-proxied to the API.
+//   - Desktop: the Electron-managed Fastify process serves both /api/* and the React build
+//              at http://127.0.0.1:3000 (LAN clients reach it at http://<server-ip>:3000).
+//   - Dev:     Vite at :5173 proxies /api to the API at :3000 (see vite.config.ts).
+// `VITE_API_URL` lets a developer override for an unusual local layout.
+const BASE: string =
+  (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
 
 /** Phase 9 Sprint 2 — JWT plumbing.
  *

@@ -30,7 +30,10 @@ function makeConfig(): AppConfig {
     ourIsaIds: [],
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   } as AppConfig;
 }
 

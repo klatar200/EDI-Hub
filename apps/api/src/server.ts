@@ -8,12 +8,18 @@
  * `index.ts` stays responsible only for binding the port.
  */
 import Fastify, { type FastifyInstance } from 'fastify';
+import cors from '@fastify/cors';
 import multipart from '@fastify/multipart';
+import fastifyStatic from '@fastify/static';
+import { existsSync } from 'node:fs';
+import { resolve } from 'node:path';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from '@prisma/client';
 import { getPrisma } from '@edi/db';
 import { loadConfig, type AppConfig } from './config.js';
 import { createS3Client } from './storage/s3.js';
+import { createStorageAdapter } from './storage/factory.js';
+import type { StorageAdapter } from './storage/interface.js';
 import type { AuthOutcome } from './services/auth.js';
 import { ingestRoutes } from './routes/ingest.js';
 import { healthRoutes } from './routes/health.js';
@@ -38,8 +44,15 @@ import type { FastifyRequest } from 'fastify';
 
 export interface BuildServerOptions {
   config?: AppConfig;
-  /** Inject a fake/real S3 client. Defaults to one built from config. */
+  /** Inject a fake/real S3 client. Defaults to one built from config.
+   *  When `storage.backend === 'local'` the SaaS-style S3 client is
+   *  still constructed (cheap) so backward-compat code paths and tests
+   *  that read `app.s3` keep working — the local storage adapter just
+   *  never touches it. */
   s3?: S3Client;
+  /** Desktop track D3 Sprint 1 - inject a fake StorageAdapter for tests.
+   *  Defaults to one built from `config.storage.backend`. */
+  storage?: StorageAdapter;
   /** Inject a fake/real Prisma client. Defaults to the shared singleton. */
   prisma?: PrismaClient;
   /** Phase 9 Sprint 2 — inject a fake JWT verifier for auth integration tests.
@@ -88,10 +101,42 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   });
 
   app.decorate('config', config);
-  app.decorate('s3', opts.s3 ?? createS3Client(config.s3));
+  const s3Client = opts.s3 ?? createS3Client(config.s3);
+  app.decorate('s3', s3Client);
+  // D3 Sprint 1 - every read/write of a raw file goes through this adapter.
+  app.decorate(
+    'storage',
+    opts.storage ?? createStorageAdapter(config, s3Client),
+  );
   // Only construct the real Prisma client when one isn't injected, so tests
   // never touch a database.
   app.decorate('prisma', opts.prisma ?? getPrisma());
+
+  // Desktop track D4 Sprint 1 — CORS for cross-origin requests from the
+  // Electron renderer to the API child. Closed by default in cloud / pure-
+  // web dev (Vite proxy keeps requests same-origin); the desktop main
+  // process sets CORS_ALLOWED_ORIGINS so the plugin loads with an allowlist.
+  //
+  // Registered BEFORE the tenant/auth plugin so preflight OPTIONS requests
+  // get answered without going through Clerk verification (which would
+  // reject them — there's no Bearer token on a preflight).
+  if (config.cors.allowedOrigins.length > 0) {
+    const allowed = new Set(config.cors.allowedOrigins);
+    await app.register(cors, {
+      // `origin` callback runs per-request: allow no-origin (same-origin /
+      // health probes from main process) and any explicitly allowlisted
+      // value. We intentionally do NOT use the array form because that
+      // sends the header back as a literal '*', which breaks credentialed
+      // requests (Authorization: Bearer ...).
+      origin: (origin, cb) => {
+        if (!origin) return cb(null, true);
+        cb(null, allowed.has(origin));
+      },
+      credentials: true,
+      methods: ['GET', 'POST', 'PATCH', 'DELETE', 'OPTIONS'],
+      allowedHeaders: ['Authorization', 'Content-Type'],
+    });
+  }
 
   await app.register(multipart, {
     limits: { fileSize: config.maxFileSizeBytes, files: 1 },
@@ -127,19 +172,62 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
   // /webhooks/clerk as public.
   await app.register(webhookRoutes);
 
-  // Authenticated routes:
-  await app.register(ingestRoutes);
-  await app.register(transactionRoutes);
-  await app.register(partnerRoutes);
-  await app.register(rawFileRoutes);
-  await app.register(searchRoutes);
-  await app.register(lifecycleRoutes);
-  await app.register(metricsRoutes);
-  await app.register(partnersConfigRoutes);
-  await app.register(alertsRoutes);
-  await app.register(userRoutes);
-  await app.register(auditRoutes);
-  await app.register(tenantRoutes);
+  // Desktop track D4 Sprint 2 — every authenticated route lives under
+  // /api. This decouples the API surface from the React app's routes
+  // (which live at /) so the LAN-server install can serve both from a
+  // single port. Pre-Sprint-2 the SaaS deployment relied on the Vite
+  // proxy stripping /api; that rewrite is now reversed (the proxy
+  // forwards /api/* verbatim) so the same code path serves cloud,
+  // desktop, and dev.
+  await app.register(
+    async (apiScope) => {
+      await apiScope.register(ingestRoutes);
+      await apiScope.register(transactionRoutes);
+      await apiScope.register(partnerRoutes);
+      await apiScope.register(rawFileRoutes);
+      await apiScope.register(searchRoutes);
+      await apiScope.register(lifecycleRoutes);
+      await apiScope.register(metricsRoutes);
+      await apiScope.register(partnersConfigRoutes);
+      await apiScope.register(alertsRoutes);
+      await apiScope.register(userRoutes);
+      await apiScope.register(auditRoutes);
+      await apiScope.register(tenantRoutes);
+    },
+    { prefix: '/api' },
+  );
+
+  // Desktop track D4 Sprint 2 — when WEB_STATIC_DIR is set, serve the
+  // React build from `/`. Registered LAST so it never intercepts
+  // /api/* or /health/etc. The SPA fallback below catches any non-asset
+  // path (e.g. /dashboard, /transactions/abc) and returns index.html so
+  // client-side React Router routes resolve on direct URL hits.
+  if (config.webStatic.dir.length > 0) {
+    const staticRoot = resolve(config.webStatic.dir);
+    if (!existsSync(staticRoot)) {
+      throw new Error(
+        `WEB_STATIC_DIR='${staticRoot}' does not exist. Run \`npm run build -w @edi/web\` first.`,
+      );
+    }
+    await app.register(fastifyStatic, {
+      root: staticRoot,
+      // Don't auto-attach a wildcard 404 handler — we do our own SPA
+      // fallback below so React Router paths return index.html.
+      wildcard: false,
+    });
+    // SPA fallback. Order matters: this runs AFTER fastify-static's
+    // file-matching, so real assets (/assets/foo.js, /favicon.ico) still
+    // resolve correctly. Anything else that GETs / falls through here.
+    app.setNotFoundHandler(async (request, reply) => {
+      // Only fall back for GET requests to non-API paths. POSTs and
+      // /api/* 404s should still return a proper 404 (so the renderer
+      // surfaces "route not found" errors instead of an HTML payload).
+      if (request.method !== 'GET' || request.url.startsWith('/api/')) {
+        return reply.code(404).send({ error: 'NOT_FOUND' });
+      }
+      return reply.type('text/html').sendFile('index.html');
+    });
+  }
 
   return app;
 }

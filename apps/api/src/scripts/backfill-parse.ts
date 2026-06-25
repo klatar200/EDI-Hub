@@ -16,6 +16,7 @@ import type { FastifyBaseLogger } from 'fastify';
 import { getPrisma, disconnectPrisma, tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { loadConfig } from '../config.js';
 import { createS3Client } from '../storage/s3.js';
+import { createStorageAdapter } from '../storage/factory.js';
 import { parseAndStore } from '../services/parsing.js';
 
 const logger = {
@@ -27,6 +28,7 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const prisma = getPrisma();
   const s3 = createS3Client(config.s3);
+  const storage = createStorageAdapter(config, s3);
 
   // Phase 9 Sprint 1.4 — scripts have no request context; pin the whole
   // backfill to the pilot tenant. Future per-tenant backfills will accept a
@@ -43,7 +45,7 @@ async function main(): Promise<void> {
     let parsed = 0;
     let errored = 0;
     for (const raw of targets) {
-      const result = await parseAndStore({ s3, prisma, config, logger }, { rawFileId: raw.id });
+      const result = await parseAndStore({ s3, storage, prisma, config, logger }, { rawFileId: raw.id });
       if (result.outcome === 'parsed') {
         parsed += 1;
         console.log(`  ${raw.id} -> parsed (${result.transactions} txn, ${result.segments} seg, ${result.warnings.length} warn)`);

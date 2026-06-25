@@ -27,7 +27,7 @@ import {
   type TransactionIssue,
 } from '@edi/edi-parser';
 import type { AppConfig } from '../config.js';
-import { getObjectBuffer } from '../storage/s3.js';
+import type { StorageAdapter } from '../storage/interface.js';
 import { resolvePartnerByIsa } from './partners.js';
 
 /**
@@ -53,6 +53,8 @@ export function computeDirection(
 
 export interface ParsingDeps {
   s3: S3Client;
+  /** Desktop track D3 Sprint 1 - data-path storage adapter. */
+  storage: StorageAdapter;
   prisma: PrismaClient;
   config: AppConfig;
   logger: FastifyBaseLogger;
@@ -322,7 +324,7 @@ export async function parseAndStore(
   if (!raw) return { outcome: 'skipped', reason: 'raw file not found' };
 
   const content =
-    input.content ?? (await getObjectBuffer(deps.s3, deps.config.s3.bucket, raw.s3Key));
+    input.content ?? (await deps.storage.download(raw.s3Key));
 
   let decomposed;
   try {

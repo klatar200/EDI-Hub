@@ -58,7 +58,10 @@ function makeConfig(): AppConfig {
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     // Non-empty → tenant plugin routes through real verifyAuth (we stub it).
     clerk: { secretKey: 'sk_test_present', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   } as AppConfig;
 }
 
@@ -293,21 +296,21 @@ test('isolation: each tenant\'s list endpoints see only its own partners', async
   // Seed one partner in each tenant via the route — exercises the create
   // path that injects tenantId.
   await asTenant(TENANT_A.id, () => app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_A' },
     payload: { displayName: 'A-Partner', isaSenderIds: ['ASND'], isaReceiverIds: [] },
   }));
   await asTenant(TENANT_B.id, () => app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_B' },
     payload: { displayName: 'B-Partner', isaSenderIds: ['BSND'], isaReceiverIds: [] },
   }));
   const aList = await asTenant(TENANT_A.id, () => app.inject({
-    method: 'GET', url: '/partners-config',
+    method: 'GET', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_A' },
   }));
   const bList = await asTenant(TENANT_B.id, () => app.inject({
-    method: 'GET', url: '/partners-config',
+    method: 'GET', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_B' },
   }));
   const aItems = (aList.json() as { items: Array<{ displayName: string }> }).items;
@@ -328,14 +331,14 @@ test('isolation: tenant A asking for tenant B\'s partner by id returns 404 (no e
   const app = await buildIsoApp(store);
   // Seed B's partner.
   const create = await asTenant(TENANT_B.id, () => app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_B' },
     payload: { displayName: 'B-Secret', isaSenderIds: ['BSND'], isaReceiverIds: [] },
   }));
   const bId = (create.json() as { id: string }).id;
   // Tenant A asking for B's id — same URL, different auth.
   const probe = await asTenant(TENANT_A.id, () => app.inject({
-    method: 'GET', url: `/partners-config/${bId}`,
+    method: 'GET', url: `/api/partners-config/${bId}`,
     headers: { authorization: 'Bearer token-org_A' },
   }));
   assert.equal(probe.statusCode, 404);
@@ -348,19 +351,19 @@ test('isolation: cross-tenant PATCH and DELETE both return 404', async () => {
   const store: IsoStore = { partners: [], audits: [], seq: 0 };
   const app = await buildIsoApp(store);
   const create = await asTenant(TENANT_B.id, () => app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_B' },
     payload: { displayName: 'B-Mut', isaSenderIds: ['BMUT'], isaReceiverIds: [] },
   }));
   const bId = (create.json() as { id: string }).id;
   const patch = await asTenant(TENANT_A.id, () => app.inject({
-    method: 'PATCH', url: `/partners-config/${bId}`,
+    method: 'PATCH', url: `/api/partners-config/${bId}`,
     headers: { authorization: 'Bearer token-org_A' },
     payload: { displayName: 'hijack', isaSenderIds: ['BMUT'], isaReceiverIds: [] },
   }));
   assert.equal(patch.statusCode, 404);
   const del = await asTenant(TENANT_A.id, () => app.inject({
-    method: 'DELETE', url: `/partners-config/${bId}`,
+    method: 'DELETE', url: `/api/partners-config/${bId}`,
     headers: { authorization: 'Bearer token-org_A' },
   }));
   assert.equal(del.statusCode, 404);
@@ -378,23 +381,23 @@ test('isolation: GET /audit returns only the calling tenant\'s rows', async () =
   const store: IsoStore = { partners: [], audits: [], seq: 0 };
   const app = await buildIsoApp(store);
   await asTenant(TENANT_A.id, () => app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_A' },
     payload: { displayName: 'A-Audited', isaSenderIds: ['AAUD'], isaReceiverIds: [] },
   }));
   await asTenant(TENANT_B.id, () => app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-org_B' },
     payload: { displayName: 'B-Audited', isaSenderIds: ['BAUD'], isaReceiverIds: [] },
   }));
   // Both tenants now have one partner.create audit row each. Confirm each
   // tenant sees only one row.
   const aAudit = await asTenant(TENANT_A.id, () => app.inject({
-    method: 'GET', url: '/audit',
+    method: 'GET', url: '/api/audit',
     headers: { authorization: 'Bearer token-org_A' },
   }));
   const bAudit = await asTenant(TENANT_B.id, () => app.inject({
-    method: 'GET', url: '/audit',
+    method: 'GET', url: '/api/audit',
     headers: { authorization: 'Bearer token-org_B' },
   }));
   const aBody = aAudit.json() as { items: Array<{ tenantId?: string; targetId: string }>; count: number };
@@ -414,7 +417,7 @@ test('forged-claim probe: a token the verifier does not recognize is rejected wi
   const store: IsoStore = { partners: [], audits: [], seq: 0 };
   const app = await buildIsoApp(store);
   const res = await app.inject({
-    method: 'GET', url: '/partners-config',
+    method: 'GET', url: '/api/partners-config',
     headers: { authorization: 'Bearer token-forged-orgC' },
   });
   assert.equal(res.statusCode, 401);

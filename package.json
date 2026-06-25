@@ -3,7 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "EDI observability platform — ingest, decompose, monitor, and alert on X12 EDI transactions.",
+  "description": "EDI observability platform \u2014 ingest, decompose, monitor, and alert on X12 EDI transactions.",
   "engines": {
     "node": ">=20"
   },
@@ -12,7 +12,8 @@
     "packages/db",
     "packages/edi-parser",
     "apps/api",
-    "apps/web"
+    "apps/web",
+    "apps/desktop"
   ],
   "scripts": {
     "build": "tsc --build",
@@ -23,15 +24,20 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
+    "test:parity": "playwright test --project=web --project=desktop",
+    "test:parity:setup": "playwright test --project=setup",
+    "test:parity:update": "playwright test --project=web --project=desktop --update-snapshots",
     "dev:api": "npm run dev --workspace=apps/api",
     "dev:web": "npm run dev --workspace=apps/web",
     "db:migrate": "npm run db:migrate --workspace=@edi/db",
     "db:generate": "npm run db:generate --workspace=@edi/db",
     "infra:up": "docker compose up -d",
-    "infra:down": "docker compose down"
+    "infra:down": "docker compose down",
+    "set-phase": "node scripts/set-phase.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",
+    "@playwright/test": "^1.49.1",
     "@typescript-eslint/eslint-plugin": "^8.18.0",
     "@typescript-eslint/parser": "^8.18.0",
     "eslint": "^9.17.0",

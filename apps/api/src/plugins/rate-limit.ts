@@ -130,7 +130,11 @@ function classify(request: FastifyRequest): RateLimitGroup | null {
   // /health, /readiness, /internal/metrics — no rate limit. Health probes
   // need to be fast and frequent; metrics scrapes too.
   if (url === '/health' || url === '/readiness' || url === '/internal/metrics') return null;
-  if (url === '/ingest/upload') return 'ingest';
+  // D4 Sprint 2 — authenticated routes are now mounted under /api.
+  // routeOptions.url is the path as registered (after the plugin prefix
+  // is applied by Fastify), so the ingest upload route reads as
+  // `/api/ingest/upload` here.
+  if (url === '/api/ingest/upload') return 'ingest';
   const method = request.method.toUpperCase();
   if (method === 'GET' || method === 'HEAD') return 'read';
   return 'write';

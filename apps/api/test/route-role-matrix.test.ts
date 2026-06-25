@@ -46,45 +46,49 @@ type Role = 'viewer' | 'ops' | 'admin' | null;
  *   admin = partner config + user CRUD + audit log + ingest upload.
  */
 const EXPECTED: Record<string, Role> = {
-  // Public (no role gate — Phase 10 Sprint 1 added /readiness and /internal/metrics)
+  // Public (no role gate — Phase 10 Sprint 1 added /readiness and /internal/metrics).
+  // System routes stay at root so cloud ALB probes + Clerk webhook URLs are unchanged.
   'GET /health': null,
   'GET /readiness': null,
   'GET /internal/metrics': null,
   'POST /webhooks/clerk': null,
 
+  // D4 Sprint 2 — authenticated routes are mounted under /api so the LAN-server
+  // install can serve the React build at / on the same port.
+
   // Viewer reads
-  'GET /partners': 'viewer',
-  'GET /partners-config': 'viewer',
-  'GET /partners-config/:id': 'viewer',
-  'GET /transactions': 'viewer',
-  'GET /transactions/:id': 'viewer',
-  'GET /raw-files/:id/content': 'viewer',
-  'GET /search': 'viewer',
-  'GET /lifecycle': 'viewer',
-  'GET /metrics/rejection-rate': 'viewer',
-  'GET /alerts': 'viewer',
-  'GET /alerts/:id': 'viewer',
-  'GET /me': 'viewer',
-  'GET /users': 'viewer',
-  'GET /ingest/:id': 'viewer',
-  'GET /ingest': 'viewer',
+  'GET /api/partners': 'viewer',
+  'GET /api/partners-config': 'viewer',
+  'GET /api/partners-config/:id': 'viewer',
+  'GET /api/transactions': 'viewer',
+  'GET /api/transactions/:id': 'viewer',
+  'GET /api/raw-files/:id/content': 'viewer',
+  'GET /api/search': 'viewer',
+  'GET /api/lifecycle': 'viewer',
+  'GET /api/metrics/rejection-rate': 'viewer',
+  'GET /api/alerts': 'viewer',
+  'GET /api/alerts/:id': 'viewer',
+  'GET /api/me': 'viewer',
+  'GET /api/users': 'viewer',
+  'GET /api/ingest/:id': 'viewer',
+  'GET /api/ingest': 'viewer',
 
   // Ops actions
-  'PATCH /alerts/:id/ack': 'ops',
-  'POST /alerts/:id/snooze': 'ops',
+  'PATCH /api/alerts/:id/ack': 'ops',
+  'POST /api/alerts/:id/snooze': 'ops',
 
   // Admin actions
-  'POST /partners-config': 'admin',
-  'PATCH /partners-config/:id': 'admin',
-  'DELETE /partners-config/:id': 'admin',
-  'PATCH /users/:id': 'admin',
-  'DELETE /users/:id': 'admin',
-  'GET /audit': 'admin',
-  'DELETE /tenants/me': 'admin',
-  'POST /tenants/me/undelete': 'admin',
+  'POST /api/partners-config': 'admin',
+  'PATCH /api/partners-config/:id': 'admin',
+  'DELETE /api/partners-config/:id': 'admin',
+  'PATCH /api/users/:id': 'admin',
+  'DELETE /api/users/:id': 'admin',
+  'GET /api/audit': 'admin',
+  'DELETE /api/tenants/me': 'admin',
+  'POST /api/tenants/me/undelete': 'admin',
 
   // Ops-only mutating action — file upload is operational, not admin.
-  'POST /ingest/upload': 'ops',
+  'POST /api/ingest/upload': 'ops',
 };
 
 interface CapturedRoute {
@@ -116,22 +120,28 @@ test('every registered route declares the requiredRole expected by the policy', 
     }
   });
 
-  // Register the exact same route plugins as server.ts, in the same order.
+  // Register the exact same route plugins as server.ts, in the same order,
+  // with the /api scope mirroring D4 Sprint 2's prefix structure.
   await app.register(healthRoutes);
   await app.register(internalRoutes);
   await app.register(webhookRoutes);
-  await app.register(ingestRoutes);
-  await app.register(transactionRoutes);
-  await app.register(partnerRoutes);
-  await app.register(rawFileRoutes);
-  await app.register(searchRoutes);
-  await app.register(lifecycleRoutes);
-  await app.register(metricsRoutes);
-  await app.register(partnersConfigRoutes);
-  await app.register(alertsRoutes);
-  await app.register(userRoutes);
-  await app.register(auditRoutes);
-  await app.register(tenantRoutes);
+  await app.register(
+    async (apiScope) => {
+      await apiScope.register(ingestRoutes);
+      await apiScope.register(transactionRoutes);
+      await apiScope.register(partnerRoutes);
+      await apiScope.register(rawFileRoutes);
+      await apiScope.register(searchRoutes);
+      await apiScope.register(lifecycleRoutes);
+      await apiScope.register(metricsRoutes);
+      await apiScope.register(partnersConfigRoutes);
+      await apiScope.register(alertsRoutes);
+      await apiScope.register(userRoutes);
+      await apiScope.register(auditRoutes);
+      await apiScope.register(tenantRoutes);
+    },
+    { prefix: '/api' },
+  );
 
   // Two-way check: every captured route is in EXPECTED, and every EXPECTED
   // route shows up captured. Either side missing is a bug.

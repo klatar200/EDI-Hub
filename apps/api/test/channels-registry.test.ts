@@ -18,7 +18,10 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyBaseLogger } from 'fastify';
 import { startConfiguredChannels } from '../src/channels/registry.js';
 import type { IngestionDeps } from '../src/services/ingestion.js';
+import { S3StorageAdapter } from '../src/storage/s3-adapter.js';
 import type { AppConfig } from '../src/config.js';
+
+
 
 const noopLogger = {
   info() {}, warn() {}, error() {}, debug() {}, fatal() {}, trace() {}, silent() {},
@@ -38,13 +41,16 @@ function cfg(overrides: Partial<AppConfig>): AppConfig {
     ourIsaIds: [],
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   };
   return { ...base, ...overrides };
 }
 
 test('registry reports both channels as disabled when neither is enabled', async () => {
-  const deps: IngestionDeps = { s3: fakeS3, prisma: fakePrisma, config: cfg({}), logger: noopLogger };
+  const deps: IngestionDeps = { s3: fakeS3, storage: new S3StorageAdapter(fakeS3, cfg({}).s3.bucket), prisma: fakePrisma, config: cfg({}), logger: noopLogger };
   const reg = await startConfiguredChannels(deps, deps.config);
   const h = reg.health();
   assert.equal(h.length, 2);
@@ -67,7 +73,7 @@ test('registry reports SFTP running and AS2 disabled when only SFTP is enabled',
         stabilityThresholdMs: 50,
       },
     });
-    const deps: IngestionDeps = { s3: fakeS3, prisma: fakePrisma, config, logger: noopLogger };
+    const deps: IngestionDeps = { s3: fakeS3, storage: new S3StorageAdapter(fakeS3, config.s3.bucket), prisma: fakePrisma, config, logger: noopLogger };
     const reg = await startConfiguredChannels(deps, deps.config);
     const h = reg.health();
     const sftp = h.find((c) => c.name === 'sftp')!;
@@ -101,7 +107,7 @@ test('registry reports both channels running when both enabled', async () => {
         stabilityThresholdMs: 50,
       },
     });
-    const deps: IngestionDeps = { s3: fakeS3, prisma: fakePrisma, config, logger: noopLogger };
+    const deps: IngestionDeps = { s3: fakeS3, storage: new S3StorageAdapter(fakeS3, config.s3.bucket), prisma: fakePrisma, config, logger: noopLogger };
     const reg = await startConfiguredChannels(deps, deps.config);
     const h = reg.health();
     assert.equal(h.find((c) => c.name === 'sftp')!.status, 'running');

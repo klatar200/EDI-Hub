@@ -33,7 +33,10 @@ function makeConfig(): AppConfig {
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     // Non-empty so the plugin routes through verifyAuth (we stub it).
     clerk: { secretKey: 'sk_test', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   } as AppConfig;
 }
 
@@ -132,7 +135,7 @@ test('read bucket: N+1 GETs return a clean 429 + Retry-After + RATE_LIMITED body
   // 3 requests under the cap — all 200.
   for (let i = 0; i < 3; i += 1) {
     const r = await app.inject({
-      method: 'GET', url: '/partners-config',
+      method: 'GET', url: '/api/partners-config',
       headers: { authorization: 'Bearer tok-A' },
     });
     assert.equal(r.statusCode, 200, `request ${i + 1} should pass`);
@@ -140,7 +143,7 @@ test('read bucket: N+1 GETs return a clean 429 + Retry-After + RATE_LIMITED body
   }
   // 4th request — 429.
   const blocked = await app.inject({
-    method: 'GET', url: '/partners-config',
+    method: 'GET', url: '/api/partners-config',
     headers: { authorization: 'Bearer tok-A' },
   });
   assert.equal(blocked.statusCode, 429);
@@ -161,7 +164,7 @@ test('rate-limit headers appear on every response (under cap)', async () => {
     rateLimits: { read: { perMinute: 100 } },
   });
   const r = await app.inject({
-    method: 'GET', url: '/partners-config',
+    method: 'GET', url: '/api/partners-config',
     headers: { authorization: 'Bearer tok-A' },
   });
   assert.equal(r.statusCode, 200);
@@ -213,15 +216,15 @@ test('tenant A exceeding the bucket does NOT affect tenant B', async () => {
     rateLimits: { read: { perMinute: 2 } },
   });
   // Drain A's bucket.
-  await app.inject({ method: 'GET', url: '/partners-config', headers: { authorization: 'Bearer tok-A' } });
-  await app.inject({ method: 'GET', url: '/partners-config', headers: { authorization: 'Bearer tok-A' } });
+  await app.inject({ method: 'GET', url: '/api/partners-config', headers: { authorization: 'Bearer tok-A' } });
+  await app.inject({ method: 'GET', url: '/api/partners-config', headers: { authorization: 'Bearer tok-A' } });
   const aBlocked = await app.inject({
-    method: 'GET', url: '/partners-config', headers: { authorization: 'Bearer tok-A' },
+    method: 'GET', url: '/api/partners-config', headers: { authorization: 'Bearer tok-A' },
   });
   assert.equal(aBlocked.statusCode, 429);
   // B's bucket is independent.
   const bOk = await app.inject({
-    method: 'GET', url: '/partners-config', headers: { authorization: 'Bearer tok-B' },
+    method: 'GET', url: '/api/partners-config', headers: { authorization: 'Bearer tok-B' },
   });
   assert.equal(bOk.statusCode, 200);
   await app.close();
@@ -241,9 +244,9 @@ test('rate.exceeded audit row is written when a tenant goes over the bucket', as
     verifyAuth: verifierFor({ 'tok-A': { orgId: TENANT_A.clerkOrgId, userId: USER_A.clerkUserId } }),
     rateLimits: { read: { perMinute: 1 } },
   });
-  await app.inject({ method: 'GET', url: '/partners-config', headers: { authorization: 'Bearer tok-A' } });
+  await app.inject({ method: 'GET', url: '/api/partners-config', headers: { authorization: 'Bearer tok-A' } });
   const blocked = await app.inject({
-    method: 'GET', url: '/partners-config', headers: { authorization: 'Bearer tok-A' },
+    method: 'GET', url: '/api/partners-config', headers: { authorization: 'Bearer tok-A' },
   });
   assert.equal(blocked.statusCode, 429);
   // Audit is fire-and-forget — wait a tick for it to land.

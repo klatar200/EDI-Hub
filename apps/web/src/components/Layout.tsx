@@ -137,7 +137,9 @@ export function Layout(): JSX.Element {
                 },
               }}
             />
-            <UserButton afterSignOutUrl="/" />
+            {/* `afterSignOutUrl` lives on ClerkProvider (main.tsx); the
+                Clerk SDK removed it from UserButton in v0.x. */}
+            <UserButton />
           </div>
         </div>
       </header>

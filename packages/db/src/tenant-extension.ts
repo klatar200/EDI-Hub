@@ -6,11 +6,16 @@
  * filtered by the active `tenantId` (from `tenantContext`); every write
  * automatically injects it, including nested creates.
  *
- *   - No active tenant context → throw (loud failure in development).
- *   - Active context with `bypass: true` → pass through unchanged.
- *   - Multi-tenant model with no tenant filter in `where` → injected.
- *   - Create / upsert with no `tenantId` in `data` → injected, recursively for
+ *   - No active tenant context -> throw (loud failure in development).
+ *   - Active context with `bypass: true` -> pass through unchanged.
+ *   - Multi-tenant model with no tenant filter in `where` -> injected.
+ *   - Create / upsert with no `tenantId` in `data` -> injected, recursively for
  *     nested `create` / `createMany`.
+ *
+ * Desktop track D1 Sprint 3 - when DATABASE_PROVIDER=sqlite, the same hook
+ * also JSON-stringifies the four `String[]` columns on write and JSON-parses
+ * them on read, so the API code keeps seeing `string[]` regardless of which
+ * physical column shape the active provider uses.
  *
  * What this is NOT:
  *   - It is NOT a substitute for Sprint 6's adversarial verification. The
@@ -22,14 +27,21 @@
  *     expected model list and fails when the schema gains a model that isn't
  *     either tenant-scoped or explicitly opted out.
  */
-import { Prisma, type PrismaClient } from '@prisma/client';
+// Node's ESM loader cannot extract named exports from a CommonJS module
+// when `verbatimModuleSyntax: true` keeps the import shape literal at
+// compile time. `@prisma/client` is CJS, so we import the default
+// (= module.exports) and destructure `Prisma` from it. Works the same
+// in `tsx` dev runs and in the packaged Electron install.
+import prismaPkg from '@prisma/client';
+import type { PrismaClient } from '@prisma/client';
+const { Prisma } = prismaPkg;
 import { tenantContext } from './tenant-context.js';
+import { resolveProvider } from './provider.js';
+import {
+  deserializeArrayFields,
+  serializeArrayFields,
+} from './array-serialization.js';
 
-/**
- * Models that carry `tenantId`. Keep in sync with `schema.prisma`. The
- * Sprint 6 verification test will compare this set against the actual Prisma
- * DMMF and fail on drift.
- */
 export const MULTI_TENANT_MODELS = new Set<string>([
   'TradingPartner',
   'RawFile',
@@ -43,12 +55,8 @@ export const MULTI_TENANT_MODELS = new Set<string>([
   'AuditEvent',
 ]);
 
-/** Models that are intentionally NOT tenant-scoped. The Tenant table itself
- *  obviously can't be; future system tables (e.g. feature flags) go here. */
-export const TENANT_EXEMPT_MODELS = new Set<string>(['Tenant']);
+export const TENANT_EXEMPT_MODELS = new Set<string>(['Tenant', 'Job']);
 
-/** Query operations whose `args.where` should be tenant-filtered when present
- *  or fabricated when absent. */
 const FILTER_OPS = new Set([
   'findFirst', 'findFirstOrThrow', 'findMany', 'findUnique', 'findUniqueOrThrow',
   'count', 'aggregate', 'groupBy',
@@ -56,18 +64,18 @@ const FILTER_OPS = new Set([
   'delete', 'deleteMany',
 ]);
 
-/** Create-like operations whose `args.data` should be injected with tenantId
- *  (and recursively for nested creates inside relation fields). */
 const CREATE_OPS = new Set([
   'create', 'createMany', 'createManyAndReturn', 'upsert',
 ]);
 
-/**
- * Minimum-shape view of the DMMF that the injector actually needs. Avoids a
- * dependency on the full `Prisma.DMMF.Datamodel` type, which has had moving
- * fields between Prisma 5.x and 6.x (notably `indexes` showing up at the top
- * level). `Prisma.dmmf.datamodel` is structurally compatible.
- */
+/** D1 Sprint 3 - operations whose `data` payload may carry array-typed
+ *  columns we have to JSON-stringify before they hit SQLite. `upsert` is
+ *  handled separately because it has both `create` and `update` sub-objects. */
+const DATA_WRITE_OPS = new Set([
+  'create', 'createMany', 'createManyAndReturn',
+  'update', 'updateMany', 'updateManyAndReturn',
+]);
+
 export interface MinimalDmmf {
   models: ReadonlyArray<{
     name: string;
@@ -80,21 +88,6 @@ export interface MinimalDmmf {
   }>;
 }
 
-/**
- * Walk `data` and inject `tenantId` everywhere a multi-tenant row is being
- * created. Handles:
- *   - Single objects: `{ field: 'x' }` → `{ field: 'x', tenantId }`.
- *   - Arrays: `[{ ... }, { ... }]`.
- *   - Nested relation creates: `{ rel: { create: { ... } } }` and
- *     `{ rel: { create: [...] } }` and `{ rel: { createMany: { data: [...] } } }`.
- *   - upsert's `{ create, update }`.
- *
- * `dmmf` is the Prisma DMMF used to look up which fields are relations and
- * the model they point at, so we only inject into multi-tenant relations.
- *
- * Exported under `__testing` for unit tests; the production callers go
- * through the `query` hook below.
- */
 export function injectInData(
   data: unknown,
   modelName: string,
@@ -113,13 +106,10 @@ export function injectInData(
 
   const out: Record<string, unknown> = { ...(data as Record<string, unknown>) };
 
-  // Inject tenantId on the row itself (if multi-tenant and not already set).
   if (isMultiTenant && out.tenantId === undefined) {
     out.tenantId = tenantId;
   }
 
-  // Walk relations. Each Prisma relation field on the model exposes
-  // `relationName` + `type` (the related model name).
   for (const field of model.fields) {
     if (field.kind !== 'object' || !field.relationName) continue;
     const relValue = out[field.name];
@@ -154,10 +144,6 @@ export function injectInData(
   return out;
 }
 
-/** Merge a tenantId filter into an existing `where` (or fabricate one).
- *  Idempotent: if the caller already specified the same tenantId we leave
- *  it alone; if they specified a *different* tenantId, we throw — that's
- *  almost certainly a bug. */
 export function injectInWhere(where: unknown, tenantId: string): Record<string, unknown> {
   const base = (where && typeof where === 'object' ? where : {}) as Record<string, unknown>;
   if (base.tenantId !== undefined && base.tenantId !== tenantId) {
@@ -169,41 +155,65 @@ export function injectInWhere(where: unknown, tenantId: string): Record<string, 
   return { ...base, tenantId };
 }
 
-/** Build the extended client. Apply once at construction time. */
 export function withTenantExtension<T extends PrismaClient>(client: T): T {
-  // Prisma's $extends API lives on every PrismaClient instance. The DMMF is
-  // exposed via `Prisma.dmmf` (generated alongside the client). We coerce to
-  // our minimal shape because the official `Prisma.DMMF.Datamodel` type has
-  // had churn between 5.x and 6.x (the `indexes` field was added in 6.x at
-  // the top level and isn't present on `Prisma.dmmf.datamodel`'s return).
   const dmmf: MinimalDmmf = Prisma.dmmf.datamodel as unknown as MinimalDmmf;
+
+  // Desktop track D1 Sprint 3 - capture the provider at construction time so
+  // we don't read process.env on the hot path. Postgres is a hard no-op.
+  const sqliteMode = resolveProvider() === 'sqlite';
 
   const extended = (client as PrismaClient).$extends({
     name: 'tenant-scope',
     query: {
       $allModels: {
         async $allOperations({ model, operation, args, query }) {
-          // Exempt models pass through unchanged. Tenant CRUD is admin code
-          // and must run through tenantContext.bypass() (which sets the flag
-          // we honour below); the exempt set is just an optimization.
           if (!model || TENANT_EXEMPT_MODELS.has(model)) {
-            return query(args);
+            // D1 Sprint 3 - exempt models (Tenant) still own array columns.
+            // Serialize before Prisma's client-side type check sees the args
+            // against the SQLite-shaped client (where the columns are TEXT).
+            // No-op on Postgres.
+            let outgoing = args;
+            if (sqliteMode && model) {
+              const a = (args ?? {}) as Record<string, unknown>;
+              if (DATA_WRITE_OPS.has(operation) && a.data !== undefined) {
+                a.data = serializeArrayFields(model, a.data);
+              }
+              if (operation === 'upsert') {
+                if (a.create !== undefined) a.create = serializeArrayFields(model, a.create);
+                if (a.update !== undefined) a.update = serializeArrayFields(model, a.update);
+              }
+              outgoing = a;
+            }
+            const result = await query(outgoing);
+            return sqliteMode && model ? deserializeArrayFields(model, result) : result;
           }
           const ctx = tenantContext.current();
           if (!ctx) {
-            // No context = developer forgot the wrapper. Loud failure beats
-            // silent cross-tenant data access every time.
             throw new Error(
               `Prisma ${model}.${operation} called without a tenant context. ` +
               'Wrap your request in tenantContext.run({ tenantId }, ...).',
             );
           }
           if (ctx.bypass) {
-            return query(args);
+            // Same Sprint 3 gate as the exempt branch - bypass can target any
+            // model, including TradingPartner (the three array columns) and
+            // Tenant (ourIsaIds).
+            let outgoing = args;
+            if (sqliteMode) {
+              const a = (args ?? {}) as Record<string, unknown>;
+              if (DATA_WRITE_OPS.has(operation) && a.data !== undefined) {
+                a.data = serializeArrayFields(model, a.data);
+              }
+              if (operation === 'upsert') {
+                if (a.create !== undefined) a.create = serializeArrayFields(model, a.create);
+                if (a.update !== undefined) a.update = serializeArrayFields(model, a.update);
+              }
+              outgoing = a;
+            }
+            const result = await query(outgoing);
+            return sqliteMode ? deserializeArrayFields(model, result) : result;
           }
           if (!MULTI_TENANT_MODELS.has(model)) {
-            // Not in the multi-tenant set AND not exempt — unknown model. Fail
-            // loudly so the author has to make an explicit choice in code.
             throw new Error(
               `Model ${model} is not in MULTI_TENANT_MODELS or TENANT_EXEMPT_MODELS. ` +
               'Decide in tenant-extension.ts whether it should be tenant-scoped.',
@@ -215,31 +225,35 @@ export function withTenantExtension<T extends PrismaClient>(client: T): T {
             a.where = injectInWhere(a.where, ctx.tenantId);
           }
           if (CREATE_OPS.has(operation)) {
-            // `createMany.data` is an array; `create.data` is an object.
-            // Both flow through the same recursive injector — it handles both.
             if (a.data !== undefined) {
               a.data = injectInData(a.data, model, ctx.tenantId, dmmf);
             }
-            // upsert: also has `where` (for the lookup) and `update` (no
-            // tenant injection — update already FILTER_OPS-covered? No,
-            // upsert is in CREATE_OPS only). Tighten both.
             if (operation === 'upsert') {
               a.where = injectInWhere(a.where, ctx.tenantId);
-              if (a.update !== undefined) {
-                // No-op for tenantId: an upsert update path shouldn't change tenant.
-                // The extension simply does nothing — we trust the writer here.
-              }
               if (a.create !== undefined) {
                 a.create = injectInData(a.create, model, ctx.tenantId, dmmf);
               }
             }
           }
-          return query(a);
+
+          // D1 Sprint 3 - array serialization on SQLite, after tenant
+          // injection so tenantId is in place, and before the query so
+          // Prisma sees JSON strings rather than arrays.
+          if (sqliteMode) {
+            if (DATA_WRITE_OPS.has(operation) && a.data !== undefined) {
+              a.data = serializeArrayFields(model, a.data);
+            }
+            if (operation === 'upsert') {
+              if (a.create !== undefined) a.create = serializeArrayFields(model, a.create);
+              if (a.update !== undefined) a.update = serializeArrayFields(model, a.update);
+            }
+          }
+
+          const result = await query(a);
+          return sqliteMode ? deserializeArrayFields(model, result) : result;
         },
       },
     },
   });
-  // $extends returns a structurally-compatible client; cast back to T so
-  // callers keep their typed model access without a refactor.
   return extended as unknown as T;
 }

@@ -17,8 +17,10 @@
     "test": "tsc --build && node --test --import tsx test/*.test.ts",
     "db:generate": "prisma generate",
     "db:migrate": "dotenv -e ../../.env -- prisma migrate dev",
-    "db:migrate:deploy": "prisma migrate deploy",
-    "db:studio": "dotenv -e ../../.env -- prisma studio"
+    "db:migrate:deploy": "dotenv -e ../../.env -- prisma migrate deploy",
+    "db:studio": "dotenv -e ../../.env -- prisma studio",
+    "db:generate:sqlite": "prisma generate --schema=prisma/schema.sqlite.prisma",
+    "db:migrate:sqlite": "prisma db push --schema=prisma/schema.sqlite.prisma --accept-data-loss --skip-generate"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0"

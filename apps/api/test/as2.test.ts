@@ -17,7 +17,10 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyBaseLogger } from 'fastify';
 import { startAs2Channel } from '../src/channels/as2.js';
 import type { IngestionDeps } from '../src/services/ingestion.js';
+import { S3StorageAdapter } from '../src/storage/s3-adapter.js';
 import type { AppConfig } from '../src/config.js';
+
+
 
 const toBuf = (b: unknown): Buffer => (Buffer.isBuffer(b) ? b : Buffer.from(b as Uint8Array));
 
@@ -45,7 +48,10 @@ function baseConfig(inboxDir: string, processedDir: string, failedDir: string): 
     ourIsaIds: [],
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   };
 }
 
@@ -118,7 +124,7 @@ test('AS2 channel ingests a dropped file with source=as2 and reports running sta
   const config = baseConfig(inboxDir, processedDir, failedDir);
   const objects = new Map<string, Buffer>();
   const captured = { sources: [] as string[] };
-  const deps: IngestionDeps = { s3: okS3(objects), prisma: fakePrisma(captured), config, logger: noopLogger };
+  const deps: IngestionDeps = { s3: okS3(objects), storage: new S3StorageAdapter(okS3(objects), config.s3.bucket), prisma: fakePrisma(captured), config, logger: noopLogger };
 
   const channel = await startAs2Channel(deps, config.as2);
   await channel.ready;

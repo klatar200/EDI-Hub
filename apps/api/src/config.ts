@@ -45,6 +45,18 @@ export interface S3Config {
   forcePathStyle: boolean;
 }
 
+/** Desktop track D3 Sprint 1 - which backend the storage adapter targets.
+ *  `'s3'` is the SaaS default; `'local'` is the desktop installer + local dev. */
+export type StorageBackend = 's3' | 'local';
+
+export interface StorageConfig {
+  backend: StorageBackend;
+  /** Filesystem root the local adapter writes under (`<dataDir>/raw/<key>`).
+   *  Ignored when `backend === 's3'`. Defaults to `<HOME>/.edi-hub` per the
+   *  plan. */
+  localDataDir: string;
+}
+
 export interface RetryConfig {
   /** Total attempts for an S3 write (1 = no retry). */
   maxAttempts: number;
@@ -109,11 +121,38 @@ export interface ClerkConfig {
   authorizedParties?: string;
 }
 
+/** Desktop track D4 Sprint 1 — CORS allowlist for cross-origin requests
+ *  from the renderer to the API. SaaS / pure-web dev leaves this empty: the
+ *  Vite proxy keeps requests same-origin and no CORS handling is registered.
+ *  The desktop installer left this set in D4 Sprint 1 (renderer on :5173,
+ *  API on :3100). Sprint 2 collapses both onto :3000 — same-origin — so the
+ *  desktop env no longer needs CORS by default. Still useful for an
+ *  optional dev-with-Vite-on-5173 hot-reload override. */
+export interface CorsConfig {
+  /** Empty = CORS plugin not registered (closed by default). */
+  allowedOrigins: string[];
+}
+
+/** Desktop track D4 Sprint 2 — static-file serving for the React build.
+ *  When set, @fastify/static is registered at `/` and serves `index.html`
+ *  for any path that doesn't match a route or file (SPA fallback). LAN
+ *  customers hit `http://<server-ip>:3000/` and get the React app from the
+ *  same process that serves `/api/*`. Empty = SaaS / pure-web mode, where
+ *  CloudFront (or Vite in dev) serves the static assets. */
+export interface WebStaticConfig {
+  /** Absolute path to the built React app (apps/web/dist). Empty disables
+   *  static serving entirely. */
+  dir: string;
+}
+
 export interface AppConfig {
   port: number;
   nodeEnv: string;
   maxFileSizeBytes: number;
   s3: S3Config;
+  /** Desktop track D3 Sprint 1 - storage adapter selection. The SaaS build
+   *  keeps the default ('s3'); the desktop installer flips it via env. */
+  storage: StorageConfig;
   retry: RetryConfig;
   sftp: SftpWatchConfig;
   /** Phase 8 Sprint 2 — AS2 receive channel (OpenAS2 inbox watcher). */
@@ -128,6 +167,10 @@ export interface AppConfig {
   notifier: NotifierConfig;
   /** Phase 9 Sprint 2 — Clerk auth + webhook secrets. */
   clerk: ClerkConfig;
+  /** Desktop track D4 Sprint 1 — CORS allowlist. Empty = plugin not loaded. */
+  cors: CorsConfig;
+  /** Desktop track D4 Sprint 2 — static-file serving for the React build. */
+  webStatic: WebStaticConfig;
   /** Minutes to suppress duplicate alerts after one fires (Phase 7 Gate G). */
   alertSuppressionMinutes: number;
 }
@@ -139,15 +182,32 @@ export function loadConfig(): AppConfig {
 
   const endpoint = process.env.S3_ENDPOINT?.trim();
 
+  const storageBackend: StorageBackend = (() => {
+    const raw = optional('STORAGE_BACKEND', 's3').toLowerCase().trim();
+    if (raw === 'local') return 'local';
+    if (raw === '' || raw === 's3') return 's3';
+    throw new Error(`Unsupported STORAGE_BACKEND='${raw}'. Allowed: 's3' (default) or 'local'.`);
+  })();
+
   return {
     port: intEnv('PORT', 3000),
     nodeEnv: optional('NODE_ENV', 'development'),
     maxFileSizeBytes: intEnv('MAX_FILE_SIZE_BYTES', 25 * 1024 * 1024),
     s3: {
-      bucket: required('S3_BUCKET'),
+      bucket: storageBackend === 's3' ? required('S3_BUCKET') : optional('S3_BUCKET', ''),
       region: optional('S3_REGION', 'us-east-1'),
       endpoint: endpoint && endpoint.length > 0 ? endpoint : undefined,
       forcePathStyle: boolEnv('S3_FORCE_PATH_STYLE', false),
+    },
+    storage: {
+      backend: storageBackend,
+      // Default to <HOME>/.edi-hub per DESKTOP_SPRINT_PLAN.md D3 Sprint 1.
+      // Resolved at config load so the path is captured once and tests can
+      // override via env without touching HOME globally.
+      localDataDir: optional(
+        'LOCAL_DATA_DIR',
+        (process.env.HOME ?? process.env.USERPROFILE ?? process.cwd()) + '/.edi-hub',
+      ),
     },
     retry: {
       maxAttempts: intEnv('S3_MAX_RETRIES', 3),
@@ -189,5 +249,22 @@ export function loadConfig(): AppConfig {
       authorizedParties: optional('CLERK_AUTHORIZED_PARTIES', ''),
     },
     alertSuppressionMinutes: intEnv('ALERT_SUPPRESSION_MINUTES', 60),
+    cors: {
+      // Comma-separated list. Empty (default) = CORS plugin not registered,
+      // i.e. same-origin only. The desktop main process sets this only when
+      // it wants the renderer running cross-origin (e.g. an opt-in
+      // Vite-on-5173 hot-reload override). Default LAN-server config
+      // serves both renderer + API from one origin, no CORS needed.
+      allowedOrigins: optional('CORS_ALLOWED_ORIGINS', '')
+        .split(',')
+        .map((s) => s.trim())
+        .filter((s) => s.length > 0),
+    },
+    webStatic: {
+      // Absolute path to apps/web/dist. The desktop main process sets this
+      // so the API serves the React build at `/`. Empty in cloud /
+      // pure-web dev — that path is fronted by CloudFront / Vite.
+      dir: optional('WEB_STATIC_DIR', ''),
+    },
   };
 }

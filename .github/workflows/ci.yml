@@ -33,3 +33,57 @@ jobs:
 
       - name: Web typecheck + build
         run: npm run build --workspace=@edi/web
+
+  parity:
+    name: Playwright UI parity (web)
+    runs-on: ubuntu-latest
+    # Runs after the build job so we don't burn Playwright minutes on a
+    # broken tree. Gated on the Clerk session secret being present —
+    # when absent (e.g. forks, contributors without secret access) the
+    # job logs a warning and exits 0 so a missing secret never silently
+    # fails the check.
+    needs: build
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install
+
+      - name: Generate Prisma client
+        run: npm run db:generate
+
+      - name: Build apps/web
+        run: npm run build --workspace=@edi/web
+
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps chromium
+
+      - name: Restore Clerk session state from secret
+        env:
+          CLERK_PARITY_STATE_B64: ${{ secrets.CLERK_PARITY_STATE_B64 }}
+        run: |
+          if [ -z "${CLERK_PARITY_STATE_B64:-}" ]; then
+            echo "::warning::CLERK_PARITY_STATE_B64 not set; skipping parity tests."
+            echo "PARITY_SKIPPED=1" >> "$GITHUB_ENV"
+            exit 0
+          fi
+          mkdir -p .auth
+          echo "$CLERK_PARITY_STATE_B64" | base64 -d > .auth/state.json
+
+      - name: Run parity tests (web project)
+        if: ${{ env.PARITY_SKIPPED != '1' }}
+        run: npx playwright test --project=web
+
+      - name: Upload Playwright report on failure
+        if: ${{ failure() && env.PARITY_SKIPPED != '1' }}
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-report
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7

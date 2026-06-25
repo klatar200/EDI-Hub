@@ -24,7 +24,10 @@ const testConfig: AppConfig = {
   ourIsaIds: [],
   notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
   clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
 };
 
 const toBuf = (b: unknown): Buffer => (Buffer.isBuffer(b) ? b : Buffer.from(b as Uint8Array));
@@ -121,9 +124,15 @@ function makeFakePrisma(): { client: PrismaClient; rows: Map<string, Row>; inter
       },
     },
     // Phase 6 — parseAndStore resolves the partner before persisting; no
-    // partner record configured in these tests, so return null (backward compat).
+    // partner record configured in these tests, so return null/[] (backward compat).
+    //
+    // D1 Sprint 3 — Option A switched resolvePartnerByIsa to findMany + JS
+    // membership. Stub both shapes so the resolver returns null cleanly
+    // instead of throwing on a missing method (which parseAndStore would
+    // swallow, leaving the row at RECEIVED).
     tradingPartner: {
       async findFirst() { return null; },
+      async findMany() { return []; },
     },
     // Phase 8 Sprint 1 — parseAndStore now calls
     // `propagateConfirmedAtForRawFile`, which scans this rawFile's parsed
@@ -167,7 +176,7 @@ test('upload stores raw bytes, records the row, and extracts the ISA control num
   const app = await buildServer({ config: testConfig, s3, prisma });
 
   const { payload, headers } = multipart(content);
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
 
   assert.equal(res.statusCode, 200, res.body);
   const json = res.json();
@@ -188,8 +197,8 @@ test('duplicate ISA control number is rejected idempotently with no second S3 wr
   const app = await buildServer({ config: testConfig, s3, prisma });
   const { payload, headers } = multipart(content);
 
-  const first = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
-  const second = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const first = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
+  const second = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
 
   assert.equal(first.statusCode, 200);
   assert.equal(first.json().duplicate, false);
@@ -221,7 +230,7 @@ test('transient S3 errors are retried, then succeed', async () => {
   const app = await buildServer({ config: testConfig, s3: flakyS3, prisma });
 
   const { payload, headers } = multipart(buildInterchange('000000999'));
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
 
   assert.equal(res.statusCode, 200, res.body);
   assert.equal(calls, 3, 'two failures then a success');
@@ -234,7 +243,7 @@ test('non-X12 file is stored without an ISA control number (no dedup)', async ()
   const { client: prisma } = makeFakePrisma();
   const app = await buildServer({ config: testConfig, s3, prisma });
   const { payload, headers } = multipart(Buffer.from('this is definitely not an edi file'), 'notes.txt');
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().isaControlNumber, null);
   assert.equal(res.json().status, 'UNRECOGNIZED_FORMAT');
@@ -247,14 +256,14 @@ test('GET /ingest/:id returns the record; unknown id is 404', async () => {
   const { client: prisma } = makeFakePrisma();
   const app = await buildServer({ config: testConfig, s3, prisma });
   const { payload, headers } = multipart(buildInterchange('000000555'));
-  const created = (await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers })).json();
+  const created = (await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers })).json();
 
-  const found = await app.inject({ method: 'GET', url: `/ingest/${created.id}` });
+  const found = await app.inject({ method: 'GET', url: `/api/ingest/${created.id}` });
   assert.equal(found.statusCode, 200);
   assert.equal(found.json().s3Key, created.s3Key);
   assert.equal(found.json().isaControlNumber, '000000555');
 
-  const missing = await app.inject({ method: 'GET', url: '/ingest/does-not-exist' });
+  const missing = await app.inject({ method: 'GET', url: '/api/ingest/does-not-exist' });
   assert.equal(missing.statusCode, 404);
   assert.equal(missing.json().error.code, 'NOT_FOUND');
   await app.close();
@@ -266,9 +275,9 @@ test('GET /ingest lists ingestions newest-first with pagination', async () => {
   const app = await buildServer({ config: testConfig, s3, prisma });
   for (const isa of ['000000001', '000000002', '000000003']) {
     const { payload, headers } = multipart(buildInterchange(isa));
-    await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+    await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
   }
-  const list = await app.inject({ method: 'GET', url: '/ingest?limit=2&offset=0' });
+  const list = await app.inject({ method: 'GET', url: '/api/ingest?limit=2&offset=0' });
   assert.equal(list.statusCode, 200);
   const body = list.json();
   assert.equal(body.limit, 2);
@@ -282,7 +291,7 @@ test('no file field returns 400 NO_FILE', async () => {
   const { client: prisma } = makeFakePrisma();
   const app = await buildServer({ config: testConfig, s3, prisma });
   const payload = Buffer.from('------b\r\nContent-Disposition: form-data; name="note"\r\n\r\nhi\r\n------b--\r\n');
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers: { 'content-type': 'multipart/form-data; boundary=----b' } });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers: { 'content-type': 'multipart/form-data; boundary=----b' } });
   assert.equal(res.statusCode, 400);
   assert.equal(res.json().error.code, 'NO_FILE');
   await app.close();

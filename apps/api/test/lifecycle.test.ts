@@ -115,26 +115,33 @@ function makePrisma(txns: FakeTxn[], partner?: PartnerSeed): PrismaClient {
         return { poNumber: match.poNumber };
       },
     },
-    tradingPartner: {
+    tradingPartner: (() => {
       // Phase 6 — by default no partner is configured. When a `PartnerSeed`
       // is supplied we hand it back regardless of the where clause; the
       // resolver semantics are exercised in partners-config.test.ts.
-      async findFirst() {
-        if (!partner) return null;
-        return {
-          id: 'p-1', tenantId: null, displayName: 'Stub',
-          isaSenderIds: [], isaReceiverIds: [],
-          status: 'active', notes: null, contacts: [],
-          supportedSets: partner.supportedSets ?? [],
-          lifecycleFlows: partner.lifecycleFlows ?? [],
-          ackCodeOverrides: partner.ackCodeOverrides ?? {},
-          // Phase 8 Sprint 3 — connectivity round-trips through readConnectivity;
-          // the {} default mirrors the schema default for unconfigured partners.
-          connectivity: partner.connectivity ?? {},
-          createdAt: new Date(), updatedAt: new Date(),
-        };
-      },
-    },
+      //
+      // Desktop track D1 Sprint 3 — Option A switched resolvePartnerByIsa from
+      // findFirst-with-array-operators to findMany + JS membership, so we now
+      // stub both shapes against the same single-partner fixture.
+      const stubRow = () => ({
+        id: 'p-1', tenantId: null, displayName: 'Stub',
+        // Stub claims the same 'SENDER' / 'RECEIVER' the tx() helper bakes
+        // into every interchange so the Option A resolver finds a match.
+        isaSenderIds: ['SENDER'], isaReceiverIds: ['RECEIVER'],
+        status: 'active', notes: null, contacts: [],
+        supportedSets: partner?.supportedSets ?? [],
+        lifecycleFlows: partner?.lifecycleFlows ?? [],
+        ackCodeOverrides: partner?.ackCodeOverrides ?? {},
+        // Phase 8 Sprint 3 — connectivity round-trips through readConnectivity;
+        // the {} default mirrors the schema default for unconfigured partners.
+        connectivity: partner?.connectivity ?? {},
+        createdAt: new Date(), updatedAt: new Date(),
+      });
+      return {
+        async findFirst() { return partner ? stubRow() : null; },
+        async findMany() { return partner ? [stubRow()] : []; },
+      };
+    })(),
   } as unknown as PrismaClient;
   return self;
 }

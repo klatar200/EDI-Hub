@@ -18,7 +18,10 @@ const config = {
   ourIsaIds: [],
   notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
   clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
 } as AppConfig;
 
 const RAW_BYTES = Buffer.from('ISA*00*...~GS*PO*ACME*GLOBEX*...~ST*850*0001~');
@@ -76,7 +79,7 @@ function fakePrisma(): PrismaClient {
 
 test('GET /partners returns distinct sorted partner ids', async () => {
   const app = await buildServer({ config, s3: fakeS3(), prisma: fakePrisma() });
-  const res = await app.inject({ method: 'GET', url: '/partners' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 200);
   assert.deepEqual(res.json().partners, ['ACME', 'GLOBEX', 'OTHER']);
   await app.close();
@@ -84,7 +87,7 @@ test('GET /partners returns distinct sorted partner ids', async () => {
 
 test('GET /transactions filters by partner and set, returning joined summary', async () => {
   const app = await buildServer({ config, s3: fakeS3(), prisma: fakePrisma() });
-  const res = await app.inject({ method: 'GET', url: '/transactions?set=850&partner=ACME' });
+  const res = await app.inject({ method: 'GET', url: '/api/transactions?set=850&partner=ACME' });
   assert.equal(res.statusCode, 200);
   const body = res.json();
   assert.equal(body.count, 1);
@@ -92,31 +95,31 @@ test('GET /transactions filters by partner and set, returning joined summary', a
   assert.equal(body.items[0].status, 'PARSED');
   assert.equal(body.items[0].ingestedAt, '2026-06-17T12:00:00.000Z');
 
-  const miss = await app.inject({ method: 'GET', url: '/transactions?partner=NOBODY' });
+  const miss = await app.inject({ method: 'GET', url: '/api/transactions?partner=NOBODY' });
   assert.equal(miss.json().count, 0);
   await app.close();
 });
 
 test('GET /raw-files/:id/content streams the stored bytes', async () => {
   const app = await buildServer({ config, s3: fakeS3(), prisma: fakePrisma() });
-  const res = await app.inject({ method: 'GET', url: '/raw-files/raw-1/content' });
+  const res = await app.inject({ method: 'GET', url: '/api/raw-files/raw-1/content' });
   assert.equal(res.statusCode, 200);
   assert.equal(res.headers['content-type'], 'application/edi-x12');
   assert.equal(res.rawPayload.toString(), RAW_BYTES.toString());
 
-  const missing = await app.inject({ method: 'GET', url: '/raw-files/nope/content' });
+  const missing = await app.inject({ method: 'GET', url: '/api/raw-files/nope/content' });
   assert.equal(missing.statusCode, 404);
   await app.close();
 });
 
 test('GET /search resolves PO number to a transaction and ISA to a raw file', async () => {
   const app = await buildServer({ config, s3: fakeS3(), prisma: fakePrisma() });
-  const byPo = await app.inject({ method: 'GET', url: '/search?q=PO-12345' });
+  const byPo = await app.inject({ method: 'GET', url: '/api/search?q=PO-12345' });
   assert.equal(byPo.statusCode, 200);
   assert.equal(byPo.json().transactions.length, 1);
   assert.equal(byPo.json().transactions[0].poNumber, 'PO-12345');
 
-  const byIsa = await app.inject({ method: 'GET', url: '/search?q=000000900' });
+  const byIsa = await app.inject({ method: 'GET', url: '/api/search?q=000000900' });
   assert.equal(byIsa.json().rawFiles.length, 1);
   assert.equal(byIsa.json().rawFiles[0].isaControlNumber, '000000900');
   await app.close();

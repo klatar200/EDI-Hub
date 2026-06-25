@@ -15,7 +15,11 @@
 import type { ReactNode } from 'react';
 
 interface EmptyStateProps {
-  title: string;
+  /** Accepts ReactNode so the legacy `<EmptyState>{copy}</EmptyState>`
+   *  shim in components/states.tsx (which forwards children → title)
+   *  type-checks. New callers should still pass a string for screen-
+   *  reader friendliness. */
+  title: ReactNode;
   description?: ReactNode;
   action?: ReactNode;
   /** Optional icon slot on top — typically a Lucide icon or SVG. */

@@ -82,10 +82,14 @@ export async function verifyBearerToken(
     else if (Array.isArray(value)) headers.set(name, value.join(', '));
   }
 
-  // Origin doesn't matter to authenticateRequest's parsing, but the WHATWG
-  // Request constructor needs a valid URL. We use the API host (3000) so
-  // logs match the actual deployment, not the web origin (5173).
-  const fakeUrl = `http://localhost:3000${request.url}`;
+  // The WHATWG Request constructor needs a valid URL string but Clerk's
+  // authenticateRequest only inspects headers (Authorization, Cookie) — the
+  // URL host/port has no effect on token verification. Derive it from the
+  // inbound Host header so the URL reflects whatever LAN address the client
+  // actually hit. Falls back to a stable placeholder when Host is missing
+  // (Clerk-rejected requests in tests, etc).
+  const hostHeader = typeof request.headers.host === 'string' ? request.headers.host : '127.0.0.1';
+  const fakeUrl = `http://${hostHeader}${request.url}`;
   const req = new Request(fakeUrl, { headers });
   const authorizedParties = authorizedPartiesFor(authorizedPartiesEnv);
 

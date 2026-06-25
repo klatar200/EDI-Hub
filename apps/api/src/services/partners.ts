@@ -312,27 +312,27 @@ export async function assertNoIsaOverlap(
   const receiver = input.isaReceiverIds;
   if (sender.length === 0 && receiver.length === 0) return;
 
-  // Postgres array operators are easier through `findMany` with `hasSome` on
-  // each side. Run two cheap queries; both result sets are tiny in practice.
+  // Desktop track D1 Sprint 1 — Option A (app-side filtering). The prior
+  // implementation used Postgres-native `hasSome` operators, which don't
+  // translate to the SQLite JSON-encoded column shape. The tenant extension
+  // already scopes findMany to the current tenant, and a tenant's partner
+  // list is small (handful to a few hundred), so we read the candidate list
+  // and do membership checks in JS. Same algorithm runs identically on
+  // Postgres and SQLite — no provider branching here.
   type Row = { id: string; displayName: string; isaSenderIds: string[]; isaReceiverIds: string[] };
-  const where = excludePartnerId ? { id: { not: excludePartnerId } } : {};
-  const overlapping = (await prisma.tradingPartner.findMany({
-    where: {
-      ...where,
-      OR: [
-        sender.length > 0 ? { isaSenderIds: { hasSome: sender } } : { id: { equals: '___never___' } },
-        receiver.length > 0 ? { isaReceiverIds: { hasSome: receiver } } : { id: { equals: '___never___' } },
-      ],
-    },
+  const senderSet = new Set(sender);
+  const receiverSet = new Set(receiver);
+
+  const candidates = (await prisma.tradingPartner.findMany({
+    where: excludePartnerId ? { id: { not: excludePartnerId } } : undefined,
+    select: { id: true, displayName: true, isaSenderIds: true, isaReceiverIds: true },
   })) as unknown as Row[];
 
-  if (overlapping.length === 0) return;
-
   const overlaps: IsaOverlap[] = [];
-  for (const o of overlapping) {
+  for (const o of candidates) {
     const conflicts: IsaOverlap['conflicts'] = [];
-    for (const id of sender) if (o.isaSenderIds.includes(id)) conflicts.push({ side: 'sender', value: id });
-    for (const id of receiver) if (o.isaReceiverIds.includes(id)) conflicts.push({ side: 'receiver', value: id });
+    for (const id of o.isaSenderIds) if (senderSet.has(id)) conflicts.push({ side: 'sender', value: id });
+    for (const id of o.isaReceiverIds) if (receiverSet.has(id)) conflicts.push({ side: 'receiver', value: id });
     if (conflicts.length > 0) overlaps.push({ partnerId: o.id, displayName: o.displayName, conflicts });
   }
   if (overlaps.length > 0) throw new PartnerConflictError(overlaps);
@@ -363,22 +363,27 @@ export async function resolvePartnerByIsa(
   receiverId: string,
   ourIsaIds: readonly string[],
 ): Promise<TradingPartnerRecord | null> {
-  const candidates: Array<{ id: string; side: 'sender' | 'receiver' }> = [];
+  const senderCandidates = new Set<string>();
+  const receiverCandidates = new Set<string>();
   if (ourIsaIds.length === 0) {
-    if (senderId) candidates.push({ id: senderId, side: 'sender' });
-    if (receiverId) candidates.push({ id: receiverId, side: 'receiver' });
+    if (senderId) senderCandidates.add(senderId);
+    if (receiverId) receiverCandidates.add(receiverId);
   } else {
-    if (senderId && !ourIsaIds.includes(senderId)) candidates.push({ id: senderId, side: 'sender' });
-    if (receiverId && !ourIsaIds.includes(receiverId)) candidates.push({ id: receiverId, side: 'receiver' });
+    if (senderId && !ourIsaIds.includes(senderId)) senderCandidates.add(senderId);
+    if (receiverId && !ourIsaIds.includes(receiverId)) receiverCandidates.add(receiverId);
   }
-  if (candidates.length === 0) return null;
+  if (senderCandidates.size === 0 && receiverCandidates.size === 0) return null;
 
-  const row = (await prisma.tradingPartner.findFirst({
-    where: {
-      OR: candidates.map((c) =>
-        c.side === 'sender' ? { isaSenderIds: { has: c.id } } : { isaReceiverIds: { has: c.id } },
-      ),
-    },
-  })) as unknown as DbPartnerRow | null;
-  return row ? toRecord(row) : null;
+  // Desktop track D1 Sprint 1 - Option A (app-side filtering). The prior
+  // implementation used Postgres-native `has` operators which don't translate
+  // to SQLite. The tenant extension already scopes findMany to the current
+  // tenant; partner lists are small, so we read the (tenant-scoped) list and
+  // do membership in JS. Same algorithm runs identically on both providers.
+  const rows = (await prisma.tradingPartner.findMany()) as unknown as DbPartnerRow[];
+  const match = rows.find(
+    (row) =>
+      row.isaSenderIds.some((id) => senderCandidates.has(id)) ||
+      row.isaReceiverIds.some((id) => receiverCandidates.has(id)),
+  );
+  return match ? toRecord(match) : null;
 }

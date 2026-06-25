@@ -452,3 +452,33 @@ model Element {
   @@index([tenantId])
   @@map("elements")
 }
+
+/// Desktop track D2 - in-process job queue, shared by both providers.
+///
+/// The DbWorker scans `WHERE status='pending' AND runAfter <= NOW()` on a
+/// poll interval, claims a row, runs the registered handler, then flips
+/// status to 'done' / 'failed' / 'dead'. Retries with exponential backoff up
+/// to 3 attempts before the row becomes 'dead'. Payload is JSON-serialised
+/// at the application boundary (so the schema stays portable).
+///
+/// Not multi-tenant - the queue is a system table. The Prisma tenant extension
+/// classifies it as exempt (see MULTI_TENANT_MODELS / TENANT_EXEMPT_MODELS in
+/// tenant-extension.ts). Job handlers that need a tenant scope must wrap their
+/// own work in tenantContext.run({ tenantId, ... }, ...).
+model Job {
+  id        String   @id @default(uuid()) @db.Uuid
+  /// Stable handler name registered by the API, e.g. "detection".
+  name      String
+  /// JSON-serialised payload. The handler decodes its own shape.
+  payload   String
+  runAfter  DateTime @map("run_after")
+  /// pending | done | failed | dead
+  status    String   @default("pending")
+  attempts  Int      @default(0)
+  /// Last error message captured during a failed attempt. Cleared on success.
+  error     String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([status, runAfter])
+  @@map("jobs")
+}

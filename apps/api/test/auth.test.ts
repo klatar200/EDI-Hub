@@ -35,7 +35,10 @@ function makeConfig(clerkSecret = 'sk_test_present'): AppConfig {
     ourIsaIds: [],
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     clerk: { secretKey: clerkSecret, webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   } as AppConfig;
 }
 
@@ -95,7 +98,7 @@ test('dev-fallback: blank CLERK_SECRET_KEY pins every request to the pilot tenan
 test('invalid token → 401 UNAUTHENTICATED', async () => {
   const verifyAuth = async (): Promise<AuthOutcome> => ({ kind: 'invalid', reason: 'expired' });
   const app = await buildServer({ config: makeConfig(), s3: okS3, prisma: makePrisma(), verifyAuth });
-  const res = await app.inject({ method: 'GET', url: '/partners' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 401);
   assert.equal(res.json().error.code, 'UNAUTHENTICATED');
   await app.close();
@@ -104,7 +107,7 @@ test('invalid token → 401 UNAUTHENTICATED', async () => {
 test('no-org → 403 SELECT_ORGANIZATION', async () => {
   const verifyAuth = async (): Promise<AuthOutcome> => ({ kind: 'no-org' });
   const app = await buildServer({ config: makeConfig(), s3: okS3, prisma: makePrisma(), verifyAuth });
-  const res = await app.inject({ method: 'GET', url: '/partners' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 403);
   assert.equal(res.json().error.code, 'SELECT_ORGANIZATION');
   await app.close();
@@ -116,7 +119,7 @@ test('verified but unknown org → 403 TENANT_NOT_PROVISIONED', async () => {
     auth: { clerkUserId: 'user_x', orgId: 'org_unknown' },
   });
   const app = await buildServer({ config: makeConfig(), s3: okS3, prisma: makePrisma({ tenant: null }), verifyAuth });
-  const res = await app.inject({ method: 'GET', url: '/partners' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 403);
   assert.equal(res.json().error.code, 'TENANT_NOT_PROVISIONED');
   await app.close();
@@ -133,7 +136,7 @@ test('verified org but no user row → 403 USER_NOT_PROVISIONED', async () => {
     prisma: makePrisma({ tenant: { id: PILOT_TENANT_ID, clerkOrgId: 'org_known' }, user: null }),
     verifyAuth,
   });
-  const res = await app.inject({ method: 'GET', url: '/partners' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 403);
   assert.equal(res.json().error.code, 'USER_NOT_PROVISIONED');
   await app.close();
@@ -157,7 +160,7 @@ test('verified happy path: /health bypasses auth; non-public routes get a tenant
   assert.equal(health.statusCode, 200, 'health is exempt');
   // /partners would fail if the tenant context wasn't set (the plugin's
   // verified path looked up the tenant + user → set context).
-  const partners = await app.inject({ method: 'GET', url: '/partners' });
+  const partners = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.notEqual(partners.statusCode, 401);
   assert.notEqual(partners.statusCode, 403);
   await app.close();
@@ -206,7 +209,7 @@ function rbacApp(role: 'admin' | 'ops' | 'viewer') {
 test('admin can hit an admin-required route (POST /partners-config)', async () => {
   const app = await rbacApp('admin');
   const res = await app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { 'content-type': 'application/json' },
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
@@ -220,7 +223,7 @@ test('admin can hit an admin-required route (POST /partners-config)', async () =
 test('viewer is rejected with 403 FORBIDDEN on POST /partners-config', async () => {
   const app = await rbacApp('viewer');
   const res = await app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { 'content-type': 'application/json' },
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
@@ -232,7 +235,7 @@ test('viewer is rejected with 403 FORBIDDEN on POST /partners-config', async () 
 test('ops is rejected with 403 FORBIDDEN on POST /partners-config (admin only)', async () => {
   const app = await rbacApp('ops');
   const res = await app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { 'content-type': 'application/json' },
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
@@ -243,7 +246,7 @@ test('ops is rejected with 403 FORBIDDEN on POST /partners-config (admin only)',
 
 test('viewer can hit a viewer-required route (GET /partners-config)', async () => {
   const app = await rbacApp('viewer');
-  const res = await app.inject({ method: 'GET', url: '/partners-config' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners-config' });
   assert.notEqual(res.statusCode, 403, `viewer should NOT be 403 on GET: ${res.body}`);
   await app.close();
 });
@@ -255,7 +258,7 @@ test('dev-fallback bypasses RBAC (implicit admin for local iteration)', async ()
   });
   // Hitting an admin-required route in dev-fallback shouldn't 403.
   const res = await app.inject({
-    method: 'POST', url: '/partners-config',
+    method: 'POST', url: '/api/partners-config',
     headers: { 'content-type': 'application/json' },
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });

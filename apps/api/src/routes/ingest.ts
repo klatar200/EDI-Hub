@@ -57,7 +57,7 @@ export async function ingestRoutes(
     }
 
     const result = await ingestRawFile(
-      { s3: app.s3, prisma: app.prisma, config: app.config, logger: request.log },
+      { s3: app.s3, storage: app.storage, prisma: app.prisma, config: app.config, logger: request.log },
       { content, source: 'upload', filename: part.filename },
     );
 

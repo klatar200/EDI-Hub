@@ -23,7 +23,10 @@ const testConfig: AppConfig = {
   ourIsaIds: [],
   notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
   clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
 };
 
 const toBuf = (b: unknown): Buffer => (Buffer.isBuffer(b) ? b : Buffer.from(b as Uint8Array));
@@ -102,7 +105,7 @@ test('empty file -> 400 EMPTY_FILE, nothing stored', async () => {
   const objects = new Map<string, Buffer>();
   const app = await buildServer({ config: testConfig, s3: okS3(objects), prisma: okPrisma() });
   const { payload, headers } = multipart(Buffer.alloc(0), 'empty.edi');
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
   assert.equal(res.statusCode, 400);
   assert.equal(res.json().error.code, 'EMPTY_FILE');
   assert.equal(objects.size, 0);
@@ -113,7 +116,7 @@ test('non-X12 file -> 200 stored as UNRECOGNIZED_FORMAT', async () => {
   const objects = new Map<string, Buffer>();
   const app = await buildServer({ config: testConfig, s3: okS3(objects), prisma: okPrisma() });
   const { payload, headers } = multipart(Buffer.from('just a normal text file, definitely not edi'), 'notes.txt');
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().status, 'UNRECOGNIZED_FORMAT');
   assert.equal(res.json().isaControlNumber, null);
@@ -125,7 +128,7 @@ test('malformed X12 (ISA present but unparseable) -> 200 stored as PARSE_ERROR',
   const objects = new Map<string, Buffer>();
   const app = await buildServer({ config: testConfig, s3: okS3(objects), prisma: okPrisma() });
   const { payload, headers } = multipart(Buffer.from('ISA*00*tooshort*broken~'), 'broken.edi');
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
   assert.equal(res.statusCode, 200);
   assert.equal(res.json().status, 'PARSE_ERROR');
   assert.equal(res.json().isaControlNumber, null);
@@ -144,7 +147,7 @@ test('DB unreachable -> 503 DB_UNAVAILABLE with NO S3 write (fail fast)', async 
   } as unknown as PrismaClient;
   const app = await buildServer({ config: testConfig, s3: okS3(objects), prisma: downPrisma });
   const { payload, headers } = multipart(validInterchange(), 'po.edi');
-  const res = await app.inject({ method: 'POST', url: '/ingest/upload', payload, headers });
+  const res = await app.inject({ method: 'POST', url: '/api/ingest/upload', payload, headers });
   assert.equal(res.statusCode, 503);
   assert.equal(res.json().error.code, 'DB_UNAVAILABLE');
   assert.equal(objects.size, 0, 'no bytes written to S3 when DB is down');

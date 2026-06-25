@@ -64,7 +64,10 @@ if (!clerkKey || clerkKey.startsWith('pk_test_...') || clerkKey === 'pk_test_...
           variables: {
             colorPrimary: 'oklch(0.55 0.22 282)', // brand-500
             colorBackground: resolved === 'dark' ? 'oklch(0.18 0.012 260)' : 'oklch(1 0 0)',
-            colorText: resolved === 'dark' ? 'oklch(0.96 0.005 260)' : 'oklch(0.20 0.02 260)',
+            // Clerk's `Variables` type renamed `colorText` to
+            // `colorTextOnPrimaryBackground` / `colorNeutral` in @clerk/react v0.x.
+            // Drop until we re-survey the new theming surface — defaults
+            // already adapt to the appearance baseTheme.
           },
         }}
       >

@@ -1,0 +1,5 @@
+# D5 Sprint 1 — Playwright stores captured Clerk session state here.
+# The state contains live auth cookies + tokens; never commit it.
+*
+!.gitignore
+!README.md

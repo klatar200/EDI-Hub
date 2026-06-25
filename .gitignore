@@ -32,3 +32,23 @@ tmp/
 
 # SFTP drop folders (local dev)
 .sftp/
+
+# AS2 drop folders (local dev)
+.as2/
+
+# Desktop installer build output
+apps/desktop/dist-installer/
+
+# Playwright test artifacts
+test-results/
+playwright-report/
+
+# Vite dev-mode timestamp artifacts (Vite writes these on hot reload)
+apps/web/vite.config.ts.timestamp-*.mjs
+
+# .continue/ — IDE-side AI assistant cache
+.continue/
+
+# Allow .auth/ structure (README + .gitignore) but block the captured
+# Clerk session blob.
+# (The .auth/.gitignore already excludes state.json.)

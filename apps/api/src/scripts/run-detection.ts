@@ -1,37 +1,49 @@
 /**
- * Phase 7 Sprint 1 — one-shot detection runner.
+ * Phase 7 Sprint 1 - one-shot detection runner.
  *
  *   npm run detect --workspace=@edi/api
  *
- * Invokes both detectors against the live DB once and reports counts. Suitable
- * for cron / Task Scheduler invocation until Sprint 2 wires the BullMQ
- * scheduler. Exit code 0 always — we want the scheduler to keep running even
- * if a run emitted nothing.
+ * Invokes the shared detection handler once and reports counts. Used by cron
+ * and Windows Task Scheduler in environments that prefer external scheduling
+ * over the in-process DB worker (e.g. the SaaS pod still triggered via
+ * EventBridge / cron). Exit code 0 on a clean pass; non-zero on a hard error.
+ *
+ * Desktop track D2 Sprint 2 - the detection logic itself lives in
+ * `apps/api/src/jobs/handlers/detection.ts`. Both this CLI and the in-process
+ * job worker call `runDetectionPass`, so there's exactly one source of truth.
  */
-import { getPrisma, disconnectPrisma, tenantContext, PILOT_TENANT_ID } from '@edi/db';
-import { detectMissingAcks, detectRejectionSpikes } from '../services/detection.js';
+import { getPrisma, disconnectPrisma } from '@edi/db';
 import { loadConfig } from '../config.js';
+import { runDetectionPass } from '../jobs/handlers/detection.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
   const prisma = getPrisma();
   const now = new Date();
-  const notifier = { prisma, config: config.notifier };
-  const opts = { notifier, suppressionMinutes: config.alertSuppressionMinutes };
-  console.log(`Detection pass @ ${now.toISOString()}  (notifier mode: ${config.notifier.mode}, suppression: ${config.alertSuppressionMinutes}m)`);
-  // Phase 9 Sprint 1.4 — pin detection to the pilot tenant. Future per-tenant
-  // detection will iterate the Tenant table and run each pass under its own
-  // context (so partner SLAs and rejection baselines are tenant-scoped).
-  await tenantContext.run({ tenantId: PILOT_TENANT_ID }, async () => {
-    const missing = await detectMissingAcks(prisma, now, opts);
-    console.log(`  MISSING_ACK            emitted=${missing.emitted}  notified=${missing.notified}`);
-    const spike = await detectRejectionSpikes(prisma, now, opts);
-    console.log(`  REJECTION_RATE_SPIKE   emitted=${spike.emitted}  notified=${spike.notified}`);
+  // eslint-disable-next-line no-console
+  console.log(
+    `Detection pass @ ${now.toISOString()}  (notifier mode: ${config.notifier.mode}, ` +
+      `suppression: ${config.alertSuppressionMinutes}m)`,
+  );
+  const result = await runDetectionPass({
+    prisma,
+    notifier: { prisma, config: config.notifier },
+    suppressionMinutes: config.alertSuppressionMinutes,
+    now: () => now,
   });
+  // eslint-disable-next-line no-console
+  console.log(
+    `  MISSING_ACK            emitted=${result.missing.emitted}  notified=${result.missing.notified}`,
+  );
+  // eslint-disable-next-line no-console
+  console.log(
+    `  REJECTION_RATE_SPIKE   emitted=${result.spike.emitted}  notified=${result.spike.notified}`,
+  );
   await disconnectPrisma();
 }
 
 main().catch(async (err) => {
+  // eslint-disable-next-line no-console
   console.error('Detection run failed:', err);
   await disconnectPrisma();
   process.exit(1);

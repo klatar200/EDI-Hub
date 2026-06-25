@@ -6,12 +6,16 @@
  * so connection handling stays centralised.
  *
  * Phase 9 Sprint 1 — the returned client is wrapped in the tenant extension,
- * so every query reads tenant context from AsyncLocalStorage. See
- * `tenant-context.ts` and `tenant-extension.ts`.
+ * so every query reads tenant context from AsyncLocalStorage.
+ *
+ * Desktop track D1 Sprint 2 — `getPrisma` / `disconnectPrisma` moved into
+ * `client-factory.ts` so the provider (Postgres vs SQLite) can be selected
+ * from `DATABASE_PROVIDER`. Re-exported here so existing imports keep
+ * working unchanged.
+ *
+ * Desktop track D1 Sprint 3 — array-serialization helpers are re-exported so
+ * tests and downstream packages can call them directly.
  */
-import { PrismaClient } from '@prisma/client';
-import { withTenantExtension } from './tenant-extension.js';
-
 export * from '@prisma/client';
 export {
   tenantContext,
@@ -26,22 +30,16 @@ export {
   injectInWhere,
   type MinimalDmmf,
 } from './tenant-extension.js';
-
-let prisma: PrismaClient | undefined;
-
-/** Returns a process-wide PrismaClient, created lazily on first use. The
- *  returned client is already wrapped in the tenant extension. */
-export function getPrisma(): PrismaClient {
-  if (!prisma) {
-    prisma = withTenantExtension(new PrismaClient());
-  }
-  return prisma;
-}
-
-/** Closes the shared client. Call on graceful shutdown / after tests. */
-export async function disconnectPrisma(): Promise<void> {
-  if (prisma) {
-    await prisma.$disconnect();
-    prisma = undefined;
-  }
-}
+export {
+  getPrisma,
+  disconnectPrisma,
+} from './client-factory.js';
+export {
+  resolveProvider,
+  type DatabaseProvider,
+} from './provider.js';
+export {
+  ARRAY_FIELDS_BY_MODEL,
+  serializeArrayFields,
+  deserializeArrayFields,
+} from './array-serialization.js';

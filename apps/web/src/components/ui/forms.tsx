@@ -42,7 +42,11 @@ const errorBase =
 // Input
 // ─────────────────────────────────────────────────────────────
 
-interface InputProps extends InputHTMLAttributes<HTMLInputElement> {
+// Omit the native HTML `size` attribute (a number for text-field visual
+// width) so we can reuse the name for our semantic variant. Any caller
+// who genuinely wants the native attribute can still set it via JSX
+// props on the rendered <input> — none currently do.
+interface InputProps extends Omit<InputHTMLAttributes<HTMLInputElement>, 'size'> {
   /** Render with monospace styling — useful for IDs, control numbers. */
   mono?: boolean;
   /** Error state — paints the border red + matching focus ring. */
@@ -69,7 +73,9 @@ export const Input = forwardRef(function Input(
 // Select
 // ─────────────────────────────────────────────────────────────
 
-interface SelectProps extends SelectHTMLAttributes<HTMLSelectElement> {
+// Same Omit pattern as InputProps — native `size` is a number; we want
+// the semantic variant instead.
+interface SelectProps extends Omit<SelectHTMLAttributes<HTMLSelectElement>, 'size'> {
   invalid?: boolean;
   size?: 'sm' | 'md';
   /** Allows shorthand `options` instead of children — most filter selects

@@ -43,7 +43,10 @@ function makeConfig(): AppConfig {
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     // Empty clerk secret → dev-fallback mode → role checks pass + auth=null.
     clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   } as AppConfig;
 }
 
@@ -260,7 +263,7 @@ test('POST /partners-config creates the partner AND a partner.create audit row',
   const app = await buildApp(store);
   const res = await app.inject({
     method: 'POST',
-    url: '/partners-config',
+    url: '/api/partners-config',
     payload: {
       displayName: 'Sysco Test',
       isaSenderIds: ['SYSCO-T'],
@@ -290,7 +293,7 @@ test('PATCH /partners-config/:id writes a partner.update audit row with before+a
   // Seed via the POST so we have a stable id.
   const create = await app.inject({
     method: 'POST',
-    url: '/partners-config',
+    url: '/api/partners-config',
     payload: { displayName: 'GFS', isaSenderIds: ['GFS'], isaReceiverIds: [] },
   });
   assert.equal(create.statusCode, 201);
@@ -299,7 +302,7 @@ test('PATCH /partners-config/:id writes a partner.update audit row with before+a
 
   const patch = await app.inject({
     method: 'PATCH',
-    url: `/partners-config/${partnerId}`,
+    url: `/api/partners-config/${partnerId}`,
     payload: {
       displayName: 'GFS-RENAMED',
       isaSenderIds: ['GFS'],
@@ -321,13 +324,13 @@ test('DELETE /partners-config/:id writes a partner.delete audit row with the bef
   const app = await buildApp(store);
   const create = await app.inject({
     method: 'POST',
-    url: '/partners-config',
+    url: '/api/partners-config',
     payload: { displayName: 'Doomed', isaSenderIds: ['X'], isaReceiverIds: [] },
   });
   const partnerId = (create.json() as { id: string }).id;
   store.audits.length = 0;
 
-  const del = await app.inject({ method: 'DELETE', url: `/partners-config/${partnerId}` });
+  const del = await app.inject({ method: 'DELETE', url: `/api/partners-config/${partnerId}` });
   assert.equal(del.statusCode, 204);
   assert.equal(store.audits.length, 1);
   assert.equal(store.audits[0]!.action, 'partner.delete');
@@ -347,11 +350,11 @@ test('GET /audit returns audit rows newest-first', async () => {
   for (const name of ['One', 'Two', 'Three']) {
     await app.inject({
       method: 'POST',
-      url: '/partners-config',
+      url: '/api/partners-config',
       payload: { displayName: name, isaSenderIds: [`S-${name}`], isaReceiverIds: [] },
     });
   }
-  const list = await app.inject({ method: 'GET', url: '/audit' });
+  const list = await app.inject({ method: 'GET', url: '/api/audit' });
   assert.equal(list.statusCode, 200);
   const body = list.json() as { items: Array<{ action: string }>; count: number };
   assert.equal(body.count, 3);
@@ -365,17 +368,17 @@ test('GET /audit?action= filters to a single action verb', async () => {
   const app = await buildApp(store);
   const create = await app.inject({
     method: 'POST',
-    url: '/partners-config',
+    url: '/api/partners-config',
     payload: { displayName: 'P1', isaSenderIds: ['P1'], isaReceiverIds: [] },
   });
   const id = (create.json() as { id: string }).id;
   await app.inject({
     method: 'PATCH',
-    url: `/partners-config/${id}`,
+    url: `/api/partners-config/${id}`,
     payload: { displayName: 'P1-mod', isaSenderIds: ['P1'], isaReceiverIds: [] },
   });
   // 2 rows total: one create, one update.
-  const onlyUpdates = await app.inject({ method: 'GET', url: '/audit?action=partner.update' });
+  const onlyUpdates = await app.inject({ method: 'GET', url: '/api/audit?action=partner.update' });
   assert.equal(onlyUpdates.statusCode, 200);
   const body = onlyUpdates.json() as { items: Array<{ action: string }>; count: number };
   assert.equal(body.count, 1);
@@ -386,7 +389,7 @@ test('GET /audit?action= filters to a single action verb', async () => {
 test('GET /audit rejects an unparseable `from` value', async () => {
   const store: FakeStore = { partners: [], audits: [], seq: 0 };
   const app = await buildApp(store);
-  const res = await app.inject({ method: 'GET', url: '/audit?from=not-a-date' });
+  const res = await app.inject({ method: 'GET', url: '/api/audit?from=not-a-date' });
   assert.equal(res.statusCode, 400);
   assert.equal((res.json() as { error: { code: string } }).error.code, 'INVALID_QUERY');
   await app.close();
@@ -419,7 +422,7 @@ test('failed audit insert surfaces as a 500 (not silently swallowed)', async () 
   });
   const res = await app.inject({
     method: 'POST',
-    url: '/partners-config',
+    url: '/api/partners-config',
     payload: { displayName: 'Will Fail', isaSenderIds: ['F'], isaReceiverIds: [] },
   });
   // The route doesn't catch this — Fastify surfaces it as a 500. That's

@@ -10,9 +10,14 @@ export default defineConfig({
   envDir: '../..',
   server: {
     port: 5173,
-    // Proxy API calls to the Fastify backend in dev (avoids CORS; Gate A).
+    // Proxy API calls to the Fastify backend in dev (avoids CORS).
+    // D4 Sprint 2 — the API now registers its routes under /api (it
+    // serves the React build at / on the same port for the desktop
+    // LAN install). The proxy forwards /api/* verbatim instead of
+    // rewriting it away, so /api/partners in the renderer hits the
+    // real /api/partners route on the API.
     proxy: {
-      '/api': { target: 'http://localhost:3000', changeOrigin: true, rewrite: (p) => p.replace(/^\/api/, '') },
+      '/api': { target: 'http://localhost:3000', changeOrigin: true },
     },
   },
   test: {

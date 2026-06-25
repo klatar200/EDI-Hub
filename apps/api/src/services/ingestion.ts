@@ -27,11 +27,15 @@ import type { RawFileStatus, SourceChannel } from '@edi/shared';
 import { extractEnvelopeIds, EdiParseError } from '@edi/edi-parser';
 import { tenantContext } from '@edi/db';
 import type { AppConfig } from '../config.js';
-import { buildRawFileKey, uploadStream } from '../storage/s3.js';
+import type { StorageAdapter } from '../storage/interface.js';
 import { parseAndStore } from './parsing.js';
 
 export interface IngestionDeps {
+  /** Kept for backwards compatibility with channel/test code that still
+   *  references the raw S3 client. The storage path uses `storage`. */
   s3: S3Client;
+  /** Desktop track D3 Sprint 1 - the data path now goes through here. */
+  storage: StorageAdapter;
   prisma: PrismaClient;
   config: AppConfig;
   logger: FastifyBaseLogger;
@@ -88,13 +92,11 @@ async function uploadWithRetry(
   const { maxAttempts, baseDelayMs } = deps.config.retry;
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
     try {
-      await uploadStream({
-        client: deps.s3,
-        bucket: deps.config.s3.bucket,
-        key: params.key,
-        body: Readable.from(params.body),
-        contentType: params.contentType,
-      });
+      await deps.storage.upload(
+        params.key,
+        Readable.from(params.body),
+        params.contentType,
+      );
       return;
     } catch (err) {
       if (attempt >= maxAttempts || !isRetryableS3Error(err)) throw err;
@@ -142,7 +144,7 @@ export async function ingestRawFile(deps: IngestionDeps, input: IngestInput): Pr
 
   const id = randomUUID();
   const ingestedAt = new Date();
-  const key = buildRawFileKey(id, ingestedAt);
+  const key = deps.storage.buildKey(id, ingestedAt);
 
   // --- S3 (with retry) ---
   try {

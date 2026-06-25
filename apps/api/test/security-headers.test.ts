@@ -31,7 +31,10 @@ function makeConfig(): AppConfig {
     ourIsaIds: [],
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   } as AppConfig;
 }
 
@@ -80,7 +83,7 @@ test('headers also apply to authenticated routes (not just /health)', async () =
   });
   // dev-fallback grants implicit admin so a GET on a viewer-required route
   // returns 200 even without a real auth token.
-  const res = await app.inject({ method: 'GET', url: '/partners-config' });
+  const res = await app.inject({ method: 'GET', url: '/api/partners-config' });
   assert.equal(res.headers['strict-transport-security']?.includes('max-age='), true);
   await app.close();
 });

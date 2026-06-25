@@ -26,7 +26,7 @@ import type {
   LifecycleEvent,
   LifecycleResponse,
   LifecycleStatus,
-  TransactionRejection,
+  RejectionSegmentError,
 } from '@edi/shared';
 import { api, type LifecycleKey } from '../lib/api.ts';
 import {
@@ -300,7 +300,11 @@ function RejectionPanel({
   fullDetailHref,
 }: {
   summary: string | null;
-  details: TransactionRejection[] | null;
+  // `event.rejectionDetails` is `RejectionSegmentError[] | null` — one entry
+  // per AK3 (segment-level error). The earlier annotation incorrectly named
+  // this `TransactionRejection[]`, which is the outer wrapper attached to
+  // a 997-rejected transaction's detail response, not a list shape.
+  details: RejectionSegmentError[] | null;
   fullDetailHref: string | null;
 }): JSX.Element {
   const [open, setOpen] = useState(false);

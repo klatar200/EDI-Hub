@@ -15,7 +15,10 @@ import type { PrismaClient } from '@prisma/client';
 import type { FastifyBaseLogger } from 'fastify';
 import { startSftpWatcher } from '../src/sftp/watcher.js';
 import type { IngestionDeps } from '../src/services/ingestion.js';
+import { S3StorageAdapter } from '../src/storage/s3-adapter.js';
 import type { AppConfig } from '../src/config.js';
+
+
 
 const toBuf = (b: unknown): Buffer => (Buffer.isBuffer(b) ? b : Buffer.from(b as Uint8Array));
 
@@ -43,7 +46,10 @@ function baseConfig(watchDir: string, processedDir: string, failedDir: string): 
     ourIsaIds: [],
     notifier: { mode: 'disabled', sesFrom: '', sesRegion: 'us-east-1', globalSlackWebhook: '' },
     clerk: { secretKey: '', webhookSecret: '' },
+  storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
   alertSuppressionMinutes: 60,
+  cors: { allowedOrigins: [] },
+  webStatic: { dir: "" },
   };
 }
 
@@ -120,7 +126,7 @@ test('SFTP watcher ingests a dropped file and moves it to /processed', async () 
 
   const config = baseConfig(watchDir, processedDir, failedDir);
   const objects = new Map<string, Buffer>();
-  const deps: IngestionDeps = { s3: okS3(objects), prisma: fakePrisma(), config, logger: noopLogger };
+  const deps: IngestionDeps = { s3: okS3(objects), storage: new S3StorageAdapter(okS3(objects), config.s3.bucket), prisma: fakePrisma(), config, logger: noopLogger };
 
   const watcher = await startSftpWatcher(deps, config.sftp);
   await watcher.ready;
@@ -149,7 +155,7 @@ test('SFTP watcher moves a file to /failed on storage error', async () => {
     config: { requestHandler: {}, maxAttempts: 1, endpointProvider: () => ({ url: new URL('http://localhost:9000') }) },
     async send() { const e = new Error('down') as Error & { $metadata?: unknown }; e.$metadata = { httpStatusCode: 500 }; throw e; },
   } as unknown as S3Client;
-  const deps: IngestionDeps = { s3: failingS3, prisma: fakePrisma(), config, logger: noopLogger };
+  const deps: IngestionDeps = { s3: failingS3, storage: new S3StorageAdapter(failingS3, config.s3.bucket), prisma: fakePrisma(), config, logger: noopLogger };
 
   const watcher = await startSftpWatcher(deps, config.sftp);
   await watcher.ready;
