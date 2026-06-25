@@ -39,9 +39,13 @@ import { installApplicationMenu } from './menu.js';
 import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
 import { enforceLicenseGate } from './license-window.js';
 
-// D4 Sprint 3 — cold-start timing baseline. Captured at module load (the
-// earliest point we control). Compared against the main window's
-// `did-finish-load` event to derive S10.1.
+// Electron resolves `app.getPath('userData')` from `app.getName()`, which
+// defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
+// `productName`. Without this, Windows data lands in a non-obvious folder
+// (e.g. under a scoped npm name) instead of `%APPDATA%\EDI Hub`.
+app.setName('EDI Hub');
+
+// D4 Sprint 3 — cold-start timing baseline.
 const launchTs = Date.now();
 // `embedded-postgres` ships as ESM-only. CommonJS modules can't statically
 // import it, so we use a deferred `import()` inside startPostgres(). We
@@ -498,6 +502,7 @@ app.whenReady().then(async () => {
     isFirstLaunch = detectFirstLaunch();
     openSplash(isFirstLaunch);
     console.log(`[edi-hub] launch detected: firstLaunch=${isFirstLaunch}`);
+    console.log(`[edi-hub] userData: ${app.getPath('userData')}`);
     await boot();
   } catch (err) {
     console.error('Fatal boot error:', err);

@@ -55,6 +55,12 @@ export function installApplicationMenu(): void {
           },
         },
         {
+          label: 'Open Data Folder',
+          click: () => {
+            void shell.openPath(app.getPath('userData'));
+          },
+        },
+        {
           label: 'Open Logs Folder',
           click: () => {
             // `app.getPath('logs')` returns a platform-specific path

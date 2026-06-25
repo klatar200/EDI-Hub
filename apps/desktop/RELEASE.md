@@ -3,6 +3,36 @@
 Merging to `main` does **not** create a GitHub Release. Releases are
 triggered only by pushing a version tag.
 
+## Where app data lives (Windows)
+
+All local state — `license.json`, Postgres (`pgdata/`), ingested files
+(`raw/`), auto-update config — is under Electron **userData**:
+
+```
+%APPDATA%\EDI Hub\
+```
+
+Full path example: `C:\Users\<you>\AppData\Roaming\EDI Hub\`
+
+**In the app:** Help → **Open Data Folder** (v0.0.8-alpha+).
+
+**In logs:** every launch prints `[edi-hub] userData: ...` when run with
+`--enable-logging`.
+
+### Legacy installs (before v0.0.8-alpha)
+
+Older builds used the npm package name (`@edi/desktop`) for userData, so
+data may be under a different folder. Search with PowerShell:
+
+```powershell
+Get-ChildItem $env:APPDATA, $env:LOCALAPPDATA -Recurse -Filter license.json -ErrorAction SilentlyContinue |
+  Select-Object FullName
+```
+
+Also search for a `pgdata` folder — that is always created on first launch.
+
+---
+
 ## Every desktop release
 
 1. Bump `version` in `apps/desktop/package.json` (e.g. `0.0.7-alpha`).
