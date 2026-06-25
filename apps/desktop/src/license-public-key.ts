@@ -1,15 +1,11 @@
 /**
  * D8 Sprint 1 — Ed25519 public key for offline license verification.
  *
- * **Production:** Replace this PEM with the public half of the keypair you
- * generate offline (see DESKTOP_SPRINT_PLAN.md D8 Sprint 1 manual task).
- * Never commit the private key.
- *
- * The value below is a **development placeholder** used until Keagan
- * provides the production public key. License keys signed with the matching
- * dev private key unlock trial builds for testing only.
+ * Embed only the **public** half of your production keypair here.
+ * Never commit the private key — use `scripts/issue-license-key.mjs` with
+ * a local PEM file to sign customer license keys.
  */
 export const LICENSE_PUBLIC_KEY_PEM = `-----BEGIN PUBLIC KEY-----
-MCowBQYDK2VwAyEAiyBE5SLLvIh2Km3Bft4tTK6Km5CjdMwquJPxwLGHbbc=
+MCowBQYDK2VwAyEA8f18yc0pdAbsXuR+Iha9drwNes3HY7id0fDLhpZu5WE=
 -----END PUBLIC KEY-----
 `;
