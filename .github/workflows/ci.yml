@@ -10,6 +10,9 @@ jobs:
     name: Typecheck, Lint & Test
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    # Hermetic unit/integration tests — no Postgres, MinIO, or Redis service
+    # containers. API route tests inject fake Prisma/S3 via buildServer();
+    # live end-to-end checks (npm run smoke) are manual / optional.
     steps:
       - uses: actions/checkout@v4
 
@@ -29,8 +32,20 @@ jobs:
       - name: Lint
         run: npm run lint
 
-      - name: Test (parser + api + web)
-        run: npm test
+      - name: Test @edi/db
+        run: npm run test --workspace=@edi/db
+
+      - name: Test @edi/edi-parser
+        run: npm run test --workspace=@edi/edi-parser
+
+      - name: Test @edi/api (hermetic — fake Prisma/S3)
+        run: npm run test --workspace=@edi/api
+
+      - name: Test @edi/web (Vitest)
+        run: npm run test --workspace=@edi/web
+
+      - name: Test @edi/desktop
+        run: npm run test --workspace=@edi/desktop
 
       - name: Web typecheck + build
         run: npm run build --workspace=@edi/web

@@ -99,6 +99,8 @@ are missing. **25 automated tests** (parser, ingestion, failure modes, SFTP).
 
 ## Quickstart (local)
 
+Requires **Node.js 20+** (GitHub Actions CI runs **Node 22**).
+
 ```bash
 npm install
 cp .env.example .env
@@ -134,19 +136,32 @@ MinIO console: http://localhost:9001 (minioadmin / minioadmin).
 
 ## Verify
 
+CI runs on **Node 22** with no Docker services — unit tests use injected
+fakes. Live integration checks need `docker compose up -d`.
+
 ```bash
 npm run typecheck
-npm run lint
-npm test                              # parser + api + failures + sftp
-npm run smoke --workspace=@edi/api    # live end-to-end (needs docker compose up)
+npm run lint                  # zero warnings (--max-warnings 0)
+npm run test:ci               # db + parser + api + web + desktop (same as CI)
+npm run smoke --workspace=@edi/api    # live e2e (needs docker compose + migrated DB)
 ```
+
+| Workspace | Runner | Needs docker? |
+|---|---|---|
+| `@edi/db` | node:test | No |
+| `@edi/edi-parser` | node:test | No |
+| `@edi/api` | node:test (`test/*.test.ts`) | No — fake Prisma/S3 via `buildServer()` |
+| `@edi/web` | Vitest + jsdom | No |
+| `@edi/desktop` | node:test | No |
 
 ## Useful commands
 
 | Command | What it does |
 |---|---|
 | `npm run typecheck` | Type-check all packages |
-| `npm run lint` | ESLint across the repo |
+| `npm run lint` | ESLint across the repo (fails on warnings) |
+| `npm run test:ci` | Run the CI test matrix locally (all workspaces) |
+| `npm test` | Same suites via `npm run test --workspaces --if-present` |
 | `npm run db:migrate` | Apply Prisma migrations (dev) |
 | `npm run db:generate` | Regenerate the Prisma client |
 | `npm run dev:api` | Run the API in watch mode |

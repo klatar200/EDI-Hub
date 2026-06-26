@@ -24,6 +24,7 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "test": "npm run test --workspaces --if-present",
+    "test:ci": "npm run test --workspace=@edi/db && npm run test --workspace=@edi/edi-parser && npm run test --workspace=@edi/api && npm run test --workspace=@edi/web && npm run test --workspace=@edi/desktop",
     "test:parity": "playwright test --project=web --project=desktop",
     "test:parity:setup": "playwright test --project=setup",
     "test:parity:update": "playwright test --project=web --project=desktop --update-snapshots",
