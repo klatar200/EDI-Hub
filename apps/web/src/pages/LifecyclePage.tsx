@@ -91,6 +91,10 @@ export function LifecyclePage(): JSX.Element {
     queryKey: ['lifecycle', key, value],
     queryFn: () => api.lifecycle(key, value),
     enabled: value.length > 0,
+    // Desktop drop-folder workflow: new files can land while this page is open.
+    // Always refetch on mount and poll so gaps clear without a manual refresh.
+    refetchOnMount: 'always',
+    refetchInterval: 15_000,
   });
 
   return (

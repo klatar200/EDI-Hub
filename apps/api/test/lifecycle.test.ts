@@ -74,6 +74,7 @@ function tx(o: Partial<FakeTxn> & { id: string; transactionSetId: string; contro
  *  Prisma "{ not: null }" pattern used by findFirst guards? */
 function fieldMatches(value: string | null, clause: unknown): boolean {
   if (clause === undefined) return true;
+  if (clause === null) return value === null;
   if (typeof clause === 'string') return value === clause;
   if (clause && typeof clause === 'object') {
     const c = clause as { not?: unknown; in?: string[] };
@@ -86,12 +87,32 @@ function fieldMatches(value: string | null, clause: unknown): boolean {
   return false;
 }
 
+function partnerPairMatches(
+  senderId: string,
+  receiverId: string,
+  clause: unknown,
+): boolean {
+  if (!clause || typeof clause !== 'object') return true;
+  const or = (clause as { OR?: Array<{ senderId?: string; receiverId?: string }> }).OR;
+  if (!Array.isArray(or)) return true;
+  return or.some((pair) => pair.senderId === senderId && pair.receiverId === receiverId);
+}
+
 function matches(t: FakeTxn, where: Record<string, unknown>): boolean {
+  if (where.id && typeof where.id === 'object') {
+    const notIn = (where.id as { notIn?: string[] }).notIn;
+    if (Array.isArray(notIn) && notIn.includes(t.id)) return false;
+  }
   if (!fieldMatches(t.poNumber, where.poNumber)) return false;
   if (!fieldMatches(t.invoiceNumber, where.invoiceNumber)) return false;
   if (!fieldMatches(t.shipmentId, where.shipmentId)) return false;
   if (!fieldMatches(t.transactionSetId, where.transactionSetId)) return false;
   if (!fieldMatches(t.ackedGroupControl, where.ackedGroupControl)) return false;
+  const fg = where.functionalGroup as { interchange?: { OR?: unknown } } | undefined;
+  if (fg?.interchange) {
+    const ic = t.functionalGroup.interchange;
+    if (!partnerPairMatches(ic.senderId, ic.receiverId, fg.interchange)) return false;
+  }
   return true;
 }
 
@@ -564,4 +585,119 @@ test('partnerChannel is null when the partner has no connectivity configured', a
   assert.ok(r);
   const ev = r!.events.find((e) => e.transactionId === 't-out2')!;
   assert.equal(ev.partnerChannel, null);
+});
+
+// ─────────────────────────────────────────────────────────────
+// US Foods synthetic lifecycle + orphan PO stitching
+// ─────────────────────────────────────────────────────────────
+
+test('US Foods group-1: 850 + 855 + 810 on same PO produce no 855/810 gaps', async () => {
+  const us850 = tx({
+    id: 'uf-850', transactionSetId: '850', controlNumber: '9901', groupControl: '9901',
+    poNumber: '7599901Q', direction: 'inbound', ingestedAt: '2026-07-01T10:00:00Z',
+  });
+  us850.functionalGroup.interchange.senderId = '621418185';
+  us850.functionalGroup.interchange.receiverId = '7085892400';
+  const us855 = tx({
+    id: 'uf-855', transactionSetId: '855', controlNumber: '0001', groupControl: '9902',
+    poNumber: '7599901Q', direction: 'outbound', ingestedAt: '2026-07-02T10:00:00Z',
+  });
+  us855.functionalGroup.interchange.senderId = '7085892400';
+  us855.functionalGroup.interchange.receiverId = '621418185';
+  const us810 = tx({
+    id: 'uf-810', transactionSetId: '810', controlNumber: '0007', groupControl: '9903',
+    poNumber: '7599901Q', invoiceNumber: '5199901', direction: 'outbound',
+    ingestedAt: '2026-07-10T10:00:00Z',
+  });
+  us810.functionalGroup.interchange.senderId = '7085892400';
+  us810.functionalGroup.interchange.receiverId = '621418185';
+
+  const prisma = makePrisma([us850, us855, us810]);
+  const r = await getLifecycle(prisma, { po: '7599901Q' }, { ourIsaIds: ['7085892400'] });
+  assert.ok(r);
+  assert.equal(r!.flow, 'standard');
+  const txEvents = r!.events.filter((e) => e.kind === 'transaction');
+  assert.deepEqual(
+    txEvents.map((e) => e.transactionSetId),
+    ['850', '855', '810'],
+  );
+  const gapSets = r!.events.filter((e) => e.kind === 'gap').map((g) => g.transactionSetId).sort();
+  assert.deepEqual(gapSets, ['997', '997', '997']);
+});
+
+interface FakeTxnWithSegments extends FakeTxn {
+  segments?: Array<{
+    tag: string;
+    position: number;
+    elements: Array<{ index: number; value: string }>;
+  }>;
+}
+
+function makePrismaWithSegments(txns: FakeTxnWithSegments[], partner?: PartnerSeed): PrismaClient {
+  const base = makePrisma(txns, partner) as unknown as {
+    transaction: {
+      findMany: (args: { where: Record<string, unknown>; include?: Record<string, unknown> }) => Promise<unknown[]>;
+      findFirst: (args: { where: Record<string, unknown> }) => Promise<unknown | null>;
+    };
+  };
+  const origFindMany = base.transaction.findMany.bind(base.transaction);
+  base.transaction.findMany = async ({ where, include }) => {
+    const rows = (await origFindMany({ where })) as FakeTxnWithSegments[];
+    if (include && 'segments' in include) {
+      return rows.map((r) => ({ ...r, segments: r.segments ?? [] }));
+    }
+    return rows;
+  };
+  return base as unknown as PrismaClient;
+}
+
+test('orphan stitch: 855/810 with null po_number but matching BAK/BIG still appear', async () => {
+  const us850 = tx({
+    id: 'uf-850', transactionSetId: '850', controlNumber: '9901', groupControl: '9901',
+    poNumber: '7599901Q', direction: 'inbound', ingestedAt: '2026-07-01T10:00:00Z',
+  });
+  us850.functionalGroup.interchange.senderId = '621418185';
+  us850.functionalGroup.interchange.receiverId = '7085892400';
+
+  const orphan855: FakeTxnWithSegments = {
+    ...tx({
+      id: 'uf-855', transactionSetId: '855', controlNumber: '0001', groupControl: '9902',
+      poNumber: null, direction: 'outbound', ingestedAt: '2026-07-02T10:00:00Z',
+    }),
+    segments: [
+      { tag: 'BAK', position: 1, elements: [{ index: 1, value: '00' }, { index: 2, value: 'AP' }, { index: 3, value: '7599901Q' }] },
+    ],
+  };
+  orphan855.functionalGroup.interchange.senderId = '7085892400';
+  orphan855.functionalGroup.interchange.receiverId = '621418185';
+
+  const orphan810: FakeTxnWithSegments = {
+    ...tx({
+      id: 'uf-810', transactionSetId: '810', controlNumber: '0007', groupControl: '9903',
+      poNumber: null, invoiceNumber: '5199901', direction: 'outbound',
+      ingestedAt: '2026-07-10T10:00:00Z',
+    }),
+    segments: [
+      {
+        tag: 'BIG', position: 1,
+        elements: [
+          { index: 1, value: '20260709' }, { index: 2, value: '5199901' },
+          { index: 3, value: '20260701' }, { index: 4, value: '7599901Q' },
+        ],
+      },
+    ],
+  };
+  orphan810.functionalGroup.interchange.senderId = '7085892400';
+  orphan810.functionalGroup.interchange.receiverId = '621418185';
+
+  const prisma = makePrismaWithSegments([us850, orphan855, orphan810]);
+  const r = await getLifecycle(prisma, { po: '7599901Q' }, { ourIsaIds: ['7085892400'] });
+  assert.ok(r);
+  const txEvents = r!.events.filter((e) => e.kind === 'transaction');
+  assert.deepEqual(
+    txEvents.map((e) => e.transactionSetId),
+    ['850', '855', '810'],
+  );
+  assert.equal(r!.events.filter((e) => e.kind === 'gap' && e.transactionSetId === '855').length, 0);
+  assert.equal(r!.events.filter((e) => e.kind === 'gap' && e.transactionSetId === '810').length, 0);
 });
