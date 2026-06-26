@@ -143,6 +143,11 @@ fakes. Live integration checks need `docker compose up -d`.
 npm run typecheck
 npm run lint                  # zero warnings (--max-warnings 0)
 npm run test:ci               # db + parser + api + web + desktop (same as CI)
+```
+
+Run `npm install` from the **repo root** first — desktop needs `@types/archiver` hoisted from `apps/desktop` devDependencies. If desktop fails with `TS7016` for `archiver`, reinstall: `npm install`.
+
+```bash
 npm run smoke --workspace=@edi/api    # live e2e (needs docker compose + migrated DB)
 ```
 

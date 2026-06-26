@@ -4,6 +4,9 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "types": ["node"],
+    // Monorepo hoists workspace @types to the repo root; Windows tsc
+    // sometimes misses them without an explicit typeRoots walk-up.
+    "typeRoots": ["../../node_modules/@types", "./node_modules/@types"],
     // Electron's main process runs as CommonJS; Node16 module/resolution
     // honors the package's `exports` map (D4 Sprint 1 noted this was
     // required for `embedded-postgres`, which only exposes its types via
