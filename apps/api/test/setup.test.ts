@@ -65,6 +65,11 @@ async function buildTestApp() {
   return app;
 }
 
+async function closeTestApp(app: Awaited<ReturnType<typeof buildTestApp>>): Promise<void> {
+  if (app.channels) await app.channels.closeAll();
+  await app.close();
+}
+
 test('GET /api/setup reports desktop wizard incomplete on fresh install', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'edi-setup-'));
   const prev = process.env.EDI_HUB_USER_DATA_DIR;
@@ -77,7 +82,7 @@ test('GET /api/setup reports desktop wizard incomplete on fresh install', async 
     assert.equal(body.desktopMode, true);
     assert.equal(body.firstRunComplete, false);
   } finally {
-    await app.close();
+    await closeTestApp(app);
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
     else delete process.env.EDI_HUB_USER_DATA_DIR;
     await rm(dir, { recursive: true, force: true });
@@ -112,7 +117,7 @@ test('PATCH /api/setup completes wizard and starts desktop-drop channel', async 
     assert.ok(desktop);
     assert.equal(desktop!.status, 'running');
   } finally {
-    await app.close();
+    await closeTestApp(app);
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
     else delete process.env.EDI_HUB_USER_DATA_DIR;
     await rm(dir, { recursive: true, force: true });
@@ -130,7 +135,7 @@ test('GET /api/setup is always complete in SaaS mode', async () => {
     assert.equal(body.desktopMode, false);
     assert.equal(body.firstRunComplete, true);
   } finally {
-    await app.close();
+    await closeTestApp(app);
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
   }
 });

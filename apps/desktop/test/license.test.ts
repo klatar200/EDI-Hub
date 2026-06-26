@@ -28,14 +28,14 @@ function testKeypair(): { publicPem: string; privatePem: string } {
   };
 }
 
-function futureIso(days: number): string {
-  const d = new Date();
+function futureIso(days: number, base: Date = new Date()): string {
+  const d = new Date(base);
   d.setUTCDate(d.getUTCDate() + days);
   return d.toISOString();
 }
 
-function pastIso(days: number): string {
-  return futureIso(-days);
+function pastIso(days: number, base: Date = new Date()): string {
+  return futureIso(-days, base);
 }
 
 function makeKey(privatePem: string, payload: LicensePayload): string {
@@ -47,7 +47,7 @@ describe('evaluateLicenseState', () => {
   const now = new Date('2026-06-25T12:00:00.000Z');
 
   it('allows trial within 14 days', () => {
-    const firstLaunchAt = pastIso(13);
+    const firstLaunchAt = pastIso(13, now);
     const result = evaluateLicenseState({
       now,
       firstLaunchAt,
@@ -58,7 +58,7 @@ describe('evaluateLicenseState', () => {
   });
 
   it('blocks trial after 15 days', () => {
-    const firstLaunchAt = pastIso(15);
+    const firstLaunchAt = pastIso(15, now);
     const result = evaluateLicenseState({
       now,
       firstLaunchAt,
@@ -71,12 +71,12 @@ describe('evaluateLicenseState', () => {
   it('unlocks with a valid signed key', () => {
     const key = makeKey(privatePem, {
       customerId: 'cust-1',
-      renewsAt: futureIso(200),
+      renewsAt: futureIso(200, now),
       tier: 'standard',
     });
     const result = evaluateLicenseState({
       now,
-      firstLaunchAt: pastIso(30),
+      firstLaunchAt: pastIso(30, now),
       licenseKey: key,
       publicKeyPem: publicPem,
     });
@@ -86,7 +86,7 @@ describe('evaluateLicenseState', () => {
   it('rejects a tampered key', () => {
     const key = makeKey(privatePem, {
       customerId: 'cust-1',
-      renewsAt: futureIso(200),
+      renewsAt: futureIso(200, now),
       tier: 'standard',
     });
     const tampered = `${key.slice(0, -4)}AAAA`;
@@ -97,12 +97,12 @@ describe('evaluateLicenseState', () => {
   it('warns within 30 days of renewal', () => {
     const key = makeKey(privatePem, {
       customerId: 'cust-1',
-      renewsAt: futureIso(29),
+      renewsAt: futureIso(29, now),
       tier: 'standard',
     });
     const result = evaluateLicenseState({
       now,
-      firstLaunchAt: pastIso(100),
+      firstLaunchAt: pastIso(100, now),
       licenseKey: key,
       publicKeyPem: publicPem,
     });
@@ -116,12 +116,12 @@ describe('evaluateLicenseState', () => {
   it('blocks 8 days past renewsAt', () => {
     const key = makeKey(privatePem, {
       customerId: 'cust-1',
-      renewsAt: pastIso(8),
+      renewsAt: pastIso(8, now),
       tier: 'standard',
     });
     const result = evaluateLicenseState({
       now,
-      firstLaunchAt: pastIso(400),
+      firstLaunchAt: pastIso(400, now),
       licenseKey: key,
       publicKeyPem: publicPem,
     });
