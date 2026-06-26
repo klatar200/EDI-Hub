@@ -22,6 +22,7 @@ import { autoUpdater } from 'electron-updater';
 import type { ProgressInfo } from 'electron-updater';
 import {
   closeUpdateSplash,
+  isUpdateSplashOpen,
   openUpdateSplash,
   setUpdateSplashChecking,
   setUpdateSplashDownloading,
@@ -72,6 +73,9 @@ function configureUpdaterOnce(): void {
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.autoRunAppAfterInstall = true;
   autoUpdater.disableWebInstaller = true;
+  // Differential download often fails on unsigned builds, then restarts the
+  // progress bar at 0% for a full installer pull — confusing and slower.
+  autoUpdater.disableDifferentialDownload = true;
 
   autoUpdater.on('error', (err: Error) => {
     console.error('[edi-hub] auto-update error:', err);
@@ -89,8 +93,8 @@ function installDownloadedUpdate(version: string): void {
   setUpdateSplashInstalling(version);
   markPendingWhatsNew(version);
   quittingForUpdate = true;
-  // isSilent=false shows NSIS progress; isForceRunAfter=true relaunches EDI Hub.
-  autoUpdater.quitAndInstall(false, true);
+  // Silent NSIS apply (/S) into the existing per-user install dir, then relaunch.
+  autoUpdater.quitAndInstall(true, true);
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -101,13 +105,23 @@ async function sleep(ms: number): Promise<void> {
  * Download an available update with progress UI, then install immediately.
  * Does not return on success — the process quits for the NSIS installer.
  */
-async function downloadAndInstall(version: string): Promise<void> {
+async function downloadAndInstall(version: string, splashAlreadyOpen = false): Promise<void> {
   configureUpdaterOnce();
-  openUpdateSplash();
+  if (!splashAlreadyOpen && !isUpdateSplashOpen()) {
+    openUpdateSplash();
+  }
   setUpdateSplashDownloading(version, 0);
 
+  let peakPercent = 0;
   const onProgress = (progress: ProgressInfo): void => {
-    setUpdateSplashDownloading(version, progress.percent);
+    // If electron-updater retries with a full installer, percent snaps back
+    // toward 0 — keep the bar monotonic and explain the second pass.
+    if (progress.percent < peakPercent - 2) {
+      setUpdateSplashDownloading(version, progress.percent, 'Finishing download…');
+    } else {
+      peakPercent = Math.max(peakPercent, progress.percent);
+      setUpdateSplashDownloading(version, peakPercent);
+    }
   };
 
   autoUpdater.on('download-progress', onProgress);
@@ -156,7 +170,7 @@ export async function runStartupUpdateGate(): Promise<'continue'> {
     }
 
     console.log(`[edi-hub] auto-update: v${remoteVersion} available — downloading`);
-    await downloadAndInstall(remoteVersion);
+    await downloadAndInstall(remoteVersion, true);
     return 'continue';
   } catch (err) {
     console.error('[edi-hub] auto-update: startup gate failed:', err);

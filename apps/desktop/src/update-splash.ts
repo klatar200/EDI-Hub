@@ -153,11 +153,20 @@ export function setUpdateSplashChecking(currentVersion: string): void {
   });
 }
 
-export function setUpdateSplashDownloading(version: string, percent: number): void {
+export function isUpdateSplashOpen(): boolean {
+  return updateWindow !== null && !updateWindow.isDestroyed();
+}
+
+export function setUpdateSplashDownloading(
+  version: string,
+  percent: number,
+  hint?: string,
+): void {
+  const extra = hint ? `<br><span style="color:var(--muted);font-size:12px">${hint}</span>` : '';
   pushState({
     phase: 'downloading',
     title: 'Update available',
-    message: `Downloading <span class="version">v${version}</span>…`,
+    message: `Downloading <span class="version">v${version}</span>…${extra}`,
     percent,
   });
 }

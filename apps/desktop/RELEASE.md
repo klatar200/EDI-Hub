@@ -78,8 +78,11 @@ old tag on GitHub and locally first, then create a new version number.
 
 1. On launch, EDI Hub checks GitHub Releases **before** starting Postgres.
 2. If a newer version exists, an update screen shows download progress, then
-   installs and restarts automatically — no manual quit step.
+   installs **silently** and restarts automatically — no NSIS wizard, no manual quit.
 3. Help → Check for Updates → **Install now** uses the same path.
+
+**v0.0.17-alpha+** disables differential downloads (avoids the progress bar
+resetting to 0% mid-update) and uses silent NSIS apply (`/S`).
 
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.

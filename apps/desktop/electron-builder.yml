@@ -129,6 +129,8 @@ nsis:
   allowToChangeInstallationDirectory: true
   perMachine: false
   deleteAppDataOnUninstall: false
+  # Apply updates silently into the existing per-user install (no re-prompt).
+  runAfterFinish: true
 
 # D7 Sprint 1 — auto-update feed via GitHub Releases.
 #
