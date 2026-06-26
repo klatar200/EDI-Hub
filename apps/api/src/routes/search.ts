@@ -11,6 +11,7 @@ interface InterchangeRow { senderId: string; receiverId: string; rawFile?: { sta
 interface TransactionRow {
   id: string; transactionSetId: string; controlNumber: string;
   poNumber: string | null; invoiceNumber: string | null; purpose: string | null;
+  direction: 'inbound' | 'outbound' | 'unknown';
   functionalGroup?: { interchange?: InterchangeRow | null } | null;
 }
 interface RawFileRow {
@@ -28,6 +29,7 @@ function txSummary(row: TransactionRow): TransactionSummary {
     senderId: ic?.senderId ?? null, receiverId: ic?.receiverId ?? null,
     status: ic?.rawFile?.status ?? null,
     ingestedAt: ic?.rawFile?.ingestedAt ? ic.rawFile.ingestedAt.toISOString() : null,
+    direction: row.direction,
   };
 }
 

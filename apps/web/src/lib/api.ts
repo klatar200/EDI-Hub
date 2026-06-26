@@ -9,6 +9,7 @@ import type {
   AlertListResponse,
   AlertRecord,
   IngestListResponse,
+  IngestUploadResponse,
   LifecycleResponse,
   OutboundStage,
   PartnerConfigInput,
@@ -157,6 +158,9 @@ export interface TransactionFilters {
   status?: string;
   po?: string;
   invoice?: string;
+  direction?: string;
+  from?: string;
+  to?: string;
   limit?: number;
   offset?: number;
 }
@@ -169,8 +173,26 @@ export const api = {
     get<TransactionListResponse>(`/transactions${qs(f as Record<string, string | number | undefined>)}`),
   transaction: (id: string) => get<TransactionDetail>(`/transactions/${id}`),
   partners: () => get<PartnersResponse>('/partners'),
-  ingest: (f: { status?: string; source?: string; limit?: number; offset?: number } = {}) =>
+  ingest: (f: { status?: string; source?: string; from?: string; to?: string; limit?: number; offset?: number } = {}) =>
     get<IngestListResponse>(`/ingest${qs(f as Record<string, string | number | undefined>)}`),
+  uploadIngest: async (file: File): Promise<IngestUploadResponse> => {
+    const fd = new FormData();
+    fd.append('file', file);
+    const res = await fetch(`${BASE}/ingest/upload`, {
+      method: 'POST',
+      headers: await authHeaders(),
+      body: fd,
+    });
+    const json: unknown = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      const msg =
+        typeof json === 'object' && json !== null && 'error' in json
+          ? String((json as { error?: { message?: string } }).error?.message ?? `Upload failed (${res.status})`)
+          : `Upload failed (${res.status})`;
+      throw new ApiCallError(msg, res.status, json);
+    }
+    return json as IngestUploadResponse;
+  },
   search: (q: string) => get<SearchResponse>(`/search${qs({ q })}`),
   /** GET /lifecycle?po=|invoice=|shipment= — returns null on 404 (no PO matched). */
   lifecycle: (key: LifecycleKey, value: string) =>

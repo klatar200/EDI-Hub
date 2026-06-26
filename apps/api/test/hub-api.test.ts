@@ -42,6 +42,7 @@ function fakeS3(): S3Client {
 const txn = {
   id: 'txn-1', functionalGroupId: 'g1', transactionSetId: '850', controlNumber: '0001',
   declaredSegmentCount: 5, segmentCount: 5, poNumber: 'PO-12345', invoiceNumber: null, purpose: '00',
+  direction: 'inbound' as const,
   functionalGroup: { interchange: { senderId: 'ACME', receiverId: 'GLOBEX', rawFile: { status: 'PARSED', ingestedAt: new Date('2026-06-17T12:00:00Z'), source: 'upload' } } },
 };
 const rawFileRow = { id: 'raw-1', s3Key: 'raw/x.edi', fileHash: 'h', isaControlNumber: '000000900', source: 'upload', status: 'PARSED', errorMessage: null, ingestedAt: new Date('2026-06-17T12:00:00Z') };
@@ -73,11 +74,12 @@ function fakePrisma(): PrismaClient {
       async findMany() { return [{ senderId: 'ACME', receiverId: 'GLOBEX' }, { senderId: 'ACME', receiverId: 'OTHER' }]; },
     },
     transaction: {
-      async findMany({ where }: { where?: { poNumber?: string; invoiceNumber?: string; transactionSetId?: string; functionalGroup?: { interchange?: { OR?: Array<{ senderId?: string; receiverId?: string }> } } } } = {}) {
+      async findMany({ where }: { where?: { poNumber?: string; invoiceNumber?: string; transactionSetId?: string; direction?: string; functionalGroup?: { interchange?: { OR?: Array<{ senderId?: string; receiverId?: string }> } } } } = {}) {
         const w = where ?? {};
         if (w.poNumber && w.poNumber !== txn.poNumber) return [];
         if (w.invoiceNumber) return [];
         if (w.transactionSetId && w.transactionSetId !== txn.transactionSetId) return [];
+        if (w.direction && w.direction !== txn.direction) return [];
         const partner = w.functionalGroup?.interchange?.OR?.[0]?.senderId;
         if (partner && partner !== 'ACME') return [];
         return [txn];
@@ -107,6 +109,12 @@ test('GET /transactions filters by partner and set, returning joined summary', a
   assert.equal(body.items[0].senderId, 'ACME');
   assert.equal(body.items[0].status, 'PARSED');
   assert.equal(body.items[0].ingestedAt, '2026-06-17T12:00:00.000Z');
+  assert.equal(body.items[0].direction, 'inbound');
+
+  const byDir = await app.inject({ method: 'GET', url: '/api/transactions?direction=inbound' });
+  assert.equal(byDir.json().count, 1);
+  const missDir = await app.inject({ method: 'GET', url: '/api/transactions?direction=outbound' });
+  assert.equal(missDir.json().count, 0);
 
   const miss = await app.inject({ method: 'GET', url: '/api/transactions?partner=NOBODY' });
   assert.equal(miss.json().count, 0);

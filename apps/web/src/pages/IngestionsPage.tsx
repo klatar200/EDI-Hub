@@ -5,10 +5,15 @@
  * (it's a 9-digit identifier the operator reads digit-by-digit). Status
  * pills replace the bespoke StatusBadge. Empty / error / skeleton
  * states use the shared primitives.
+ *
+ * Ops users can import files via the upload panel; viewers see the list only.
  */
 import { useQuery } from '@tanstack/react-query';
+import { useSearchParams } from 'react-router-dom';
 import type { RawFileRecord } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { IngestUploadPanel } from '../components/IngestUploadPanel.tsx';
+import { RequireRole } from '../lib/useRole.tsx';
 import {
   PageHeader,
   DataTable,
@@ -17,11 +22,40 @@ import {
   ErrorState,
   EmptyState,
   Skeleton,
+  Card,
+  FormField,
+  Select,
+  Input,
+  FilterChip,
+  FilterChipRow,
 } from '../components/ui';
 
+const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
+const SOURCES = ['upload', 'sftp', 'as2'] as const;
+
 export function IngestionsPage(): JSX.Element {
-  const q = useQuery({ queryKey: ['ingest'], queryFn: () => api.ingest({ limit: 50 }) });
+  const [sp, setSp] = useSearchParams();
+  const filters = {
+    source: sp.get('source') ?? undefined,
+    status: sp.get('status') ?? undefined,
+    from: sp.get('from') ?? undefined,
+    to: sp.get('to') ?? undefined,
+    limit: 50,
+  };
+  const q = useQuery({ queryKey: ['ingest', filters], queryFn: () => api.ingest(filters) });
   const items = q.data?.items ?? [];
+
+  function setFilter(key: string, value: string | undefined): void {
+    const next = new URLSearchParams(sp);
+    if (value) next.set(key, value);
+    else next.delete(key);
+    setSp(next);
+  }
+  function clearAll(): void {
+    setSp(new URLSearchParams());
+  }
+
+  const hasAnyFilter = Boolean(filters.source || filters.status || filters.from || filters.to);
 
   return (
     <div>
@@ -35,6 +69,40 @@ export function IngestionsPage(): JSX.Element {
         }
       />
 
+      <RequireRole role="ops">
+        <IngestUploadPanel />
+      </RequireRole>
+
+      <Card className="mb-3">
+        <div className="flex flex-wrap items-end gap-3 p-3">
+          <FormField label="Source">
+            <Select size="sm" value={filters.source ?? ''} onChange={(e) => setFilter('source', e.target.value || undefined)}>
+              <option value="">All</option>
+              {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </FormField>
+          <FormField label="Status">
+            <Select size="sm" value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value || undefined)}>
+              <option value="">All</option>
+              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+            </Select>
+          </FormField>
+          <FormField label="From">
+            <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
+          </FormField>
+          <FormField label="To">
+            <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
+          </FormField>
+        </div>
+      </Card>
+
+      <FilterChipRow onClearAll={hasAnyFilter ? clearAll : undefined}>
+        {filters.source ? <FilterChip key="source" label="Source" value={filters.source} onRemove={() => setFilter('source', undefined)} /> : null}
+        {filters.status ? <FilterChip key="status" label="Status" value={filters.status} onRemove={() => setFilter('status', undefined)} /> : null}
+        {filters.from ? <FilterChip key="from" label="From" value={filters.from} onRemove={() => setFilter('from', undefined)} /> : null}
+        {filters.to ? <FilterChip key="to" label="To" value={filters.to} onRemove={() => setFilter('to', undefined)} /> : null}
+      </FilterChipRow>
+
       {q.isLoading ? (
         <Skeleton.Table rows={6} columnWidths={['30%', '14%', '14%', '20%']} />
       ) : q.isError ? (
@@ -45,8 +113,13 @@ export function IngestionsPage(): JSX.Element {
         />
       ) : items.length === 0 ? (
         <EmptyState
-          title="No ingestions yet"
-          description="Drop an EDI file into the configured SFTP folder, or POST one to /ingest/upload, and it'll appear here."
+          title={hasAnyFilter ? 'No ingestions match these filters' : 'No ingestions yet'}
+          description={
+            hasAnyFilter
+              ? 'Try widening the filters above or clear them entirely.'
+              : 'Drop an EDI file into the configured SFTP folder, use Import above, or POST to /api/ingest/upload.'
+          }
+          action={hasAnyFilter ? <button className="btn" onClick={clearAll}>Clear filters</button> : null}
         />
       ) : (
         <DataTable>

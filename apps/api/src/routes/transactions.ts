@@ -7,7 +7,8 @@
  *       filters: set, po, invoice, partner, status, from, to
  */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import type { ApiErrorResponse, RawFileStatus, TransactionListResponse, TransactionSummary } from '@edi/shared';
+import type { ApiErrorResponse, LifecycleDirection, RawFileStatus, TransactionListResponse, TransactionSummary } from '@edi/shared';
+import { LIFECYCLE_DIRECTIONS } from '@edi/shared';
 import { deriveOutboundStage } from '@edi/shared';
 import { interpretTransaction, type DecomposedTransaction } from '@edi/edi-parser';
 import { findRejectionFor } from '../services/rejection.js';
@@ -46,6 +47,7 @@ interface TransactionWhere {
   transactionSetId?: string;
   poNumber?: string;
   invoiceNumber?: string;
+  direction?: LifecycleDirection;
   functionalGroup?: {
     interchange?: {
       OR?: Array<{ senderId?: string; receiverId?: string }>;
@@ -69,8 +71,11 @@ function toSummary(row: TransactionRow): TransactionSummary {
     receiverId: ic?.receiverId ?? null,
     status: ic?.rawFile?.status ?? null,
     ingestedAt: ic?.rawFile?.ingestedAt ? ic.rawFile.ingestedAt.toISOString() : null,
+    direction: row.direction,
   };
 }
+
+const DIRECTION_SET = new Set<LifecycleDirection>(LIFECYCLE_DIRECTIONS);
 
 function toDecomposed(row: TransactionRow): DecomposedTransaction {
   const segments = [...(row.segments ?? [])]
@@ -148,13 +153,16 @@ export async function transactionRoutes(
   });
 
   app.get<{
-    Querystring: { set?: string; po?: string; invoice?: string; partner?: string; status?: string; from?: string; to?: string; limit?: string; offset?: string };
+    Querystring: { set?: string; po?: string; invoice?: string; partner?: string; status?: string; direction?: string; from?: string; to?: string; limit?: string; offset?: string };
   }>('/transactions', requiresRole('viewer'), async (request, reply) => {
     const q = request.query;
     const where: TransactionWhere = {};
     if (q.set) where.transactionSetId = q.set;
     if (q.po) where.poNumber = q.po;
     if (q.invoice) where.invoiceNumber = q.invoice;
+    if (q.direction && DIRECTION_SET.has(q.direction as LifecycleDirection)) {
+      where.direction = q.direction as LifecycleDirection;
+    }
 
     const interchange: NonNullable<TransactionWhere['functionalGroup']>['interchange'] = {};
     if (q.partner) interchange.OR = [{ senderId: q.partner }, { receiverId: q.partner }];
@@ -174,6 +182,7 @@ export async function transactionRoutes(
     const rows = (await app.prisma.transaction.findMany({
       where,
       include: LIST_INCLUDE,
+      orderBy: { functionalGroup: { interchange: { rawFile: { ingestedAt: 'desc' } } } },
       take: limit,
       skip: offset,
     })) as TransactionRow[];

@@ -88,6 +88,8 @@ export interface TransactionSummary {
   receiverId: string | null;
   status: RawFileStatus | null;
   ingestedAt: string | null; // ISO-8601
+  /** Inbound/outbound relative to tenant OUR_ISA_IDS at parse time. */
+  direction: LifecycleDirection;
 }
 
 export interface TransactionListResponse {
@@ -197,6 +199,13 @@ export interface LifecycleEvent {
    *  rows so ops can see at a glance how a transaction was transmitted.
    *  Null when no partner is configured, or the partner has no connectivity. */
   partnerChannel: ConnectivityChannel | null;
+  /** ISA13 control number from the interchange envelope. Null on gaps. */
+  isaControlNumber: string | null;
+  /** How the underlying raw file arrived. Null on gaps. */
+  source: SourceChannel | null;
+  /** 1-based index among events sharing the same (transactionSetId, direction).
+   *  Null on gaps and when only one document of that type exists. */
+  instanceIndex: number | null;
 }
 
 /** The PO-spine lifecycle response. */

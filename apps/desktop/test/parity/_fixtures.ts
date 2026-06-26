@@ -49,6 +49,7 @@ const TRANSACTIONS = {
       receiverId: 'OURS',
       status: 'PARSED',
       ingestedAt: FIXED_ISO,
+      direction: 'outbound',
     },
     {
       id: 'tx-2',
@@ -61,6 +62,7 @@ const TRANSACTIONS = {
       receiverId: 'OURS',
       status: 'PARSED',
       ingestedAt: FIXED_ISO,
+      direction: 'inbound',
     },
   ],
   limit: 25,
@@ -88,6 +90,9 @@ const LIFECYCLE = {
       rejectionDetails: null,
       outboundStage: 'confirmed',
       partnerChannel: 'AS2',
+      isaControlNumber: '000000001',
+      source: 'as2',
+      instanceIndex: null,
     },
     {
       kind: 'transaction',
@@ -104,6 +109,9 @@ const LIFECYCLE = {
       rejectionDetails: null,
       outboundStage: null,
       partnerChannel: null,
+      isaControlNumber: '000000002',
+      source: 'sftp',
+      instanceIndex: null,
     },
     {
       kind: 'gap',
@@ -120,6 +128,9 @@ const LIFECYCLE = {
       rejectionDetails: null,
       outboundStage: null,
       partnerChannel: null,
+      isaControlNumber: null,
+      source: null,
+      instanceIndex: null,
     },
     {
       kind: 'transaction',
@@ -136,6 +147,9 @@ const LIFECYCLE = {
       rejectionDetails: null,
       outboundStage: null,
       partnerChannel: null,
+      isaControlNumber: '000000003',
+      source: 'upload',
+      instanceIndex: null,
     },
   ],
 };

@@ -29,6 +29,7 @@ import type {
   RejectionSegmentError,
 } from '@edi/shared';
 import { api, type LifecycleKey } from '../lib/api.ts';
+import { LifecycleRawPanel } from '../components/LifecycleRawPanel.tsx';
 import {
   PageHeader,
   StatusPill,
@@ -174,22 +175,37 @@ function Timeline({ events, po }: { events: LifecycleEvent[]; po: string }): JSX
   if (events.length === 0) {
     return <EmptyState title={`No documents found for PO ${po}`} />;
   }
+
+  const duplicateTotals = new Map<string, number>();
+  for (const e of events) {
+    if (e.kind !== 'transaction') continue;
+    const k = `${e.transactionSetId}::${e.direction}`;
+    duplicateTotals.set(k, (duplicateTotals.get(k) ?? 0) + 1);
+  }
+
   return (
     <ol className="relative">
-      {events.map((e, i) => (
-        <TimelineRow
-          key={`${e.transactionId ?? 'gap'}-${i}`}
-          event={e}
-          isLast={i === events.length - 1}
-        />
-      ))}
+      {events.map((e, i) => {
+        const dupKey = e.kind === 'transaction' ? `${e.transactionSetId}::${e.direction}` : '';
+        const duplicateTotal = dupKey ? (duplicateTotals.get(dupKey) ?? 1) : 1;
+        return (
+          <TimelineRow
+            key={`${e.transactionId ?? 'gap'}-${i}`}
+            event={e}
+            isLast={i === events.length - 1}
+            duplicateTotal={duplicateTotal}
+          />
+        );
+      })}
     </ol>
   );
 }
 
-function TimelineRow({ event, isLast }: { event: LifecycleEvent; isLast: boolean }): JSX.Element {
+function TimelineRow({ event, isLast, duplicateTotal }: { event: LifecycleEvent; isLast: boolean; duplicateTotal: number }): JSX.Element {
   const isGap = event.kind === 'gap';
   const showRejection = event.status === 'rejected' && (event.rejectionSummary || event.rejectionDetails);
+  const [rawOpen, setRawOpen] = useState(false);
+  const showDuplicateBadge = duplicateTotal > 1 && event.instanceIndex !== null;
   return (
     <li
       className="relative flex gap-4 pb-3 last:pb-0"
@@ -231,6 +247,15 @@ function TimelineRow({ event, isLast }: { event: LifecycleEvent; isLast: boolean
                 {event.transactionSetId}
               </span>
 
+              {showDuplicateBadge ? (
+                <span
+                  data-testid="duplicate-badge"
+                  className="inline-flex items-center rounded-full bg-[var(--color-brand-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-brand-700)]"
+                >
+                  {event.transactionSetId} · {event.instanceIndex} of {duplicateTotal}
+                </span>
+              ) : null}
+
               <StatusPill tone={DIRECTION_TONE[event.direction]} size="sm">
                 {DIRECTION_LABEL[event.direction]}
               </StatusPill>
@@ -261,6 +286,16 @@ function TimelineRow({ event, isLast }: { event: LifecycleEvent; isLast: boolean
               {event.controlNumber ? (
                 <span className="ml-auto font-mono text-[11px] text-[var(--color-fg-subtle)]">
                   ctrl <span className="text-[var(--color-fg-muted)]">{event.controlNumber}</span>
+                  {event.isaControlNumber ? (
+                    <>
+                      {' '}· isa <span className="text-[var(--color-fg-muted)]">{event.isaControlNumber}</span>
+                    </>
+                  ) : null}
+                  {event.source ? (
+                    <>
+                      {' '}· <span className="text-[var(--color-fg-muted)]">{event.source}</span>
+                    </>
+                  ) : null}
                   {event.ackStatus ? (
                     <>
                       {' '}· ak9 <span className="text-[var(--color-fg-muted)]">{event.ackStatus}</span>
@@ -274,14 +309,30 @@ function TimelineRow({ event, isLast }: { event: LifecycleEvent; isLast: boolean
               )}
 
               {event.kind === 'transaction' && event.transactionId ? (
-                <Link
-                  to={`/transactions/${event.transactionId}`}
-                  className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] print:hidden"
-                >
-                  View
-                </Link>
+                <span className="flex items-center gap-2 print:hidden">
+                  {event.rawFileId ? (
+                    <button
+                      type="button"
+                      data-testid="expand-raw"
+                      onClick={() => setRawOpen((v) => !v)}
+                      className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                    >
+                      {rawOpen ? 'Hide raw' : 'Expand raw'}
+                    </button>
+                  ) : null}
+                  <Link
+                    to={`/transactions/${event.transactionId}`}
+                    className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                  >
+                    Full detail
+                  </Link>
+                </span>
               ) : null}
             </div>
+
+            {rawOpen && event.rawFileId ? (
+              <LifecycleRawPanel rawFileId={event.rawFileId} />
+            ) : null}
 
             {/* Rejection panel — summary + expandable AK error tree */}
             {showRejection ? (
