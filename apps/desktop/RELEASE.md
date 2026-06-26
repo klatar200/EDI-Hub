@@ -88,6 +88,11 @@ resetting to 0% mid-update) and uses silent NSIS apply (`/S`).
 installer showed a per-user vs all-users wizard on every update because that
 custom page ignores `/S`; one-click applies updates with no wizard.
 
+**v0.0.19-alpha+** disables NSIS blockmaps (`differentialPackage: false`),
+hides the NSIS progress window during silent `/S` apply, keeps the in-app
+download bar monotonic, and skips the startup update check on the post-update
+relaunch (goes straight to Postgres boot).
+
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.
 

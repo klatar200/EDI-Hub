@@ -131,6 +131,10 @@ nsis:
   oneClick: true
   perMachine: false
   deleteAppDataOnUninstall: false
+  # No blockmap → electron-updater never attempts a differential pull that
+  # restarts download progress at 0%.
+  differentialPackage: false
+  include: nsis/installer.nsh
   # Relaunch after silent `/S` update when electron-updater passes --force-run.
   runAfterFinish: true
 
