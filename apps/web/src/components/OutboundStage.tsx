@@ -11,7 +11,7 @@
  * Both components return null when there's no signal (`stage === null`), so
  * callers can render unconditionally without sprinkling guards.
  */
-import type { OutboundStage } from '@edi/shared';
+import type { LifecycleStatus, OutboundStage } from '@edi/shared';
 import { StatusPill, type StatusTone } from './ui';
 
 const STAGE_LABEL: Record<OutboundStage, string> = {
@@ -37,6 +37,53 @@ export function StageBadge({ stage }: { stage: OutboundStage | null }): JSX.Elem
     <span data-testid={`stage-badge-${stage}`}>
       <StatusPill tone={STAGE_TONE[stage]} size="sm">{STAGE_LABEL[stage]}</StatusPill>
     </span>
+  );
+}
+
+/** Transmission step only — on the lifecycle row we surface confirmation separately. */
+function transmissionStage(stage: OutboundStage): OutboundStage {
+  return stage === 'confirmed' ? 'transmitted' : stage;
+}
+
+function ConfirmationBadge({ confirmed }: { confirmed: boolean }): JSX.Element {
+  return (
+    <span data-testid={confirmed ? 'confirmation-badge-confirmed' : 'confirmation-badge-not-confirmed'}>
+      <StatusPill tone={confirmed ? 'success' : 'neutral'} size="sm" withDot>
+        {confirmed ? 'Confirmed' : 'Not Confirmed'}
+      </StatusPill>
+    </span>
+  );
+}
+
+/**
+ * Lifecycle row chips for outbound docs: transmission stage first, then partner
+ * confirmation. Replaces the misleading "Received" ack-status pill on outbound
+ * rows that already show a transmission stage.
+ */
+export function OutboundLifecycleBadges({
+  stage,
+  status,
+}: {
+  stage: OutboundStage;
+  status: LifecycleStatus;
+}): JSX.Element {
+  if (status === 'rejected') {
+    return (
+      <>
+        <StageBadge stage={transmissionStage(stage)} />
+        <StatusPill tone="error" size="sm" withDot>
+          Rejected
+        </StatusPill>
+      </>
+    );
+  }
+
+  const confirmed = stage === 'confirmed' || status === 'acknowledged';
+  return (
+    <>
+      <StageBadge stage={transmissionStage(stage)} />
+      <ConfirmationBadge confirmed={confirmed} />
+    </>
   );
 }
 

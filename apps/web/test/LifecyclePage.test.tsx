@@ -185,7 +185,7 @@ test('outbound row renders no channel chip when partnerChannel is null', async (
         kind: 'transaction', transactionSetId: '810', direction: 'outbound', status: 'received',
         transactionId: 't-810x', rawFileId: 'r-810x', controlNumber: 'T1',
         ingestedAt: '2026-06-01T11:00:00.000Z', ackStatus: null, ackedByTransactionId: null,
-        partnerChannel: null,
+        partnerChannel: null, outboundStage: 'transmitted' as const,
       },
     ],
   };
@@ -197,8 +197,10 @@ test('outbound row renders no channel chip when partnerChannel is null', async (
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
   }));
   renderAt('/lifecycle/PO-NOCX');
-  // Wait for content to land before asserting absence.
   await screen.findByText('810');
+  expect(screen.getByText('Transmitted')).toBeInTheDocument();
+  expect(screen.getByText('Not Confirmed')).toBeInTheDocument();
+  expect(screen.queryByText('Received')).toBeNull();
   expect(screen.queryByTestId('partner-channel-AS2')).toBeNull();
   expect(screen.queryByText(/via /)).toBeNull();
 });

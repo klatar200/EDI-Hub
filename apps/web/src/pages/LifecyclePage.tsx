@@ -38,7 +38,7 @@ import {
   EmptyState,
   Skeleton,
 } from '../components/ui';
-import { StageBadge } from '../components/OutboundStage.tsx';
+import { OutboundLifecycleBadges } from '../components/OutboundStage.tsx';
 
 const STATUS_LABEL: Record<LifecycleStatus, string> = {
   received: 'Received',
@@ -234,12 +234,14 @@ function TimelineRow({ event, isLast }: { event: LifecycleEvent; isLast: boolean
               <StatusPill tone={DIRECTION_TONE[event.direction]} size="sm">
                 {DIRECTION_LABEL[event.direction]}
               </StatusPill>
-              <StatusPill tone={STATUS_TONE[event.status]} size="sm" withDot>
-                {STATUS_LABEL[event.status]}
-              </StatusPill>
 
-              {/* Phase 8 — outbound stage chip. Renders null on inbound/gap/pre-Phase-8. */}
-              <StageBadge stage={event.outboundStage} />
+              {event.direction === 'outbound' && event.kind === 'transaction' && event.outboundStage ? (
+                <OutboundLifecycleBadges stage={event.outboundStage} status={event.status} />
+              ) : (
+                <StatusPill tone={STATUS_TONE[event.status]} size="sm" withDot>
+                  {STATUS_LABEL[event.status]}
+                </StatusPill>
+              )}
 
               {/* Phase 8 Sprint 3 — partner transmission channel chip. Intentionally
                   subtle — "via X" reads as metadata, not status. */}
