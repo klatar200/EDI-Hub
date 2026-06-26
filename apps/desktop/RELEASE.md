@@ -59,8 +59,8 @@ git push origin v0.0.13-alpha
 4. Watch **Actions → release** (~5–10 min on Windows).
 5. Confirm assets on https://github.com/klatar200/EDI-Hub/releases:
    - `EDI-Hub-<version>-x64.exe` — **filename version must match the release tag**
-   - `EDI-Hub-<version>-x64.exe.blockmap`
    - `latest.yml`
+   - (No `.blockmap` since v0.0.19 — differential updates are disabled.)
 
 Tag name must match the `v*` pattern in `.github/workflows/release.yml`.
 The workflow **fails** if:

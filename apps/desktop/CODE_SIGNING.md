@@ -130,7 +130,8 @@ GitHub Actions:
 2. Restores the PFX from `CSC_LINK_B64` to a temp path on the runner.
 3. Runs `npm run dist -w @edi/desktop` with `CSC_LINK` + `CSC_KEY_PASSWORD`
    in the env.
-4. Uploads the signed `.exe`, its `.blockmap`, and `latest.yml` to a
+4. Uploads the signed `.exe` and `latest.yml` to a GitHub Release (no
+   `.blockmap` — differential updates are disabled in `electron-builder.yml`).
    GitHub Release.
 5. Wipes the temp PFX.
 
