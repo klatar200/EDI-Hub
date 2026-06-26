@@ -108,6 +108,7 @@ jobs:
           # a 0.0.6-alpha binary while the tag said 0.0.10. Always start clean.
           rm -rf apps/desktop/dist-installer
           npm run dist -w @edi/desktop
+          node scripts/verify-desktop-pack.mjs
         shell: bash
 
       - name: Clean up the restored PFX

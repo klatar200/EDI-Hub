@@ -77,6 +77,15 @@ files:
   - "**/node_modules/archiver-utils/**/*"
   - "**/node_modules/zip-stream/**/*"
   - "**/node_modules/compress-commons/**/*"
+  # OPTIONAL-D2 — electron-updater is hoisted to the repo-root node_modules
+  # (not apps/desktop/node_modules), so the default walker skips it and
+  # auto-update crashes with "Cannot find module 'electron-updater'".
+  - "**/node_modules/electron-updater/**/*"
+  - "**/node_modules/js-yaml/**/*"
+  - "**/node_modules/lazy-val/**/*"
+  - "**/node_modules/lodash.isequal/**/*"
+  - "**/node_modules/lodash.escaperegexp/**/*"
+  - "**/node_modules/tiny-typed-emitter/**/*"
 
 # The React build is served at runtime by @fastify/static which reads
 # from disk. The Prisma schema + migrations are read by `prisma migrate
@@ -98,6 +107,20 @@ extraResources:
   # exactly where `require('.prisma/client')` looks for it at runtime.
   - from: ../../node_modules/.prisma/client
     to: app/node_modules/.prisma/client
+  # Same hoisting issue as .prisma — copy the full package tree (includes
+  # nested builder-util-runtime, fs-extra, semver).
+  - from: ../../node_modules/electron-updater
+    to: app/node_modules/electron-updater
+  - from: ../../node_modules/js-yaml
+    to: app/node_modules/js-yaml
+  - from: ../../node_modules/lazy-val
+    to: app/node_modules/lazy-val
+  - from: ../../node_modules/lodash.isequal
+    to: app/node_modules/lodash.isequal
+  - from: ../../node_modules/lodash.escaperegexp
+    to: app/node_modules/lodash.escaperegexp
+  - from: ../../node_modules/tiny-typed-emitter
+    to: app/node_modules/tiny-typed-emitter
 
 win:
   target: nsis
