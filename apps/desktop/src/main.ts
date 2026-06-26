@@ -262,7 +262,6 @@ async function runMigrations(databaseUrl: string): Promise<void> {
           // Node when spawned as a child. Without it the CLI never
           // executes — the child just opens (and closes) a stray
           // Electron window, hence the silent hang we hit in Sprint 1.
-          // eslint-disable-next-line @typescript-eslint/naming-convention
           ELECTRON_RUN_AS_NODE: '1',
         },
         stdio: 'inherit',
@@ -457,11 +456,9 @@ async function boot(): Promise<void> {
     // Bucket name is unused on local storage backend but config.ts requires it.
     S3_BUCKET: 'unused-local-backend',
     NODE_ENV: 'production',
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     WEB_STATIC_DIR: webStaticDir,
     // See the matching comment in runMigrations: Electron-as-child must run
     // in Node mode or it opens a window instead of executing the script.
-    // eslint-disable-next-line @typescript-eslint/naming-convention
     ELECTRON_RUN_AS_NODE: '1',
     // D8 Sprint 2 — API reads/writes first-run wizard config alongside Electron.
     EDI_HUB_USER_DATA_DIR: userData,

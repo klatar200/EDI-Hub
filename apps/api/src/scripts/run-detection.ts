@@ -22,7 +22,6 @@ async function main(): Promise<void> {
   const config = loadConfig();
   const prisma = getPrisma();
   const now = new Date();
-  // eslint-disable-next-line no-console
   console.log(
     `Detection pass @ ${now.toISOString()}  (notifier mode: ${config.notifier.mode}, ` +
       `suppression: ${config.alertSuppressionMinutes}m)`,
@@ -34,11 +33,9 @@ async function main(): Promise<void> {
     now: () => now,
   });
   for (const [tenantId, result] of results.entries()) {
-    // eslint-disable-next-line no-console
     console.log(
       `[detection] tenant=${tenantId}  MISSING_ACK emitted=${result.missing.emitted}  notified=${result.missing.notified}`,
     );
-    // eslint-disable-next-line no-console
     console.log(
       `[detection] tenant=${tenantId}  REJECTION_RATE_SPIKE emitted=${result.spike.emitted}  notified=${result.spike.notified}`,
     );
@@ -47,7 +44,6 @@ async function main(): Promise<void> {
 }
 
 main().catch(async (err) => {
-  // eslint-disable-next-line no-console
   console.error('Detection run failed:', err);
   await disconnectPrisma();
   process.exit(1);
