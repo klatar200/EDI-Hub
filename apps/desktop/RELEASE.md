@@ -94,6 +94,13 @@ opens today's file. Share that file (or paste its contents) when reporting
 update issues — it records check/download/install phases, electron-updater
 internals, percent drops, and post-update boot timing.
 
+**Symptom:** After updating, EDI Hub fails to launch with
+`Cannot find module 'electron-updater'`.
+
+**Cause:** `electron-updater` is hoisted to the repo-root `node_modules/` and
+was not copied into the packaged `resources/app/node_modules/` tree.
+Fixed in **v0.0.21-alpha** (`extraResources` + CI `verify-desktop-pack.mjs`).
+
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.
 
