@@ -9,7 +9,7 @@ not enforceable in code.
 **Reviewed by:** Keagan (self-review). Re-review with a security-savvy
 advisor recommended before signing the first external contract.
 
-**Last updated:** 2026-06-21
+**Last updated:** 2026-06-25
 
 ---
 
@@ -34,6 +34,7 @@ advisor recommended before signing the first external contract.
 | 2.5 | Cross-tenant PATCH and DELETE return 404 and the foreign row survives | ✅ | `apps/api/test/isolation.test.ts` — "cross-tenant PATCH and DELETE both return 404". |
 | 2.6 | Audit log is tenant-scoped | ✅ | `apps/api/test/isolation.test.ts` — "GET /audit returns only the calling tenant's rows". |
 | 2.7 | `tenantContext.bypass()` is only used by audit-log writes + admin bootstrap, with explicit comments | ✅ | Search for `tenantContext.bypass` — appears only in `apps/api/src/plugins/tenant.ts` (tenant + user lookups) and tests. |
+| 2.8 | `requireTenantId()` throws in production when tenant context is missing (no silent PILOT_TENANT_ID fallback) | ✅ | `packages/db/src/tenant-context.ts` — `TenantContextMissingError` when `NODE_ENV=production`; `packages/db/test/tenant-context.test.ts`. |
 
 ## 3. RBAC
 

@@ -8,7 +8,7 @@
  */
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { tenantContext, PILOT_TENANT_ID } from '../src/index.js';
+import { tenantContext, PILOT_TENANT_ID, TenantContextMissingError } from '../src/index.js';
 
 test('current() returns undefined when no context has been set', () => {
   // Note: this test relies on running in a fresh ALS frame. If a previous test
@@ -37,15 +37,32 @@ test('run() scopes the tenantId to the callback', () => {
   assert.deepEqual(seen, ['tenant-a', 'tenant-b', 'tenant-a']);
 });
 
-test('requireTenantId() falls back to PILOT_TENANT_ID when no context is set', () => {
-  // Soft-fallback semantics: tests + dev scripts that forget to wrap get a
-  // sensible default rather than a throw, while production gets the loud
-  // failure from the Prisma extension (which always checks context separately).
-  // The fallback also emits a one-time console.warn — not asserted here.
-  const result = (async () => tenantContext.requireTenantId())();
-  return result.then((id) => {
-    assert.equal(id, PILOT_TENANT_ID);
-  });
+test('requireTenantId() falls back to PILOT_TENANT_ID when no context is set (non-production)', () => {
+  // Soft-fallback semantics in dev/test: fake-Prisma fixtures get a sensible
+  // default. Production throws instead (see next test).
+  const prev = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'test';
+  try {
+    const result = tenantContext.requireTenantId();
+    assert.equal(result, PILOT_TENANT_ID);
+  } finally {
+    if (prev === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = prev;
+  }
+});
+
+test('requireTenantId() throws in production when no context is set', () => {
+  const prev = process.env.NODE_ENV;
+  process.env.NODE_ENV = 'production';
+  try {
+    assert.throws(
+      () => tenantContext.requireTenantId(),
+      TenantContextMissingError,
+    );
+  } finally {
+    if (prev === undefined) delete process.env.NODE_ENV;
+    else process.env.NODE_ENV = prev;
+  }
 });
 
 test('bypass() sets bypass=true while preserving (or stubbing) tenantId', () => {

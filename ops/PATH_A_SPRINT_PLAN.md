@@ -1,5 +1,7 @@
 # Path A — SaaS to first external customer
 
+> **Status (2026-06-25):** Sequencing and current priorities are in **`BUILD_PLAN.md`** § Where we are → where we're going. This file retains **operator step detail** for Sprint A1 (Terraform, Clerk, smoke tests) and A2 (drills). Path A-core items W1–W2 and W3.3/W3.4 are done.
+
 **Chosen track:** Production deploy → UI overhaul → Phase 11 commercialization → Phase 12 pilot.
 
 **Canonical checklists:** `ops/PRE_PRODUCTION_TODO.md` (operator steps), `SECURITY_CHECKLIST.md` (sign-off), `BUILD_PLAN.md` (phase map).
@@ -17,9 +19,9 @@ Do this **before** collecting production secrets or running `terraform apply`.
 | Order | Work | Doc | Needs secrets? |
 |-------|------|-----|----------------|
 | 1 | Production auth guardrails + tenant-scoped ISA dedup | `FIX_PLAN.md` **W1.1, W1.2** | No — **done** |
-| 2 | Green CI (lint + full test suite) | **W2.2, W2.3** | No |
-| 3 | Multi-tenant detection (alerts for all tenants) | **W2.1** | No |
-| 4 | Tenant context hardening + repo hygiene | **W3.3, W3.4** | No |
+| 2 | Green CI (lint + full test suite) | **W2.2, W2.3** | No — **done** |
+| 3 | Multi-tenant detection (alerts for all tenants) | **W2.1** | No — **done** |
+| 4 | Tenant context hardening + repo hygiene | **W3.3, W3.4** | No — **done** |
 | 5 | UI overhaul (lifecycle + alerts readability) | `PHASE_UI_PLAN.md` gates A/B/C | No (local dev) |
 | 6 | Architecture ADRs (queue design, CORS) | **W3.1, W3.2** | No |
 | 7 | Polish | **W4.x** | No |

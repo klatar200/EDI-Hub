@@ -24,11 +24,27 @@ export interface TenantContextValue {
   bypass?: boolean;
 }
 
-const storage = new AsyncLocalStorage<TenantContextValue>();
+/** Thrown when service code calls `requireTenantId()` without an active
+ *  tenant context in production. */
+export class TenantContextMissingError extends Error {
+  override readonly name = 'TenantContextMissingError';
+  constructor() {
+    super(
+      'Tenant context is required but not set. Wrap the code path in ' +
+        'tenantContext.run({ tenantId }, ...) or tenantContext.enterWith(...).',
+    );
+  }
+}
+
+function isProductionEnv(): boolean {
+  return process.env.NODE_ENV === 'production';
+}
 
 /** Has the missing-context warning fired? Throttled so a long-running test
  *  doesn't drown the log. */
 let warnedNoContext = false;
+
+const storage = new AsyncLocalStorage<TenantContextValue>();
 
 export const tenantContext = {
   /** Run `fn` with `ctx` as the active tenant context. Any Prisma query inside
@@ -61,32 +77,26 @@ export const tenantContext = {
   current(): TenantContextValue | undefined {
     return storage.getStore();
   },
-  /** Read the active tenant id. Falls back to `PILOT_TENANT_ID` with a
-   *  one-time warning when no context is set.
+  /** Read the active tenant id. In production, throws when no context is set.
+   *  In development and test, falls back to `PILOT_TENANT_ID` with a one-time
+   *  warning so fake-Prisma test fixtures keep working without manual wrapping.
    *
-   *  Why the fallback (and why it's safe):
-   *   - The STRUCTURAL guarantee against cross-tenant access lives in the
-   *     Prisma extension, which throws on missing context regardless of what
-   *     this helper returns.
-   *   - In production, the Fastify tenant plugin (or any script wrapped in
-   *     `tenantContext.run(...)`) always sets a context before service code
-   *     runs, so the fallback never fires.
-   *   - In tests using fake Prisma clients (which bypass the extension), the
-   *     fallback lets service helpers read a sensible default rather than
-   *     throwing, so existing test fixtures keep working without manual
-   *     per-test wrapping.
-   *
-   *  When the Phase 9 Sprint 2 work adds real auth, this fallback stays as a
-   *  safety net but should never fire in practice; the one-time console
-   *  warning is the signal that a new code path is missing its wrapper. */
+   *  The structural guarantee against cross-tenant access still lives in the
+   *  Prisma extension, which throws on missing context regardless of this
+   *  helper. Production must never rely on the fallback — a missing wrapper
+   *  here is a bug that should fail fast before any write is stamped with the
+   *  pilot tenant id. */
   requireTenantId(): string {
     const ctx = storage.getStore();
     if (ctx) return ctx.tenantId;
+    if (isProductionEnv()) {
+      throw new TenantContextMissingError();
+    }
     if (!warnedNoContext) {
       warnedNoContext = true;
       console.warn(
         '[tenant-context] requireTenantId() called without a context — falling back to PILOT_TENANT_ID. ' +
-        'In production this should never happen; wrap the call in tenantContext.run({ tenantId }, ...).',
+          'In production this throws; wrap the call in tenantContext.run({ tenantId }, ...).',
       );
     }
     return PILOT_TENANT_ID;
