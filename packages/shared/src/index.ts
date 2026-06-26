@@ -543,6 +543,8 @@ export interface SetupStatusResponse {
   clerkRedirectVerified: boolean;
   /** Desktop installs only — false in SaaS where setup is N/A. */
   desktopMode: boolean;
+  /** ISA IDs that identify this tenant in interchange envelopes (ISA06/08). */
+  ourIsaIds: string[];
 }
 
 /** PATCH /api/setup — partial hub config updates from the wizard. */
@@ -551,6 +553,8 @@ export interface SetupPatchInput {
   telemetryEnabled?: boolean;
   clerkRedirectVerified?: boolean;
   firstRunComplete?: boolean;
+  /** One or more ISA IDs for this tenant — used for inbound/outbound classification. */
+  ourIsaIds?: string[];
 }
 
 /** Public server addressing surfaced on GET /health for Clerk redirect setup. */

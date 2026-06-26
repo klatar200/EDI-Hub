@@ -14,6 +14,7 @@
     "purge-raw-by-isa": "tsx src/scripts/purge-raw-by-isa.ts",
     "backfill-confirmed-at": "dotenv -e ../../.env -- tsx src/scripts/backfill-confirmed-at.ts",
     "seed-pilot-tenant": "dotenv -e ../../.env -- tsx src/scripts/seed-pilot-tenant.ts",
+    "set-our-isa-ids": "dotenv -e ../../.env -- tsx src/scripts/set-our-isa-ids.ts",
     "attach-pilot-org": "dotenv -e ../../.env -- tsx src/scripts/attach-pilot-org.ts",
     "seed-pilot-admin": "dotenv -e ../../.env -- tsx src/scripts/seed-pilot-admin.ts",
     "test": "tsc --build && node --test --import tsx test/*.test.ts",

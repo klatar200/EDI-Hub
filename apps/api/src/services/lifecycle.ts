@@ -40,6 +40,7 @@ import {
 } from '@edi/shared';
 import { resolvePartnerByIsa } from './partners.js';
 import { applyAckOverrides } from './ack-decoder.js';
+import { computeDirection } from './parsing.js';
 
 /** Sets that carry a PO reference in BAK/BIG/BCH when the indexed column is
  *  missing (e.g. files parsed before Phase 4 backfill, or a transient ingest
@@ -310,6 +311,19 @@ export interface GetLifecycleOptions {
   ourIsaIds?: readonly string[];
 }
 
+function resolveEventDirection(
+  stored: LifecycleDirection,
+  senderId: string,
+  receiverId: string,
+  ourIsaIds: readonly string[],
+): LifecycleDirection {
+  if (ourIsaIds.length === 0) return stored;
+  const derived = computeDirection(senderId, receiverId, ourIsaIds);
+  // Prefer a freshly derived direction when the stored value was unknown
+  // (common when files were parsed before ourIsaIds was configured).
+  return stored === 'unknown' && derived !== 'unknown' ? derived : stored;
+}
+
 export async function getLifecycle(
   prisma: PrismaClient,
   query: LifecycleQuery,
@@ -317,9 +331,10 @@ export async function getLifecycle(
 ): Promise<LifecycleResponse | null> {
   const spine = await resolveSpine(prisma, query);
   if (!spine) return null;
+  const ourIsaIds = options.ourIsaIds ?? [];
 
-  // All transactions sharing the PO. (Includes 997s only if they happened to be
-  // tagged with a PO — they normally aren't, so this stays the "originals" set.)
+  // All transactions sharing the PO. Includes 997s only if they happened to be
+  // tagged with a PO — they normally aren't, so this stays the "originals" set.
   const poTxns = (await prisma.transaction.findMany({
     where: { poNumber: spine.po },
     include: INCLUDE,
@@ -385,7 +400,12 @@ export async function getLifecycle(
     events.push({
       kind: 'transaction',
       transactionSetId: t.transactionSetId,
-      direction: t.direction,
+      direction: resolveEventDirection(
+        t.direction,
+        t.functionalGroup.interchange.senderId,
+        t.functionalGroup.interchange.receiverId,
+        ourIsaIds,
+      ),
       status: evStatus,
       transactionId: t.id,
       rawFileId: t.functionalGroup.interchange.rawFile.id,
@@ -416,7 +436,12 @@ export async function getLifecycle(
     events.push({
       kind: 'transaction',
       transactionSetId: ack.transactionSetId,
-      direction: ack.direction,
+      direction: resolveEventDirection(
+        ack.direction,
+        ack.functionalGroup.interchange.senderId,
+        ack.functionalGroup.interchange.receiverId,
+        ourIsaIds,
+      ),
       status,
       transactionId: ack.id,
       rawFileId: ack.functionalGroup.interchange.rawFile.id,
@@ -441,7 +466,6 @@ export async function getLifecycle(
   // and look for a configured flow whose entrySetId matches a set we see. If
   // we have one, it takes precedence over the shipped defaults; if not, the
   // existing default selection still runs.
-  const ourIsaIds = options.ourIsaIds ?? [];
   let partner: TradingPartnerRecord | null = null;
   const anchor = poTxns.find((t) => t.transactionSetId !== '997' && t.transactionSetId !== '999') ?? poTxns[0];
   if (anchor) {

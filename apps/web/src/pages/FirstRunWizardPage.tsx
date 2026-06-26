@@ -36,6 +36,7 @@ export function FirstRunWizardPage(): JSX.Element {
   const [folderError, setFolderError] = useState<string | null>(null);
   const [partnerName, setPartnerName] = useState('Acme Corp');
   const [partnerIsa, setPartnerIsa] = useState('ACME');
+  const [ourIsaId, setOurIsaId] = useState('');
   const [partnerError, setPartnerError] = useState<string | null>(null);
   const [telemetryError, setTelemetryError] = useState<string | null>(null);
 
@@ -98,12 +99,14 @@ export function FirstRunWizardPage(): JSX.Element {
   async function savePartner(): Promise<boolean> {
     const name = partnerName.trim();
     const isa = partnerIsa.trim();
-    if (!name || !isa) {
-      setPartnerError('Display name and ISA sender ID are required.');
+    const ours = ourIsaId.trim();
+    if (!name || !isa || !ours) {
+      setPartnerError('Display name, partner ISA ID, and your ISA ID are required.');
       return false;
     }
     setPartnerError(null);
     try {
+      await patchSetup.mutateAsync({ ourIsaIds: [ours] });
       await createPartner.mutateAsync({
         displayName: name,
         isaSenderIds: [isa],
@@ -112,7 +115,7 @@ export function FirstRunWizardPage(): JSX.Element {
       });
       return true;
     } catch (err) {
-      setPartnerError(err instanceof Error ? err.message : 'Could not create partner.');
+      setPartnerError(err instanceof Error ? err.message : 'Could not save partner settings.');
       return false;
     }
   }
@@ -278,6 +281,18 @@ export function FirstRunWizardPage(): JSX.Element {
               </FormField>
               <FormField label="ISA sender ID" required hint="The ID your partner uses in ISA06 when they send you files.">
                 <Input value={partnerIsa} onChange={(e) => setPartnerIsa(e.target.value)} mono />
+              </FormField>
+              <FormField
+                label="Your ISA ID"
+                required
+                hint="The ID you use in ISA06 when you send files to partners. Used to classify inbound vs outbound."
+              >
+                <Input
+                  value={ourIsaId}
+                  onChange={(e) => setOurIsaId(e.target.value)}
+                  placeholder="7085892400"
+                  mono
+                />
               </FormField>
               {partnerError ? (
                 <p className="text-xs text-[var(--color-error-700)]">{partnerError}</p>

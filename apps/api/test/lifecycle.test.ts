@@ -625,6 +625,29 @@ test('US Foods group-1: 850 + 855 + 810 on same PO produce no 855/810 gaps', asy
   assert.deepEqual(gapSets, ['997', '997', '997']);
 });
 
+test('re-derives direction from interchange when stored direction is unknown', async () => {
+  const us850 = tx({
+    id: 'uf-850', transactionSetId: '850', controlNumber: '9901', groupControl: '9901',
+    poNumber: '7599901Q', direction: 'unknown', ingestedAt: '2026-07-01T10:00:00Z',
+  });
+  us850.functionalGroup.interchange.senderId = '621418185';
+  us850.functionalGroup.interchange.receiverId = '7085892400';
+  const us855 = tx({
+    id: 'uf-855', transactionSetId: '855', controlNumber: '0001', groupControl: '9902',
+    poNumber: '7599901Q', direction: 'unknown', ingestedAt: '2026-07-02T10:00:00Z',
+  });
+  us855.functionalGroup.interchange.senderId = '7085892400';
+  us855.functionalGroup.interchange.receiverId = '621418185';
+
+  const prisma = makePrisma([us850, us855]);
+  const r = await getLifecycle(prisma, { po: '7599901Q' }, { ourIsaIds: ['7085892400'] });
+  assert.ok(r);
+  const dirs = r!.events
+    .filter((e) => e.kind === 'transaction')
+    .map((e) => `${e.transactionSetId}:${e.direction}`);
+  assert.deepEqual(dirs, ['850:inbound', '855:outbound']);
+});
+
 interface FakeTxnWithSegments extends FakeTxn {
   segments?: Array<{
     tag: string;

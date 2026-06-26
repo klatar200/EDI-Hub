@@ -36,6 +36,7 @@ export type AuditAction =
   | 'retention.run'
   | 'tenant.delete-requested'
   | 'tenant.hard-deleted'
+  | 'tenant.config-update'
   // Phase 10 Sprint 4 — rate-limit breach (best-effort audit so abuse
   // patterns show up in the audit log without blocking the 429 response).
   | 'rate.exceeded';

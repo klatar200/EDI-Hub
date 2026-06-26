@@ -7,7 +7,9 @@
  */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type { ApiErrorResponse, SetupPatchInput, SetupStatusResponse } from '@edi/shared';
+import { tenantContext } from '@edi/db';
 import { requiresRole } from '../plugins/rbac.js';
+import { withAudit } from '../services/audit.js';
 import {
   isDesktopHubMode,
   readHubConfig,
@@ -16,6 +18,15 @@ import {
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
+}
+
+function normalizeIsaIds(raw: unknown): string[] | undefined {
+  if (!Array.isArray(raw)) return undefined;
+  const ids = raw
+    .filter((v): v is string => typeof v === 'string')
+    .map((v) => v.trim())
+    .filter((v) => v.length > 0);
+  return ids.length > 0 ? ids : [];
 }
 
 function readPatch(body: unknown): SetupPatchInput {
@@ -30,7 +41,21 @@ function readPatch(body: unknown): SetupPatchInput {
     patch.clerkRedirectVerified = body.clerkRedirectVerified;
   }
   if (typeof body.firstRunComplete === 'boolean') patch.firstRunComplete = body.firstRunComplete;
+  const ourIsaIds = normalizeIsaIds(body.ourIsaIds);
+  if (ourIsaIds !== undefined) patch.ourIsaIds = ourIsaIds;
   return patch;
+}
+
+async function readOurIsaIds(
+  app: FastifyInstance,
+  tenantId: string | undefined,
+): Promise<string[]> {
+  if (!tenantId) return [];
+  const tenant = await app.prisma.tenant.findUnique({
+    where: { id: tenantId },
+    select: { ourIsaIds: true },
+  });
+  return tenant?.ourIsaIds ?? [];
 }
 
 async function buildStatus(
@@ -39,6 +64,7 @@ async function buildStatus(
 ): Promise<SetupStatusResponse> {
   const desktopMode = isDesktopHubMode();
   const cfg = desktopMode ? readHubConfig() : {};
+  const ourIsaIds = await readOurIsaIds(app, tenantId);
 
   let hasIngested = false;
   if (tenantId) {
@@ -54,6 +80,7 @@ async function buildStatus(
       hasIngested,
       clerkRedirectVerified: true,
       desktopMode: false,
+      ourIsaIds,
     };
   }
 
@@ -65,6 +92,7 @@ async function buildStatus(
     hasIngested,
     clerkRedirectVerified: cfg.clerkRedirectVerified === true,
     desktopMode: true,
+    ourIsaIds,
   };
 }
 
@@ -109,6 +137,34 @@ export async function setupRoutes(
       ...patch,
       ...(completing ? { firstRunComplete: true } : {}),
     });
+
+    if (patch.ourIsaIds !== undefined && request.tenantId) {
+      const tenantId = tenantContext.requireTenantId();
+      const existing = await tenantContext.bypass(async () =>
+        app.prisma.tenant.findUnique({
+          where: { id: tenantId },
+          select: { ourIsaIds: true },
+        }),
+      );
+      await withAudit(
+        app.prisma,
+        {
+          action: 'tenant.config-update',
+          targetType: 'tenant',
+          actorId: request.auth?.userId ?? null,
+        },
+        async (tx) =>
+          tx.tenant.update({
+            where: { id: tenantId },
+            data: { ourIsaIds: patch.ourIsaIds },
+          }),
+        (row) => ({
+          targetId: row.id,
+          before: { ourIsaIds: existing?.ourIsaIds ?? [] },
+          after: { ourIsaIds: row.ourIsaIds },
+        }),
+      );
+    }
 
     if (completing && cfg.dropFolderPath && app.channels) {
       await app.channels.ensureDesktopDropFolder(cfg.dropFolderPath);

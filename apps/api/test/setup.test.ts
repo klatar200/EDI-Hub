@@ -42,13 +42,42 @@ function makeConfig(): AppConfig {
   } as AppConfig;
 }
 
-const fakePrisma = {
-  rawFile: {
-    async count() {
-      return 0;
+const fakePrisma = (() => {
+  let ourIsaIds: string[] = [];
+  const self: {
+    rawFile: { count: () => Promise<number> };
+    tenant: {
+      findUnique: () => Promise<{ ourIsaIds: string[] }>;
+      update: (args: { data: { ourIsaIds: string[] } }) => Promise<{ id: string; ourIsaIds: string[] }>;
+    };
+    auditEvent: { create: () => Promise<Record<string, never>> };
+    $transaction: <T>(fn: (tx: typeof self) => Promise<T>) => Promise<T>;
+  } = {
+    rawFile: {
+      async count() {
+        return 0;
+      },
     },
-  },
-} as unknown as PrismaClient;
+    tenant: {
+      async findUnique() {
+        return { ourIsaIds };
+      },
+      async update({ data }) {
+        ourIsaIds = data.ourIsaIds;
+        return { id: 'tenant-1', ourIsaIds };
+      },
+    },
+    auditEvent: {
+      async create() {
+        return {};
+      },
+    },
+    async $transaction<T>(fn: (tx: typeof self) => Promise<T>): Promise<T> {
+      return fn(self);
+    },
+  };
+  return self;
+})() as unknown as PrismaClient;
 
 async function buildTestApp() {
   const config = makeConfig();
@@ -131,11 +160,35 @@ test('GET /api/setup is always complete in SaaS mode', async () => {
   try {
     const res = await app.inject({ method: 'GET', url: '/api/setup' });
     assert.equal(res.statusCode, 200);
-    const body = res.json() as { firstRunComplete: boolean; desktopMode: boolean };
+    const body = res.json() as { firstRunComplete: boolean; desktopMode: boolean; ourIsaIds: string[] };
     assert.equal(body.desktopMode, false);
     assert.equal(body.firstRunComplete, true);
+    assert.deepEqual(body.ourIsaIds, []);
   } finally {
     await closeTestApp(app);
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+  }
+});
+
+test('PATCH /api/setup persists ourIsaIds on the tenant', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'edi-setup-'));
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  process.env.EDI_HUB_USER_DATA_DIR = dir;
+  const app = await buildTestApp();
+  try {
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: '/api/setup',
+      headers: { 'content-type': 'application/json' },
+      payload: { ourIsaIds: ['7085892400'] },
+    });
+    assert.equal(patch.statusCode, 200);
+    const body = patch.json() as { ourIsaIds: string[] };
+    assert.deepEqual(body.ourIsaIds, ['7085892400']);
+  } finally {
+    await closeTestApp(app);
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+    else delete process.env.EDI_HUB_USER_DATA_DIR;
+    await rm(dir, { recursive: true, force: true });
   }
 });
