@@ -51,6 +51,8 @@
 
 **7. Deferred-not-rejected items in §12** — review the list at the start of each Phase 11/12 sprint; some (BullMQ scheduler, per-tenant `OUR_ISA_IDS` if not yet done, PagerDuty, ML rejection-rate detection) may belong in the commercial tier rather than the base build.
 
+**8. After the build plan (desktop track polish):** fix the **client updating sequence** — the end-to-end desktop release + auto-update path (version bump → tag on current `main` → CI asset version match → `electron-updater` picking up the right release). See `DESKTOP_SPRINT_PLAN.md` OPTIONAL-D2 and §12 below. Schedule once Phases 0–12 and the desktop D1–D9 track are finished.
+
 ---
 
 ## 1. The Objective (Do Not Drift From This)
@@ -342,3 +344,12 @@ is just the index.
 - **ML-based anomaly detection on rejection rate** — beyond the flat
   threshold in Phase 7 Gate D.
 
+### After build plan / desktop track (polish)
+
+- **Fix the client updating sequence** — streamline the desktop release +
+  auto-update path so operators and customers don't hit tag/version drift
+  (stale tags on old commits, `package.json` bump forgotten before
+  `release:tag`, GitHub Release title vs `.exe` filename mismatch, Help →
+  Check for Updates offering the wrong build). Likely lands after Phases
+  0–12 and desktop D1–D9 are complete. Detail: `DESKTOP_SPRINT_PLAN.md`
+  OPTIONAL-D2.

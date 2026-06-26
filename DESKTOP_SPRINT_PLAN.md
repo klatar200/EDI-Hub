@@ -805,6 +805,40 @@ so support logs are easier to read.
 
 ---
 
+### OPTIONAL-D2 — Fix the client updating sequence
+
+**Objective:** Make desktop release and auto-update predictable for operators
+and painless for customers — no more "merged to main but still on an old
+build," tag-on-wrong-commit releases, or Help → Check for Updates surfacing
+a stale version.
+
+**Scope (candidate fixes — refine when scheduled):**
+
+| Item | Fix |
+|---|---|
+| Release operator flow | Single documented path: bump `apps/desktop/package.json` → commit → `npm run release:tag -- --push`; guardrails when tag already exists on a different commit (suggest next version, don't imply delete-and-retag). |
+| CI / asset integrity | Release workflow fails if uploaded `.exe` version ≠ tag; block reusing a tag name on a new commit. |
+| `electron-updater` behavior | Verify `latest.yml` + semver ordering; silent download applies the newest *good* release; surface a clear in-app message when update is downloading / ready to restart. |
+| In-app version truth | Help → About matches installed binary; post-update "What's new" only after a successful apply. |
+| Operator docs | `apps/desktop/RELEASE.md` stays the canonical checklist; troubleshooting section for bad-release recovery. |
+
+**Exit criteria:**
+
+| # | Check | Pass condition |
+|---|---|---|
+| OD2.1 | Tag from current `main` ships matching binary | Fresh tag at `main` HEAD produces `EDI-Hub-<version>-x64.exe` with the same version in Help → About |
+| OD2.2 | Auto-update from N → N+1 | Installed build at version N silently updates to N+1 on relaunch when GitHub Release is current |
+| OD2.3 | No stale-tag trap | `release:tag` on an already-used version name errors with "bump package.json to X" — not "delete the old tag" when that tag is published |
+| OD2.4 | Bad-release regression test | CI or script catches tag ↔ `package.json` ↔ `main` HEAD mismatch before publish |
+
+**Effort:** ~1 sprint (release scripting + updater verification + docs).
+
+**Schedule:** After the current build plan (Phases 0–12) and desktop track
+(D1–D9) are finished — tracked in `BUILD_PLAN.md` § "What's left to do" #8
+and §12.
+
+---
+
 ## OPEN QUESTIONS — ANSWERED
 
 | # | Question | Answer |
