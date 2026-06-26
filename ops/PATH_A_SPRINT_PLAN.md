@@ -20,14 +20,101 @@
 - [ ] Route 53 hosted zone (or registrar you can point at ALB).
 - [ ] Choose region (default in docs: `us-east-1`).
 
-### A1.2 — Terraform baseline (you)
+### A1.0 — Install toolchain (you, one-time)
+
+Terraform and the AWS CLI are **not** in this repo — install them on the machine
+where you run `terraform apply`.
+
+#### Windows (PowerShell)
+
+**1. Terraform** — pick one:
+
+```powershell
+# Option A: winget (Windows 10/11)
+winget install HashiCorp.Terraform
+
+# Option B: Chocolatey
+choco install terraform
+
+# Option C: Manual — download the Windows amd64 zip from
+# https://developer.hashicorp.com/terraform/install
+# Unzip, add the folder to your user PATH, then open a NEW PowerShell window.
+```
+
+Verify (new window after install):
+
+```powershell
+terraform version
+```
+
+**2. AWS CLI** (if not already installed):
+
+```powershell
+winget install Amazon.AWSCLI
+aws --version
+aws configure   # Access key, secret, region (e.g. us-east-1)
+```
+
+**3. Environment variable for the DB password** — PowerShell does **not** use `export`:
+
+```powershell
+# Session only (recommended while learning):
+$env:TF_VAR_db_master_password = 'your-strong-random-password-here'
+
+# Or set for your user permanently:
+[System.Environment]::SetEnvironmentVariable(
+  'TF_VAR_db_master_password',
+  'your-strong-random-password-here',
+  'User'
+)
+# Close and reopen PowerShell after the permanent form.
+```
+
+> Do not paste real passwords into chat or commit them to git. `staging.tfvars`
+> stays secret-free; the password goes only in `$env:TF_VAR_*` or Secrets Manager.
+
+#### macOS / Linux (bash)
 
 ```bash
-cd infra
-cp env/staging.tfvars.example env/staging.tfvars
-# Edit staging.tfvars — fill VPC/subnet/zone/domain ids (no secrets in this file).
+# Terraform: https://developer.hashicorp.com/terraform/install
+# AWS CLI: https://docs.aws.amazon.com/cli/latest/userguide/getting-started-install.html
+export TF_VAR_db_master_password='your-strong-random-password-here'
+```
 
-export TF_VAR_db_master_password='<strong-random-password>'
+---
+
+### A1.2 — Terraform baseline (you)
+
+**Copy tfvars** (already done if you ran the copy step):
+
+```powershell
+# PowerShell (from repo root)
+Copy-Item infra/env/staging.tfvars.example infra/env/staging.tfvars
+# Edit infra/env/staging.tfvars — VPC/subnet/zone/domain ids (no secrets).
+```
+
+```bash
+# bash
+cp infra/env/staging.tfvars.example infra/env/staging.tfvars
+```
+
+**Apply** — from `infra/`:
+
+```powershell
+# PowerShell
+cd infra
+$env:TF_VAR_db_master_password = 'your-strong-random-password-here'
+
+terraform init
+terraform apply -target=aws_s3_bucket.raw_files -var-file=env/staging.tfvars
+terraform apply -target=aws_kms_key.secrets -var-file=env/staging.tfvars
+terraform apply -var-file=env/staging.tfvars
+```
+
+```bash
+# bash
+cd infra
+export TF_VAR_db_master_password='your-strong-random-password-here'
 
 terraform init
 terraform apply -target=aws_s3_bucket.raw_files -var-file=env/staging.tfvars
@@ -125,4 +212,6 @@ Recruit 1–2 non-employer design partners → feedback loop → first paid cont
 | **Keagan** | AWS creds, `terraform apply`, Secrets Manager values, Clerk dashboard, DNS, smoke tests, drills, business/legal gates |
 | **Agent** | Code fixes, Terraform additions, runbook gaps, UI implementation after gates, CI, tests |
 
-**Start now:** Sprint **A1.2** — copy `infra/env/staging.tfvars.example` → `env/staging.tfvars`, fill in your VPC/subnet/domain ids, run the targeted `terraform apply` sequence above.
+**Start now:** Sprint **A1.0** — install Terraform + AWS CLI, then **A1.2** — fill
+`infra/env/staging.tfvars`, set `$env:TF_VAR_db_master_password` (PowerShell) or
+`export TF_VAR_db_master_password` (bash), run `terraform init` / `apply`.
