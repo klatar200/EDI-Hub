@@ -96,6 +96,7 @@ interface FakeAlert {
 
 interface World {
   jobs: FakeJobRow[];
+  tenants: Array<{ id: string; deletedAt: Date | null }>;
   partners: FakePartner[];
   txns: FakeTxn[];
   alerts: FakeAlert[];
@@ -192,6 +193,14 @@ function makePrisma(world: World): PrismaClient {
     },
   };
 
+  const tenant = {
+    async findMany({ where = {} }: { where?: Record<string, unknown> } = {}) {
+      let rows = [...world.tenants];
+      if (where.deletedAt === null) rows = rows.filter((r) => r.deletedAt === null);
+      return rows;
+    },
+  };
+
   const transaction = {
     async findMany({ where }: { where: Record<string, unknown> }) {
       return world.txns.filter((t) => txnMatches(t, where));
@@ -232,7 +241,7 @@ function makePrisma(world: World): PrismaClient {
     },
   };
 
-  return { job, tradingPartner, transaction, alert } as unknown as PrismaClient;
+  return { job, tenant, tradingPartner, transaction, alert } as unknown as PrismaClient;
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -243,6 +252,7 @@ function freshWorldWithOverdueOutbound(): World {
   // One partner with an outbound 810 that's now 2h old vs a 60min SLA.
   return {
     jobs: [],
+    tenants: [],
     partners: [
       {
         id: 'p-sysco',
@@ -343,6 +353,7 @@ test('S6.2: detection job enqueue→tick produces an Alert row', async () => {
 test('S6.2: detection job with no overdue transactions still flips to done', async () => {
   const world: World = {
     jobs: [],
+    tenants: [],
     partners: [],
     txns: [],
     alerts: [],
@@ -380,7 +391,7 @@ test('factory default backend is db (Option A — no BullMQ)', () => {
   const prior = process.env.JOB_BACKEND;
   delete process.env.JOB_BACKEND;
   try {
-    const world: World = { jobs: [], partners: [], txns: [], alerts: [], seq: 0 };
+    const world: World = { jobs: [], tenants: [], partners: [], txns: [], alerts: [], seq: 0 };
     const adapter = makeAdapter(makePrisma(world), () => new Date());
     assert.ok(adapter, 'createJobsAdapter() returned no adapter');
   } finally {

@@ -3,18 +3,20 @@
  *
  *   npm run detect --workspace=@edi/api
  *
- * Invokes the shared detection handler once and reports counts. Used by cron
- * and Windows Task Scheduler in environments that prefer external scheduling
- * over the in-process DB worker (e.g. the SaaS pod still triggered via
- * EventBridge / cron). Exit code 0 on a clean pass; non-zero on a hard error.
+ * Invokes the shared detection handler once per active tenant and reports
+ * counts. Used by cron and Windows Task Scheduler in environments that prefer
+ * external scheduling over the in-process DB worker (e.g. the SaaS pod still
+ * triggered via EventBridge / cron). Exit code 0 on a clean pass; non-zero on
+ * a hard error.
  *
  * Desktop track D2 Sprint 2 - the detection logic itself lives in
  * `apps/api/src/jobs/handlers/detection.ts`. Both this CLI and the in-process
- * job worker call `runDetectionPass`, so there's exactly one source of truth.
+ * job worker call `runDetectionForAllTenants`, so there's exactly one source
+ * of truth.
  */
 import { getPrisma, disconnectPrisma } from '@edi/db';
 import { loadConfig } from '../config.js';
-import { runDetectionPass } from '../jobs/handlers/detection.js';
+import { runDetectionForAllTenants } from '../jobs/handlers/detection.js';
 
 async function main(): Promise<void> {
   const config = loadConfig();
@@ -25,20 +27,22 @@ async function main(): Promise<void> {
     `Detection pass @ ${now.toISOString()}  (notifier mode: ${config.notifier.mode}, ` +
       `suppression: ${config.alertSuppressionMinutes}m)`,
   );
-  const result = await runDetectionPass({
+  const results = await runDetectionForAllTenants({
     prisma,
     notifier: { prisma, config: config.notifier },
     suppressionMinutes: config.alertSuppressionMinutes,
     now: () => now,
   });
-  // eslint-disable-next-line no-console
-  console.log(
-    `  MISSING_ACK            emitted=${result.missing.emitted}  notified=${result.missing.notified}`,
-  );
-  // eslint-disable-next-line no-console
-  console.log(
-    `  REJECTION_RATE_SPIKE   emitted=${result.spike.emitted}  notified=${result.spike.notified}`,
-  );
+  for (const [tenantId, result] of results.entries()) {
+    // eslint-disable-next-line no-console
+    console.log(
+      `[detection] tenant=${tenantId}  MISSING_ACK emitted=${result.missing.emitted}  notified=${result.missing.notified}`,
+    );
+    // eslint-disable-next-line no-console
+    console.log(
+      `[detection] tenant=${tenantId}  REJECTION_RATE_SPIKE emitted=${result.spike.emitted}  notified=${result.spike.notified}`,
+    );
+  }
   await disconnectPrisma();
 }
 
