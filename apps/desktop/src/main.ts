@@ -41,6 +41,7 @@ import { enforceLicenseGate } from './license-window.js';
 import { registerDesktopRuntime, clearDesktopRuntime } from './desktop-runtime.js';
 import { registerFolderPickerIpc } from './folder-picker.js';
 import { installFileLogger } from './file-logger.js';
+import { installUpdateLogger, logBootPhase } from './update-logger.js';
 
 // Electron resolves `app.getPath('userData')` from `app.getName()`, which
 // defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
@@ -390,6 +391,7 @@ async function openMainWindow(): Promise<void> {
   // it's the most user-visible signal that the app is "ready."
   mainWindow.webContents.once('did-finish-load', () => {
     const elapsed = Date.now() - launchTs;
+    logBootPhase('window_ready', { elapsedMs: elapsed, firstLaunch: isFirstLaunch });
     console.log(`[edi-hub] cold-start ${elapsed}ms (firstLaunch=${isFirstLaunch})`);
     closeSplash();
     void consumePendingWhatsNew();
@@ -416,17 +418,23 @@ function detectFirstLaunch(): boolean {
 }
 
 async function boot(): Promise<void> {
+  const bootStarted = Date.now();
   console.log('[edi-hub] boot step 1: starting embedded Postgres...');
+  logBootPhase('postgres_start');
   updateSplash('postgres', 'running');
   const { databaseUrl } = await startPostgres();
+  logBootPhase('postgres_done', { elapsedMs: Date.now() - bootStarted });
   updateSplash('postgres', 'done');
 
   console.log('[edi-hub] boot step 2: running prisma migrate deploy...');
+  logBootPhase('migrate_start');
   updateSplash('migrate', 'running');
   await runMigrations(databaseUrl);
+  logBootPhase('migrate_done', { elapsedMs: Date.now() - bootStarted });
   updateSplash('migrate', 'done');
 
   console.log('[edi-hub] boot step 3: spawning API child...');
+  logBootPhase('api_start');
   updateSplash('api', 'running');
   const userData = app.getPath('userData');
   const rawDir = join(userData, 'raw');
@@ -463,9 +471,11 @@ async function boot(): Promise<void> {
   }
   currentApiEnv = apiEnv;
   await startApiChild(apiEnv);
+  logBootPhase('api_done', { elapsedMs: Date.now() - bootStarted });
   updateSplash('api', 'done');
 
   console.log('[edi-hub] boot step 5: opening BrowserWindow...');
+  logBootPhase('window_start');
   updateSplash('window', 'running');
   await openMainWindow();
 
@@ -508,6 +518,7 @@ async function shutdown(reason: string): Promise<void> {
 app.whenReady().then(async () => {
   try {
     installFileLogger();
+    installUpdateLogger();
     registerFolderPickerIpc(() => mainWindow);
     installApplicationMenu();
     // D8 Sprint 1 — trial / license gate before Postgres or API boot.

@@ -88,10 +88,11 @@ resetting to 0% mid-update) and uses silent NSIS apply (`/S`).
 installer showed a per-user vs all-users wizard on every update because that
 custom page ignores `/S`; one-click applies updates with no wizard.
 
-**v0.0.19-alpha+** disables NSIS blockmaps (`differentialPackage: false`),
-hides the NSIS progress window during silent `/S` apply, keeps the in-app
-download bar monotonic, and skips the startup update check on the post-update
-relaunch (goes straight to Postgres boot).
+**v0.0.20-alpha+** writes a dedicated auto-update log at
+`%APPDATA%\EDI Hub\logs\update-YYYY-MM-DD.log`. Help → **Open Update Log**
+opens today's file. Share that file (or paste its contents) when reporting
+update issues — it records check/download/install phases, electron-updater
+internals, percent drops, and post-update boot timing.
 
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.
@@ -127,6 +128,10 @@ Help → **Open Logs Folder** opens `%APPDATA%\EDI Hub\logs\`. From
 v0.0.11-alpha onward the main process writes `edi-hub-YYYY-MM-DD.log`
 there on every launch. Older builds did not write log files (console
 output was invisible in the packaged app).
+
+Help → **Open Update Log** (v0.0.20-alpha+) opens `update-YYYY-MM-DD.log`
+in the same folder — a dedicated trace of the auto-update and post-update
+boot path only.
 
 ## Required repo secrets
 

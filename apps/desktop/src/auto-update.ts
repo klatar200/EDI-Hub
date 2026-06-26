@@ -10,16 +10,13 @@
  *   3. After a successful apply + relaunch, show a one-time "What's new"
  *      dialog (pending flag in config.json).
  *
- * We disable `autoInstallOnAppQuit` — installs are always explicit via
- * `quitAndInstall()` so the main process can show progress and avoid the
- * silent "close the app and hope" path that broke on Windows when our
- * `before-quit` handler called `app.exit(0)`.
+ * Diagnostic trail: `logs/update-YYYY-MM-DD.log` (Help → Open Update Log).
  */
 import { app, dialog, shell } from 'electron';
 import { readFileSync, writeFileSync, existsSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { autoUpdater } from 'electron-updater';
-import type { ProgressInfo } from 'electron-updater';
+import type { ProgressInfo, UpdateInfo } from 'electron-updater';
 import {
   closeUpdateSplash,
   isUpdateSplashOpen,
@@ -31,6 +28,12 @@ import {
 } from './update-splash.js';
 import { mergeDownloadPercent } from './auto-update-progress.js';
 import { isNewerVersion } from './version-compare.js';
+import {
+  createUpdaterLoggerBridge,
+  logDownloadProgress,
+  logUpdate,
+  resetDownloadProgressLogging,
+} from './update-logger.js';
 
 export { isNewerVersion } from './version-compare.js';
 export { mergeDownloadPercent } from './auto-update-progress.js';
@@ -62,6 +65,15 @@ function writeConfig(next: PersistedConfig): void {
   writeFileSync(path, JSON.stringify(next, null, 2), 'utf8');
 }
 
+function summarizeUpdateInfo(info: UpdateInfo | undefined): Record<string, unknown> | undefined {
+  if (!info) return undefined;
+  return {
+    version: info.version,
+    releaseDate: info.releaseDate,
+    files: info.files?.map((f) => ({ url: f.url, size: f.size })),
+  };
+}
+
 /** NSIS passes `--updated` on relaunch; we also set pendingWhatsNew before quit. */
 export function isPostUpdateRelaunch(argv: readonly string[] = process.argv): boolean {
   if (argv.includes('--updated')) return true;
@@ -74,6 +86,28 @@ export function isQuittingForUpdate(): boolean {
   return quittingForUpdate;
 }
 
+function attachUpdaterEventLoggers(): void {
+  autoUpdater.on('checking-for-update', () => {
+    logUpdate('updater_log', { level: 'info', message: 'event:checking-for-update' });
+  });
+  autoUpdater.on('update-available', (info: UpdateInfo) => {
+    logUpdate('updater_log', { level: 'info', message: 'event:update-available', detail: summarizeUpdateInfo(info) });
+  });
+  autoUpdater.on('update-not-available', (info: UpdateInfo) => {
+    logUpdate('updater_log', { level: 'info', message: 'event:update-not-available', detail: summarizeUpdateInfo(info) });
+  });
+  autoUpdater.on('update-downloaded', (info: UpdateInfo) => {
+    logUpdate('updater_log', { level: 'info', message: 'event:update-downloaded', detail: summarizeUpdateInfo(info) });
+  });
+  autoUpdater.on('error', (err: Error) => {
+    logUpdate('updater_log', {
+      level: 'error',
+      message: 'event:error',
+      detail: { error: err.message, stack: err.stack },
+    });
+  });
+}
+
 function configureUpdaterOnce(): void {
   if (updaterConfigured) return;
   updaterConfigured = true;
@@ -82,10 +116,22 @@ function configureUpdaterOnce(): void {
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.autoRunAppAfterInstall = true;
   autoUpdater.disableWebInstaller = true;
-  // Belt-and-suspenders with electron-builder `differentialPackage: false`.
   autoUpdater.disableDifferentialDownload = true;
+  autoUpdater.logger = createUpdaterLoggerBridge();
+
+  logUpdate('startup_gate', {
+    action: 'configure',
+    autoDownload: false,
+    autoInstallOnAppQuit: false,
+    autoRunAppAfterInstall: true,
+    disableWebInstaller: true,
+    disableDifferentialDownload: true,
+  });
+
+  attachUpdaterEventLoggers();
 
   autoUpdater.on('error', (err: Error) => {
+    logUpdate('error', { stage: 'updater', message: err.message, stack: err.stack });
     console.error('[edi-hub] auto-update error:', err);
   });
 }
@@ -94,14 +140,20 @@ function markPendingWhatsNew(version: string): void {
   const cfg = readConfig();
   cfg.pendingWhatsNew = version;
   writeConfig(cfg);
+  logUpdate('install_begin', { pendingWhatsNew: version, configPath: configPath() });
 }
 
 function installDownloadedUpdate(version: string): void {
+  logUpdate('install_quit', {
+    targetVersion: version,
+    isSilent: true,
+    isForceRunAfter: true,
+    quittingForUpdate: true,
+  });
   console.log(`[edi-hub] auto-update: installing v${version}`);
   setUpdateSplashInstalling(version);
   markPendingWhatsNew(version);
   quittingForUpdate = true;
-  // Silent NSIS apply (/S) into the existing per-user install dir, then relaunch.
   autoUpdater.quitAndInstall(true, true);
 }
 
@@ -115,6 +167,9 @@ async function sleep(ms: number): Promise<void> {
  */
 async function downloadAndInstall(version: string, splashAlreadyOpen = false): Promise<void> {
   configureUpdaterOnce();
+  resetDownloadProgressLogging();
+  logUpdate('download_begin', { targetVersion: version, splashAlreadyOpen });
+
   if (!splashAlreadyOpen && !isUpdateSplashOpen()) {
     openUpdateSplash();
   }
@@ -122,9 +177,21 @@ async function downloadAndInstall(version: string, splashAlreadyOpen = false): P
 
   let peakPercent = 0;
   const onProgress = (progress: ProgressInfo): void => {
+    const previousPeak = peakPercent;
     const merged = mergeDownloadPercent(peakPercent, progress.percent);
+    const percentDropped = progress.percent < previousPeak - 2;
     peakPercent = merged.peakPercent;
     setUpdateSplashDownloading(version, peakPercent, merged.hint);
+    logDownloadProgress({
+      version,
+      percent: progress.percent,
+      peakPercent,
+      transferred: progress.transferred,
+      total: progress.total,
+      bytesPerSecond: progress.bytesPerSecond,
+      hint: merged.hint,
+      ...(percentDropped ? { percentDroppedFrom: previousPeak, rawPercent: progress.percent } : {}),
+    });
   };
 
   autoUpdater.on('download-progress', onProgress);
@@ -132,15 +199,14 @@ async function downloadAndInstall(version: string, splashAlreadyOpen = false): P
   try {
     await autoUpdater.downloadUpdate();
     autoUpdater.removeListener('download-progress', onProgress);
+    logUpdate('download_complete', { targetVersion: version, peakPercent });
 
-    // `downloadUpdate` resolves when bytes are on disk; install next.
     installDownloadedUpdate(version);
-    // quitAndInstall is async from the caller's perspective — give the
-    // installer a moment to spawn before we return to boot().
     await sleep(60_000);
   } catch (err) {
     autoUpdater.removeListener('download-progress', onProgress);
     const message = err instanceof Error ? err.message : String(err);
+    logUpdate('error', { stage: 'download', message, stack: err instanceof Error ? err.stack : undefined });
     console.error('[edi-hub] auto-update download failed:', message);
     setUpdateSplashError(message);
     await sleep(8_000);
@@ -155,35 +221,54 @@ async function downloadAndInstall(version: string, splashAlreadyOpen = false): P
  */
 export async function runStartupUpdateGate(): Promise<'continue'> {
   if (!app.isPackaged) {
+    logUpdate('startup_gate', { action: 'skip', reason: 'dev_mode' });
     console.log('[edi-hub] auto-update: dev mode, skipping startup gate');
     return 'continue';
   }
 
   if (isPostUpdateRelaunch()) {
+    logUpdate('post_update_skip', {
+      argv: process.argv,
+      pendingWhatsNew: readConfig().pendingWhatsNew,
+      appVersion: app.getVersion(),
+    });
     console.log('[edi-hub] auto-update: post-update relaunch, skipping startup gate');
     return 'continue';
   }
 
   configureUpdaterOnce();
+  logUpdate('check_begin', { trigger: 'startup_gate', currentVersion: app.getVersion() });
   openUpdateSplash();
   setUpdateSplashChecking(app.getVersion());
 
   try {
     const result = await autoUpdater.checkForUpdates();
     const remoteVersion = result?.updateInfo?.version;
+    logUpdate('check_result', {
+      currentVersion: app.getVersion(),
+      remoteVersion,
+      updateInfo: summarizeUpdateInfo(result?.updateInfo),
+    });
+
     if (!remoteVersion || !isNewerVersion(remoteVersion, app.getVersion())) {
+      logUpdate('update_not_available', { currentVersion: app.getVersion(), remoteVersion });
       console.log('[edi-hub] auto-update: already on latest');
       closeUpdateSplash();
       return 'continue';
     }
 
+    logUpdate('update_available', { currentVersion: app.getVersion(), remoteVersion });
     console.log(`[edi-hub] auto-update: v${remoteVersion} available — downloading`);
     await downloadAndInstall(remoteVersion, true);
     return 'continue';
   } catch (err) {
+    logUpdate('error', {
+      stage: 'startup_gate',
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     console.error('[edi-hub] auto-update: startup gate failed:', err);
     closeUpdateSplash();
-    // Non-fatal — let the user work offline on a flaky network.
     return 'continue';
   }
 }
@@ -205,11 +290,19 @@ export async function manualCheckForUpdates(): Promise<void> {
   }
 
   configureUpdaterOnce();
+  logUpdate('manual_check', { currentVersion: app.getVersion() });
 
   try {
     const result = await autoUpdater.checkForUpdates();
     const remoteVersion = result?.updateInfo?.version;
     const current = app.getVersion();
+
+    logUpdate('check_result', {
+      trigger: 'manual',
+      currentVersion: current,
+      remoteVersion,
+      updateInfo: summarizeUpdateInfo(result?.updateInfo),
+    });
 
     if (!remoteVersion || remoteVersion === current || !isNewerVersion(remoteVersion, current)) {
       await dialog.showMessageBox({
@@ -233,10 +326,16 @@ export async function manualCheckForUpdates(): Promise<void> {
       defaultId: 0,
       cancelId: 1,
     });
+    logUpdate('manual_confirm', { remoteVersion, accepted: confirm.response === 0 });
     if (confirm.response !== 0) return;
 
     await downloadAndInstall(remoteVersion);
   } catch (err) {
+    logUpdate('error', {
+      stage: 'manual_check',
+      message: err instanceof Error ? err.message : String(err),
+      stack: err instanceof Error ? err.stack : undefined,
+    });
     console.error('[edi-hub] manual check failed:', err);
     await dialog.showMessageBox({
       type: 'error',
@@ -257,6 +356,8 @@ export async function consumePendingWhatsNew(): Promise<void> {
   const pending = cfg.pendingWhatsNew;
   if (!pending) return;
   if (pending !== app.getVersion()) return;
+
+  logUpdate('whats_new', { version: app.getVersion(), pending });
 
   const next = { ...cfg };
   delete next.pendingWhatsNew;
