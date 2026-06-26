@@ -47,13 +47,27 @@ Verify (new window after install):
 terraform version
 ```
 
+**If the command is still not found** after a new window, refresh PATH in the current session:
+
+```powershell
+$env:Path = [System.Environment]::GetEnvironmentVariable('Path', 'Machine') + ';' + [System.Environment]::GetEnvironmentVariable('Path', 'User')
+terraform version
+```
+
 **2. AWS CLI** (if not already installed):
 
 ```powershell
 winget install Amazon.AWSCLI
+```
+
+Close PowerShell and open a **new** window (winget updates PATH at install time; the old session does not see it). Then:
+
+```powershell
 aws --version
 aws configure   # Access key, secret, region (e.g. us-east-1)
 ```
+
+If you cannot open a new window yet, refresh PATH first (same snippet as above), then `aws --version`.
 
 **3. Environment variable for the DB password** — PowerShell does **not** use `export`:
 
