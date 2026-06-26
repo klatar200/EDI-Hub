@@ -109,6 +109,7 @@ jobs:
           rm -rf apps/desktop/dist-installer
           npm run dist -w @edi/desktop
           node scripts/verify-desktop-pack.mjs
+          node scripts/verify-update-behavior.mjs
         shell: bash
 
       - name: Clean up the restored PFX
