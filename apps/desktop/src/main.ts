@@ -36,7 +36,7 @@ import { join, resolve } from 'node:path';
 import { setTimeout as delay } from 'node:timers/promises';
 import { closeSplash, openSplash, updateSplash } from './splash.js';
 import { installApplicationMenu } from './menu.js';
-import { consumePendingWhatsNew, initAutoUpdater } from './auto-update.js';
+import { consumePendingWhatsNew, isQuittingForUpdate, runStartupUpdateGate } from './auto-update.js';
 import { enforceLicenseGate } from './license-window.js';
 import { registerDesktopRuntime, clearDesktopRuntime } from './desktop-runtime.js';
 import { registerFolderPickerIpc } from './folder-picker.js';
@@ -392,11 +392,7 @@ async function openMainWindow(): Promise<void> {
     const elapsed = Date.now() - launchTs;
     console.log(`[edi-hub] cold-start ${elapsed}ms (firstLaunch=${isFirstLaunch})`);
     closeSplash();
-    // D7 Sprint 1 — kick off the silent background update check and
-    // surface the "What's new" dialog if a prior launch finished
-    // applying an update. Both are no-ops in dev mode.
     void consumePendingWhatsNew();
-    initAutoUpdater();
   });
   await mainWindow.loadURL(resolveWebUrl());
 }
@@ -520,6 +516,9 @@ app.whenReady().then(async () => {
       app.quit();
       return;
     }
+    // OPTIONAL-D2 — check + download + install before Postgres/API boot so
+    // the user sees progress and never has to "close first, hope it works."
+    await runStartupUpdateGate();
     // Detect first launch BEFORE startPostgres() runs initdb. The
     // PG_VERSION file appears as soon as initdb succeeds, so checking
     // afterwards would always read "subsequent launch."
@@ -538,15 +537,23 @@ app.whenReady().then(async () => {
 });
 
 app.on('window-all-closed', async () => {
+  if (isQuittingForUpdate()) {
+    app.quit();
+    return;
+  }
   await shutdown('window-all-closed');
   app.quit();
 });
 
 app.on('before-quit', async (event: ElectronEvent) => {
+  // quitAndInstall() must be allowed to exit without our async shutdown
+  // intercepting it — that was breaking NSIS apply on Windows.
+  if (isQuittingForUpdate()) return;
   if (isShuttingDown) return;
   event.preventDefault();
   await shutdown('before-quit');
-  app.exit(0);
+  isShuttingDown = true;
+  app.quit();
 });
 
 process.on('SIGINT', () => void shutdown('SIGINT').then(() => app.exit(0)));

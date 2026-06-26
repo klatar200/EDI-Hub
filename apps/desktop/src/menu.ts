@@ -5,11 +5,8 @@
  * Standard `role:` items handle the Edit submenu so OS-level shortcuts
  * (Cmd/Ctrl-C, Cmd/Ctrl-V, etc.) work without any handler glue.
  *
- * "Check for Updates" calls into `auto-update.ts` which uses
- * electron-updater to poll the GitHub Releases feed. The same machinery
- * runs silently in the background at startup; the menu item just
- * surfaces every state through a dialog so a manual click always
- * produces visible feedback.
+ * "Check for Updates" downloads and installs immediately when you confirm.
+ * Startup also checks before the database boots (OPTIONAL-D2).
  */
 import { app, dialog, Menu, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';

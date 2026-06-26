@@ -74,6 +74,13 @@ old tag on GitHub and locally first, then create a new version number.
 
 ### Troubleshooting auto-update
 
+**Expected behavior (v0.0.15-alpha+):**
+
+1. On launch, EDI Hub checks GitHub Releases **before** starting Postgres.
+2. If a newer version exists, an update screen shows download progress, then
+   installs and restarts automatically — no manual quit step.
+3. Help → Check for Updates → **Install now** uses the same path.
+
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.
 
