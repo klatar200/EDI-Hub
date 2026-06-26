@@ -82,7 +82,8 @@ old tag on GitHub and locally first, then create a new version number.
 3. Help → Check for Updates → **Install now** uses the same path.
 
 **v0.0.17-alpha+** disables differential downloads (avoids the progress bar
-resetting to 0% mid-update) and uses silent NSIS apply (`/S`).
+resetting to 0% mid-update). Silent NSIS (`/S`) was used through **v0.0.22**;
+see v0.0.23+ below for the visible-install change.
 
 **v0.0.18-alpha+** switches to a one-click NSIS installer. The assisted
 installer showed a per-user vs all-users wizard on every update because that
@@ -99,12 +100,20 @@ internals, percent drops, and post-update boot timing.
 which hid all UI for several minutes while the old install was removed —
 the Start Menu shortcut stopped working until NSIS finished.
 
+**Important:** Auto-update runs code from the **currently installed** version.
+A fix in v0.0.23 does not apply when updating from v0.0.22 — you must reach
+v0.0.23 first (via auto-update or one manual install), then test v0.0.24+.
+
 **Expected update timeline (v0.0.23+):**
 
 1. In-app download progress (~10–30s for ~130MB)
 2. Brief “Installing…” message, then EDI Hub closes
-3. **Installer progress window** while files are replaced (~3–6 min) — shortcut may not work during this step
+3. **Installer progress window** while files are replaced (~3–6 min) — do not
+   click the Start Menu shortcut during this step (it will error until NSIS finishes)
 4. EDI Hub reopens automatically; `install_complete` in the update log records `gapMs`
+
+CI runs `scripts/verify-update-behavior.mjs` on every release build to ensure
+the packaged app calls `quitAndInstall(false, true)` and logs `isSilent: false`.
 
 **Symptom:** After updating, EDI Hub fails to launch with
 `Cannot find module 'electron-updater'`.

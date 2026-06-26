@@ -7,9 +7,27 @@ import { existsSync, readFileSync, unlinkSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { logUpdate } from './update-logger.js';
 
-interface InstallHandoff {
+export interface InstallHandoff {
   startedAt: string;
   targetVersion: string;
+}
+
+/** @internal testable without Electron */
+export function parseInstallHandoff(raw: string): InstallHandoff | null {
+  try {
+    const parsed = JSON.parse(raw) as InstallHandoff;
+    if (typeof parsed.startedAt !== 'string' || typeof parsed.targetVersion !== 'string') {
+      return null;
+    }
+    return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/** @internal testable without Electron */
+export function computeInstallGapMs(startedAt: string, nowMs = Date.now()): number {
+  return nowMs - new Date(startedAt).getTime();
 }
 
 function handoffPath(): string {
@@ -29,8 +47,9 @@ export function consumeInstallHandoff(): void {
   const path = handoffPath();
   if (!existsSync(path)) return;
   try {
-    const handoff = JSON.parse(readFileSync(path, 'utf8')) as InstallHandoff;
-    const gapMs = Date.now() - new Date(handoff.startedAt).getTime();
+    const handoff = parseInstallHandoff(readFileSync(path, 'utf8'));
+    if (!handoff) return;
+    const gapMs = computeInstallGapMs(handoff.startedAt);
     logUpdate('install_complete', {
       targetVersion: handoff.targetVersion,
       appVersion: app.getVersion(),
