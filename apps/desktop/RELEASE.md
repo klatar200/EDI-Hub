@@ -38,45 +38,69 @@ Also search for a `pgdata` folder — that is always created on first launch.
 
 ## Every desktop release
 
-1. Bump `version` in `apps/desktop/package.json` (e.g. `0.0.7-alpha`).
+1. Bump `version` in `apps/desktop/package.json` (e.g. `0.0.13-alpha`).
 2. Commit and push to `main`.
-3. Create and push the matching tag:
+3. On `main`, create and push the matching tag (use the helper — it checks
+   you're on latest `main` and that the tag matches `package.json`):
 
 ```bash
-git tag v0.0.7-alpha
-git push origin v0.0.7-alpha
+git checkout main
+git pull origin main
+npm run release:tag -- --push
+```
+
+Or manually:
+
+```bash
+git tag v0.0.13-alpha
+git push origin v0.0.13-alpha
 ```
 
 4. Watch **Actions → release** (~5–10 min on Windows).
 5. Confirm assets on https://github.com/klatar200/EDI-Hub/releases:
-   - `EDI-Hub-<version>-x64.exe`
+   - `EDI-Hub-<version>-x64.exe` — **filename version must match the release tag**
    - `EDI-Hub-<version>-x64.exe.blockmap`
    - `latest.yml`
 
 Tag name must match the `v*` pattern in `.github/workflows/release.yml`.
-The workflow **fails** if the tag (without `v`) does not exactly match
-`apps/desktop/package.json` `version` — e.g. tag `v0.0.11-alpha` requires
-`"version": "0.0.11-alpha"` on `main` at the tagged commit.
+The workflow **fails** if:
+
+- the tag (without `v`) does not exactly match `apps/desktop/package.json`
+  `version` at the tagged commit, or
+- the tagged commit is **not** the current tip of `origin/main`.
+
+**Never re-push an existing tag name onto a different commit.** Delete the
+old tag on GitHub and locally first, then create a new version number.
 
 ### Troubleshooting auto-update
 
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.
 
-**Cause:** A GitHub Release tag did not match `package.json` at build time.
-Example: `v0.0.10-alpha` was pushed while `package.json` still said
-`0.0.6-alpha`, so `latest.yml` on that release advertised the wrong
-version. electron-updater reads the **newest** GitHub Release, not the
-newest correct one.
+**Symptom:** You downloaded `v0.0.12-alpha` but Help → About shows
+`v0.0.6`, and the installer filename is `EDI-Hub-0.0.6-alpha-x64.exe`.
 
-**Fix for users:** Download the correct `.exe` manually from
-https://github.com/klatar200/EDI-Hub/releases (use `v0.0.9-alpha` or
-newer with a matching filename, e.g. `EDI-Hub-0.0.9-alpha-x64.exe`).
-Auto-update will work again once a good release is newest on GitHub.
+**Cause:** The release tag was pushed on a **stale commit** (not current
+`main`), so the workflow built whatever `package.json` said at that old
+commit. Tags `v0.0.10-alpha` and `v0.0.12-alpha` both pointed at commit
+`40f69e9` where the version was still `0.0.6-alpha`. The GitHub Release
+*title* said 0.0.12; the binary was 0.0.6.
 
-**Fix for releases:** Always bump `package.json` on `main`, commit, push,
-*then* tag. CI now verifies tag ↔ version and wipes `dist-installer/`
-before each build.
+**Fix for users:** Do **not** install from `v0.0.10-alpha` or
+`v0.0.12-alpha`. Wait for `v0.0.13-alpha` (or newer) and confirm the
+`.exe` filename matches the release tag before installing. Auto-update
+will work again once a good release is newest on GitHub.
+
+**Fix for releases:**
+
+1. Delete the bad GitHub Release and tag (GitHub → Releases → delete;
+   then `git push origin :refs/tags/v0.0.12-alpha`).
+2. Bump `package.json` on `main`, commit, push.
+3. Tag **current** `main` HEAD only (`npm run release:tag -- --push`).
+4. Verify the uploaded asset is `EDI-Hub-<same-version>-x64.exe`.
+
+CI now verifies tag ↔ version, tag ↔ `main` HEAD, and wipes
+`dist-installer/` before each build.
 
 ### Logs folder
 
