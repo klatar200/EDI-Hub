@@ -55,11 +55,13 @@
 
 ## 1. The Objective (Do Not Drift From This)
 
-Build an EDI observability platform that **ingests inbound and outbound EDI transactions, decomposes them into structured data, and presents a single hub** where every transaction can be monitored, searched, troubleshot, and alerted on — so a business can maintain stability across all of its EDI traffic.
+Build an **EDI observability platform** — not an ERP, not EDI middleware, not a VAN. The hub **monitors, views, searches, troubleshoots, and traces** X12 transactions that a company's *existing* systems already send and receive. It ingests **passive copies** of those files (inbound and outbound), decomposes them into structured data, and presents one place to understand what happened across the order-to-invoice loop.
 
-**The North Star feature** is *transaction lifecycle stitching*: the ability to pull up a single business transaction (a PO, an invoice, a shipment) and see every related EDI document — the 850, 855, 856, 810, and every 997 — in one chronological, status-aware view. Everything else in this product exists to support that. If a feature does not make the hub more useful for monitoring, troubleshooting, or stability, it is out of scope for v1.
+**What this product is NOT:** Customers do **not** use EDI Hub to transmit EDI to trading partners, generate production 855/810 documents for sending, replace their ERP, or sit in the live transmission path. Their ERP, VAN, or AS2/SFTP middleware continues to handle send/receive. The hub only observes copies of that traffic.
 
-**Anti-drift rule:** Before adding any feature not on this roadmap, write one sentence explaining how it serves monitoring, troubleshooting, alerting, or stability. If you can't, it waits.
+**The North Star feature** is *transaction lifecycle stitching*: pull up a PO number and see every related document — the 850, 855, 856, 810, and all 997s — in one chronological, status-aware view. Everything else exists to support monitoring, troubleshooting, alerting, and stability.
+
+**Anti-drift rule:** Before adding any feature not on this roadmap, write one sentence explaining how it serves monitoring, troubleshooting, alerting, or stability. If you can't — or if the feature involves **generating, mapping, translating, or transmitting** EDI — it is out of scope.
 
 ---
 
@@ -69,7 +71,7 @@ Build an EDI observability platform that **ingests inbound and outbound EDI tran
 2. **Every phase ends in something you can see working.** No phase is "done" until you can demo a tangible result, ideally against real data from your test environment.
 3. **Single-tenant value before multi-tenant complexity.** Prove the product is genuinely useful for one company (your pilot) before investing in the SaaS plumbing required to sell it to many.
 4. **Never discard the raw file.** Store the original transmission alongside the parsed structure, always. Audits, disputes, and edge-case debugging depend on it.
-5. **Passive observability over active interception.** The hub should read *copies* of transactions, not sit in the live transmission path. This is safer, simpler, and a far easier sell to security-conscious buyers.
+5. **Passive observability over active interception.** The hub reads *copies* of transactions from drop folders, SFTP, or AS2 inboxes — it never replaces the customer's send/receive stack. Ingestion channels are **read-only observers**, not transmission endpoints.
 
 ---
 
@@ -240,11 +242,17 @@ At 15–25 hrs/week, solo, with Opus 4.8:
 
 ## 9. Explicitly Out of Scope for v1
 
-- Building a VAN or any transmission capability
+**EDI transmission and production document generation (never in scope for this product):**
+
+- Sending or receiving EDI on behalf of the customer (no VAN, no AS2/SFTP **outbound** delivery to partners)
+- Generating production 850/855/856/810/997 documents for transmission (that is the ERP/middleware's job)
+- Replacing or competing with ERP, WMS, or EDI translation/mapping middleware
+- Sitting in the live transmission path between trading partners
 - A mapping/translation editor
-- Direct ERP connectors
+- Direct ERP connectors (beyond passive file copies)
 - Deduction/chargeback dispute workflows
-- Anything requiring sitting in the live transmission path
+
+**The EDI pipeline stop point:** Ingest copy → store raw file → parse → persist → search/lifecycle/alert. **Full stop.** No step after that produces or delivers EDI to a partner. Desktop "drop folders" and SaaS ingestion channels exist only to **receive copies for observation** (including copies of outbound documents the customer's other systems already sent).
 
 ---
 

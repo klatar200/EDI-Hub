@@ -3,13 +3,16 @@
 **Owner:** Keagan
 **Status:** Draft — companion to `BUILD_PLAN.md`
 **Decision locked:** Local-first. The desktop app bundles API, database, and storage. EDI never leaves the customer's machine/network.
-**Anti-drift check:** A desktop build serves *stability* (no cloud dependency, no data-sovereignty objection) and unlocks the on-prem segment Gate 1 flagged. It does not add features outside v1 scope.
+**Scope locked:** Observability only. The desktop app does **not** send or receive production EDI to trading partners. Drop folders ingest **copies** for monitoring (inbound POs from partners, outbound copies of acks/invoices the customer's ERP already sent elsewhere).
+**Anti-drift check:** A desktop build serves *stability* (no cloud dependency, no data-sovereignty objection) and unlocks the on-prem segment Gate 1 flagged. It does not add transmission, mapping, or ERP features.
 
 ---
 
 ## 1. The Objective
 
-Ship a downloadable installer (`.exe` for Windows, `.dmg` for macOS, optional `.AppImage`/`.deb` for Linux) that gives a single company the full Phase 3–7 hub experience on one machine or one internal server, with zero outbound network dependency for core function. UI must be visually and behaviorally identical to the web build — same React bundle, different runtime shell.
+Ship a downloadable installer (`.exe` for Windows, `.dmg` for macOS, optional `.AppImage`/`.deb` for Linux) that gives a single company the full Phase 3–7 **observability** experience on one machine or one internal server, with zero outbound network dependency for core function. UI must be visually and behaviorally identical to the web build — same React bundle, different runtime shell.
+
+**Not the goal:** Replace the customer's ERP, VAN, or middleware. The installer watches copies of EDI traffic; it does not transmit documents to trading partners.
 
 **North Star unchanged:** transaction lifecycle stitching. The desktop app is a *delivery vehicle*, not a different product.
 
