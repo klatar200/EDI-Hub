@@ -4,14 +4,24 @@
  *   npm run set-our-isa-ids --workspace=@edi/api -- 7085892400
  *   npm run set-our-isa-ids --workspace=@edi/api -- 7085892400,SECOND_ID
  *
+ * Desktop:
+ *   npm run set-our-isa-ids --workspace=@edi/api -- --desktop 7085892400
+ *
  * After setting, re-open lifecycle views (direction is re-derived at read time).
  * To fix stored transaction.direction for metrics/search, also run:
  *   npm run backfill --workspace=@edi/api -- --reparse-parsed
  */
 import { getPrisma, disconnectPrisma, tenantContext, PILOT_TENANT_ID } from '@edi/db';
+import { applyDesktopScriptEnv } from './desktop-script-env.js';
+
+applyDesktopScriptEnv(process.argv);
 
 function parseIds(argv: string[]): string[] {
-  const raw = argv.slice(2).join(',').trim();
+  const raw = argv
+    .slice(2)
+    .filter((a) => a !== '--desktop')
+    .join(',')
+    .trim();
   if (!raw) {
     console.error('Usage: set-our-isa-ids <ISA_ID>[,<ISA_ID>...]');
     process.exit(2);

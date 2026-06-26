@@ -7,6 +7,9 @@
  *
  *   npm run backfill --workspace=@edi/api
  *
+ * Desktop install (local raw store, not dev Minio):
+ *   npm run backfill --workspace=@edi/api -- --desktop --reparse-parsed
+ *
  * After a parser change that adds fields to existing sets (e.g. Phase 4 adding
  * shipmentId / ack-linkage / direction), pass `--reparse-parsed` to also re-run
  * parsing for files already in PARSED state so historical rows pick up the new
@@ -18,6 +21,9 @@ import { loadConfig } from '../config.js';
 import { createS3Client } from '../storage/s3.js';
 import { createStorageAdapter } from '../storage/factory.js';
 import { parseAndStore } from '../services/parsing.js';
+import { applyDesktopScriptEnv } from './desktop-script-env.js';
+
+applyDesktopScriptEnv(process.argv);
 
 const logger = {
   info() {}, warn() {}, error() {}, debug() {}, fatal() {}, trace() {}, silent() {},

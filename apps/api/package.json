@@ -11,6 +11,7 @@
     "start": "node dist/index.js",
     "smoke": "tsc --build && dotenv -e ../../.env -- tsx test/smoke.ts",
     "backfill": "dotenv -e ../../.env -- tsx src/scripts/backfill-parse.ts",
+    "backfill-direction": "tsx src/scripts/backfill-direction.ts",
     "purge-raw-by-isa": "tsx src/scripts/purge-raw-by-isa.ts",
     "backfill-confirmed-at": "dotenv -e ../../.env -- tsx src/scripts/backfill-confirmed-at.ts",
     "seed-pilot-tenant": "dotenv -e ../../.env -- tsx src/scripts/seed-pilot-tenant.ts",

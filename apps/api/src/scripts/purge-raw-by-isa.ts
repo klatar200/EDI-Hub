@@ -5,12 +5,15 @@
  *
  * Desktop (EDI Hub running, Postgres on 5433):
  *   $env:DATABASE_URL = "postgresql://postgres:postgres@127.0.0.1:5433/edihub"
- *   npm run purge-raw-by-isa --workspace=@edi/api -- --us-foods-group-1 --yes
+ *   npm run purge-raw-by-isa --workspace=@edi/api -- --desktop --us-foods-group-1 --yes
  *
  * Dev / docker-compose:
  *   npm run purge-raw-by-isa --workspace=@edi/api -- 000059901 000059902 --yes
  */
 import { getPrisma, disconnectPrisma, tenantContext, PILOT_TENANT_ID } from '@edi/db';
+import { applyDesktopScriptEnv } from './desktop-script-env.js';
+
+applyDesktopScriptEnv(process.argv);
 
 const US_FOODS_GROUP_1_ISA = ['000059901', '000059902', '000059903'] as const;
 
