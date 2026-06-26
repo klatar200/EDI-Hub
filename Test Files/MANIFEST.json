@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-06-26T14:06:20.084Z",
+  "generatedAt": "2026-06-26T14:17:01.816Z",
   "tradingPartner": {
     "isaSenderId": "VENDOR01",
     "isaReceiverId": "EDIHUB",
@@ -97,11 +97,89 @@
       "note": "Same ISA13 as PO-10001 850 — expect duplicate on re-ingest"
     }
   ],
-  "pendingFromRealSamples": [
-    "850 — anonymized production PO (structure + segment patterns)",
-    "855 — anonymized production PO acknowledgment",
-    "810 — anonymized production invoice",
-    "856 — ASN if available",
-    "997 — partner-specific ack format if different from synthetic"
+  "pendingFromRealSamples": [],
+  "partnerLifecycles": [
+    {
+      "partner": "us-foods",
+      "group": "group-1",
+      "poNumber": "7599901Q",
+      "folder": "lifecycles/us-foods/group-1",
+      "description": "US Foods Spokane pattern (mirrors production group 1)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "us-foods",
+      "group": "group-2",
+      "poNumber": "7599902F",
+      "folder": "lifecycles/us-foods/group-2",
+      "description": "US Foods Minnesota pattern (mirrors production group 2)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "us-foods",
+      "group": "group-3",
+      "poNumber": "7599903Q",
+      "folder": "lifecycles/us-foods/group-3",
+      "description": "US Foods Spokane higher-qty pattern (mirrors production group 3)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "sysco",
+      "group": "group-1",
+      "poNumber": "31999001",
+      "folder": "lifecycles/sysco/group-1",
+      "description": "Sysco Chicago prepaid/pickup allowance (mirrors production group 1)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "sysco",
+      "group": "group-2",
+      "poNumber": "11999002",
+      "folder": "lifecycles/sysco/group-2",
+      "description": "Sysco Riverside collect/freight SAC (mirrors production group 2)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "sysco",
+      "group": "group-3",
+      "poNumber": "42999045",
+      "folder": "lifecycles/sysco/group-3",
+      "description": "Sysco Sygma Kentucky freight pattern (mirrors production group 3)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    }
+  ],
+  "referenceSamples": [
+    {
+      "partner": "us-foods",
+      "note": "Production-structure samples (17 files). Use for parser regression; prefer synthetic lifecycles for drop testing."
+    },
+    {
+      "partner": "sysco",
+      "note": "Production-structure samples included in reference/ folder."
+    }
   ]
 }
