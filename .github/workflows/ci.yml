@@ -9,6 +9,7 @@ jobs:
   build:
     name: Typecheck, Lint & Test
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
 
@@ -37,6 +38,7 @@ jobs:
   parity:
     name: Playwright UI parity (web)
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     # Runs after the build job so we don't burn Playwright minutes on a
     # broken tree. Gated on the Clerk session secret being present —
     # when absent (e.g. forks, contributors without secret access) the
