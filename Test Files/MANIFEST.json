@@ -1,0 +1,185 @@
+{
+  "generatedAt": "2026-06-26T14:17:01.816Z",
+  "tradingPartner": {
+    "isaSenderId": "VENDOR01",
+    "isaReceiverId": "EDIHUB",
+    "note": "Match or update your Partners config if you use different ISA IDs."
+  },
+  "usage": "Copy .edi files into your inbound drop folder (e.g. C:\\EDI\\Inbound). Drop lifecycles in numeric order. Each file has a unique ISA control number except edge-cases/850_duplicate_isa_control.edi (dedup test).",
+  "lifecycles": [
+    {
+      "poNumber": "PO-10001",
+      "folder": "lifecycles/PO-10001",
+      "description": "Full order-to-cash: 850 → 855 → 856 → 810 → 997",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_856_ship_notice.edi",
+        "04_810_invoice.edi",
+        "05_997_functional_ack.edi"
+      ]
+    },
+    {
+      "poNumber": "PO-10002",
+      "folder": "lifecycles/PO-10002",
+      "description": "Rejected path: 850 → RJ 855 → 997 with AK3/AK4",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_rejected_ack.edi",
+        "03_997_reject_detail.edi"
+      ]
+    },
+    {
+      "poNumber": "PO-10003",
+      "folder": "lifecycles/PO-10003",
+      "description": "Grocery: 875 → 880",
+      "files": [
+        "01_875_grocery_po.edi",
+        "02_880_grocery_invoice.edi"
+      ]
+    },
+    {
+      "poNumber": "PO-10004",
+      "folder": "lifecycles/PO-10004",
+      "description": "PO change: 850 → 860",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_860_po_change.edi"
+      ]
+    },
+    {
+      "poNumber": "PO-20001",
+      "folder": "lifecycles/PO-20001",
+      "description": "Short path: 850 → 810 (no ship/ack)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_810_invoice.edi"
+      ]
+    }
+  ],
+  "singles": [
+    {
+      "file": "singles/850_minimal.edi",
+      "note": "One-line 850"
+    },
+    {
+      "file": "singles/855_minimal.edi",
+      "note": "Matching 855"
+    },
+    {
+      "file": "singles/810_minimal.edi",
+      "note": "Matching 810"
+    },
+    {
+      "file": "singles/856_minimal.edi",
+      "note": "Matching 856"
+    },
+    {
+      "file": "singles/997_accept.edi",
+      "note": "Clean functional ack"
+    },
+    {
+      "file": "singles/997_reject_ak3_ak4.edi",
+      "note": "Reject with segment/element detail"
+    }
+  ],
+  "edgeCases": [
+    {
+      "file": "edge-cases/batched_850_and_810.edi",
+      "note": "Two functional groups in one ISA (850 + 810)"
+    },
+    {
+      "file": "edge-cases/850_line_wrapped.edi",
+      "note": "CRLF between segments"
+    },
+    {
+      "file": "edge-cases/850_duplicate_isa_control.edi",
+      "note": "Same ISA13 as PO-10001 850 — expect duplicate on re-ingest"
+    }
+  ],
+  "pendingFromRealSamples": [],
+  "partnerLifecycles": [
+    {
+      "partner": "us-foods",
+      "group": "group-1",
+      "poNumber": "7599901Q",
+      "folder": "lifecycles/us-foods/group-1",
+      "description": "US Foods Spokane pattern (mirrors production group 1)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "us-foods",
+      "group": "group-2",
+      "poNumber": "7599902F",
+      "folder": "lifecycles/us-foods/group-2",
+      "description": "US Foods Minnesota pattern (mirrors production group 2)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "us-foods",
+      "group": "group-3",
+      "poNumber": "7599903Q",
+      "folder": "lifecycles/us-foods/group-3",
+      "description": "US Foods Spokane higher-qty pattern (mirrors production group 3)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "sysco",
+      "group": "group-1",
+      "poNumber": "31999001",
+      "folder": "lifecycles/sysco/group-1",
+      "description": "Sysco Chicago prepaid/pickup allowance (mirrors production group 1)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "sysco",
+      "group": "group-2",
+      "poNumber": "11999002",
+      "folder": "lifecycles/sysco/group-2",
+      "description": "Sysco Riverside collect/freight SAC (mirrors production group 2)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    },
+    {
+      "partner": "sysco",
+      "group": "group-3",
+      "poNumber": "42999045",
+      "folder": "lifecycles/sysco/group-3",
+      "description": "Sysco Sygma Kentucky freight pattern (mirrors production group 3)",
+      "files": [
+        "01_850_purchase_order.edi",
+        "02_855_acknowledgment.edi",
+        "03_810_invoice.edi"
+      ]
+    }
+  ],
+  "referenceSamples": [
+    {
+      "partner": "us-foods",
+      "note": "Production-structure samples (17 files). Use for parser regression; prefer synthetic lifecycles for drop testing."
+    },
+    {
+      "partner": "sysco",
+      "note": "Production-structure samples included in reference/ folder."
+    }
+  ]
+}
