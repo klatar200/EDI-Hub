@@ -11,7 +11,7 @@
  *
  * If `VITE_CLERK_PUBLISHABLE_KEY` is missing we render a banner instead
  * of mounting ClerkProvider with `undefined` — the banner is the fastest
- * possible signal that env setup is incomplete (see CLERK_SETUP.md).
+ * possible signal that env setup is incomplete (see BUILD_PLAN.md §11).
  */
 import React from 'react';
 import { createRoot } from 'react-dom/client';
@@ -38,7 +38,7 @@ function MissingClerkKey(): JSX.Element {
         <code className="mx-1 rounded bg-[var(--color-warn-500)]/15 px-1 py-0.5 font-mono">.env</code>
         at the repo root and restart <code>npm run dev</code>.
       </p>
-      <p>See <code>CLERK_SETUP.md</code> for the full setup walkthrough.</p>
+      <p>See <code>BUILD_PLAN.md</code> §11 (Clerk setup) for the full walkthrough.</p>
     </div>
   );
 }

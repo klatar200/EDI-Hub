@@ -4,9 +4,9 @@ An EDI observability platform. Ingests inbound/outbound X12 EDI transactions,
 decomposes them into structured data, and presents a single hub for monitoring,
 searching, troubleshooting, and alerting.
 
-See `BUILD_PLAN.md` for the roadmap and `PHASE_1_SPRINT_PLAN.md` for the
-sprint plan. Architecture notes are in `CLAUDE.md`; real-world parsing
-deviations to expect are catalogued in `docs/EDI_DEVIATIONS.md`.
+See `BUILD_PLAN.md` for the full roadmap, operator checklists, security sign-off,
+and all sprint plans. Architecture notes are in `CLAUDE.md`; real-world parsing
+deviations are in `docs/EDI_DEVIATIONS.md`.
 
 **North Star:** Transaction lifecycle stitching — pull up a PO number and see
 the 850, 855, 856, 810, and all 997s in one chronological view.

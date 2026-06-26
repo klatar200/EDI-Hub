@@ -200,6 +200,6 @@ deploy README. Never inline secret values anywhere.
 
 ### When in doubt
 
-Read `SECURITY_CHECKLIST.md` — it's the current sign-off list. Every item
+Read `BUILD_PLAN.md` §12 (Security checklist) — it's the current sign-off list. Every item
 points at the file or test that proves it. If your change might affect one
 of those items, the corresponding test/checklist entry needs an update.
