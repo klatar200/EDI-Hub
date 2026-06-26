@@ -9,7 +9,8 @@ import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { ingestRawFile } from '../src/services/ingestion.js';
 import type { AppConfig } from '../src/config.js';
 import type { StorageAdapter } from '../src/storage/interface.js';
-import { Readable } from 'node:stream';
+import type { Readable } from 'node:stream';
+import type { FastifyBaseLogger } from 'fastify';
 
 const TENANT_B = 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb';
 
@@ -141,7 +142,7 @@ const noopLogger = {
   warn() {},
   error() {},
   child() { return this; },
-} as unknown as import('fastify').FastifyBaseLogger;
+} as unknown as FastifyBaseLogger;
 
 test('same ISA control number under two tenants stores two rows', async () => {
   const content = buildInterchange('000000424');
