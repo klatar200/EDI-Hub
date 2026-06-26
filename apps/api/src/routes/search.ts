@@ -49,7 +49,11 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
     const [byPo, byInvoice, rawByIsa] = await Promise.all([
       app.prisma.transaction.findMany({ where: { poNumber: query }, include: INCLUDE, take: 50 }) as Promise<TransactionRow[]>,
       app.prisma.transaction.findMany({ where: { invoiceNumber: query }, include: INCLUDE, take: 50 }) as Promise<TransactionRow[]>,
-      app.prisma.rawFile.findUnique({ where: { isaControlNumber: query } }) as Promise<RawFileRow | null>,
+      request.tenantId
+        ? (app.prisma.rawFile.findUnique({
+            where: { tenantId_isaControlNumber: { tenantId: request.tenantId, isaControlNumber: query } },
+          }) as Promise<RawFileRow | null>)
+        : Promise.resolve(null),
     ]);
 
     const seen = new Set<string>();

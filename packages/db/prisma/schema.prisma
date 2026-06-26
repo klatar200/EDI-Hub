@@ -290,7 +290,7 @@ model RawFile {
   tenant       Tenant        @relation(fields: [tenantId], references: [id], onDelete: Restrict)
   s3Key        String        @unique @map("s3_key")
   fileHash     String        @map("file_hash")
-  isaControlNumber String?   @unique @map("isa_control_number")
+  isaControlNumber String?   @map("isa_control_number")
   source       SourceChannel
   status       RawFileStatus @default(RECEIVED)
   errorMessage String?       @map("error_message")
@@ -302,6 +302,7 @@ model RawFile {
   @@index([fileHash])
   @@index([ingestedAt])
   @@index([tenantId, ingestedAt])
+  @@unique([tenantId, isaControlNumber])
   @@map("raw_files")
 }
 

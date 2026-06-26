@@ -21,7 +21,7 @@ advisor recommended before signing the first external contract.
 | 1.2 | Token verification uses Clerk's SDK (signature + expiry + issuer check) | ✅ | `apps/api/src/services/auth.ts` — `authenticateRequest({ secretKey })`. |
 | 1.3 | Forged / unverifiable tokens are rejected with 401 (not 200, not 500) | ✅ | `apps/api/test/isolation.test.ts` — "forged-claim probe…rejected with 401". |
 | 1.4 | `/webhooks/clerk` verifies its Svix signature inline before processing | ✅ | `apps/api/src/routes/webhooks.ts`. |
-| 1.5 | Dev-fallback (Clerk not configured) pins to pilot tenant and grants implicit admin — never enabled in production | ✅ | `apps/api/src/plugins/tenant.ts` (dev-fallback branch); `apps/api/src/config.ts` — Clerk secrets required for prod boot via Secrets Manager. |
+| 1.5 | Dev-fallback (Clerk not configured) pins to pilot tenant and grants implicit admin — never enabled in production | ✅ | `apps/api/src/plugins/tenant.ts` returns 500 `AUTH_MISCONFIGURED` when `nodeEnv=production`; `assertProductionAuthConfig()` in `apps/api/src/config.ts` + `apps/api/src/index.ts`; `apps/api/test/production-auth.test.ts`. |
 
 ## 2. Tenant isolation
 

@@ -19,6 +19,12 @@ This folder holds the **real-AWS** definitions, applied per environment.
 | `secrets.tf` | Four `aws_secretsmanager_secret` entries (DB URL + Clerk keys + Slack webhook) encrypted with a project-owned KMS CMK. |
 | `openas2/` | AS2 sidecar config — see its own README. |
 
+## Prerequisites
+
+Install **Terraform** (>= 1.5) and the **AWS CLI**, then configure AWS creds
+(`aws configure`). On Windows use PowerShell — see `ops/PATH_A_SPRINT_PLAN.md`
+§ A1.0 for `winget` install and `$env:TF_VAR_*` syntax (not `export`).
+
 ## Apply order
 
 Apply in this order on a fresh environment. Each step is independently

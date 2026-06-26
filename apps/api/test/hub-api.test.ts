@@ -8,6 +8,7 @@ import type { S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from '@prisma/client';
 import { buildServer } from '../src/server.js';
 import type { AppConfig } from '../src/config.js';
+import { PILOT_TENANT_ID } from '@edi/db';
 
 const config = {
   port: 0, nodeEnv: 'test', maxFileSizeBytes: 1024 * 1024,
@@ -48,9 +49,21 @@ const rawFileRow = { id: 'raw-1', s3Key: 'raw/x.edi', fileHash: 'h', isaControlN
 function fakePrisma(): PrismaClient {
   return {
     rawFile: {
-      async findUnique({ where }: { where: { id?: string; isaControlNumber?: string } }) {
-        if (where.id === rawFileRow.id) return rawFileRow;
-        if (where.isaControlNumber === rawFileRow.isaControlNumber) return rawFileRow;
+      async findUnique({ where }: { where: Record<string, unknown> }) {
+        const w = where as {
+          id?: string;
+          isaControlNumber?: string;
+          tenantId_isaControlNumber?: { tenantId: string; isaControlNumber: string };
+        };
+        if (w.tenantId_isaControlNumber) {
+          const { tenantId, isaControlNumber } = w.tenantId_isaControlNumber;
+          if (tenantId === PILOT_TENANT_ID && isaControlNumber === rawFileRow.isaControlNumber) {
+            return rawFileRow;
+          }
+          return null;
+        }
+        if (w.id === rawFileRow.id) return rawFileRow;
+        if (w.isaControlNumber === rawFileRow.isaControlNumber) return rawFileRow;
         return null;
       },
       async findMany() { return [rawFileRow]; },

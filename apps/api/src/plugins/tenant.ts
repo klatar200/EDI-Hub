@@ -75,6 +75,14 @@ async function tenantPluginImpl(
     );
 
     if (outcome.kind === 'dev-fallback') {
+      if (app.config.nodeEnv === 'production') {
+        return reply.code(500).send({
+          error: {
+            code: 'AUTH_MISCONFIGURED',
+            message: 'Clerk authentication is not configured for production.',
+          },
+        });
+      }
       // Clerk not configured — pin to pilot tenant so the existing dev
       // workflow keeps working. `request.auth = null` signals "no real user"
       // to any route that cares about role-based access; the role check
