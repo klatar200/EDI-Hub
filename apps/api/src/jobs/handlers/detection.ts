@@ -8,13 +8,13 @@
  *      the scheduler can request a specific tenant or a backdated run.
  *
  *   2. The one-shot CLI runner (`apps/api/src/scripts/run-detection.ts`).
- *      The CLI builds its own deps from the env, calls this same factory,
- *      and invokes the returned handler with a payload — proving the
- *      "no duplicated logic" invariant in the D2 Sprint 2 scorecard.
+ *      Enumerates every active tenant and runs one pass per tenant (mirrors
+ *      `run-retention.ts`). Per-tenant counts are logged.
  *
  * Behavior:
- *   - Pins the tenant context to `payload.tenantId` (or `PILOT_TENANT_ID`
- *     when omitted, matching the pre-D2 CLI default).
+ *   - When `payload.tenantId` is set, runs detection for that tenant only.
+ *   - When omitted, enumerates all active tenants under `tenantContext.bypass`
+ *     and runs one pass per tenant.
  *   - Runs `detectMissingAcks` and `detectRejectionSpikes` against the
  *     configured `asOf` clock (`new Date()` by default).
  *   - Wraps the work in `tenantContext.run(...)` so the Prisma extension's
@@ -23,7 +23,7 @@
  *     failure / dead-letter per the retry budget.
  */
 import type { PrismaClient } from '@prisma/client';
-import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
+import { tenantContext } from '@edi/db';
 import type { JobHandler } from '../interface.js';
 import {
   detectMissingAcks,
@@ -49,11 +49,9 @@ export interface DetectionHandlerDeps {
   logger?: DetectionLogger;
 }
 
-/** Payload contract the producer must satisfy. All fields optional so an
- *  empty `{}` is a valid "run detection for the pilot tenant against now". */
+/** Payload contract the producer must satisfy. */
 export interface DetectionJobPayload {
-  /** Tenant to scope the run. Defaults to PILOT_TENANT_ID for backward
-   *  compatibility with the pre-D2 CLI. */
+  /** Tenant to scope the run. When omitted, every active tenant is processed. */
   tenantId?: string;
   /** ISO-8601 instant the pass should treat as "now". Useful for backfills
    *  and deterministic tests. Defaults to the handler's clock. */
@@ -73,10 +71,13 @@ export interface DetectionPassResult {
  */
 export async function runDetectionPass(
   deps: DetectionHandlerDeps,
-  payload: DetectionJobPayload = {},
+  payload: DetectionJobPayload,
 ): Promise<DetectionPassResult> {
+  const tenantId = payload.tenantId;
+  if (!tenantId) {
+    throw new Error('runDetectionPass requires payload.tenantId');
+  }
   const now = payload.asOf ? new Date(payload.asOf) : (deps.now ?? (() => new Date()))();
-  const tenantId = payload.tenantId ?? PILOT_TENANT_ID;
   const opts = {
     notifier: deps.notifier,
     suppressionMinutes: deps.suppressionMinutes,
@@ -97,6 +98,33 @@ export async function runDetectionPass(
   });
 }
 
+interface ActiveTenantRow {
+  id: string;
+  deletedAt: Date | null;
+}
+
+/**
+ * Run one detection pass for every active tenant. Returns per-tenant counts
+ * so the CLI / scheduler can log a summary (mirrors `runRetention`).
+ */
+export async function runDetectionForAllTenants(
+  deps: DetectionHandlerDeps,
+  payload: Omit<DetectionJobPayload, 'tenantId'> = {},
+): Promise<Map<string, DetectionPassResult>> {
+  const tenants = (await tenantContext.bypass(async () =>
+    deps.prisma.tenant.findMany({ where: { deletedAt: null } }),
+  )) as unknown as ActiveTenantRow[];
+
+  const results = new Map<string, DetectionPassResult>();
+
+  for (const tenant of tenants) {
+    const result = await runDetectionPass(deps, { ...payload, tenantId: tenant.id });
+    results.set(tenant.id, result);
+  }
+
+  return results;
+}
+
 /**
  * Job-queue handler factory. Returns a function that the DB worker invokes
  * when it claims a `detection`-named job. The factory captures the deps;
@@ -106,7 +134,11 @@ export function createDetectionHandler(deps: DetectionHandlerDeps): JobHandler {
   const logger = deps.logger ?? noopLogger;
   return async (rawPayload: unknown): Promise<void> => {
     const payload = parsePayload(rawPayload);
-    await runDetectionPass({ ...deps, logger }, payload);
+    if (payload.tenantId) {
+      await runDetectionPass({ ...deps, logger }, payload);
+      return;
+    }
+    await runDetectionForAllTenants({ ...deps, logger }, payload);
   };
 }
 
