@@ -68,6 +68,12 @@ files:
   # this, the API child crashes immediately on first DB call with
   # "Cannot find module '.prisma/client'".
   - "**/node_modules/.prisma/**/*"
+  # D9 Sprint 1 — archiver's transitive deps are nested under archiver in
+  # some installs; electron-builder's walker can miss them in workspace
+  # layouts. Force-include the zip stack used by backup export.
+  - "**/node_modules/archiver-utils/**/*"
+  - "**/node_modules/zip-stream/**/*"
+  - "**/node_modules/compress-commons/**/*"
 
 # The React build is served at runtime by @fastify/static which reads
 # from disk. The Prisma schema + migrations are read by `prisma migrate

@@ -13,9 +13,9 @@
  */
 import { app, dialog, Menu, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
+import { existsSync, mkdirSync } from 'node:fs';
 import { manualCheckForUpdates } from './auto-update.js';
 import { showEnterLicenseKeyMenu } from './license-window.js';
-import { exportBackupInteractive, restoreBackupInteractive } from './backup-actions.js';
 
 export function installApplicationMenu(): void {
   const template: MenuItemConstructorOptions[] = [
@@ -64,30 +64,22 @@ export function installApplicationMenu(): void {
         {
           label: 'Open Logs Folder',
           click: () => {
-            // `app.getPath('logs')` returns a platform-specific path
-            // (Windows: %APPDATA%\<productName>\logs). The folder may
-            // not exist yet if nothing's logged this session — fall
-            // back to userData so the user always lands somewhere
-            // useful.
             const logsDir = app.getPath('logs');
-            shell.openPath(logsDir).then((errMsg) => {
-              if (errMsg) {
-                void shell.openPath(app.getPath('userData'));
-              }
-            });
+            if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true });
+            void shell.openPath(logsDir);
           },
         },
         { type: 'separator' },
         {
           label: 'Export Backup…',
           click: () => {
-            void exportBackupInteractive();
+            void import('./backup-actions.js').then((m) => m.exportBackupInteractive());
           },
         },
         {
           label: 'Restore from Backup…',
           click: () => {
-            void restoreBackupInteractive();
+            void import('./backup-actions.js').then((m) => m.restoreBackupInteractive());
           },
         },
         { type: 'separator' },
