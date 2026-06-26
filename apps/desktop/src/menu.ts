@@ -16,7 +16,6 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
 import { manualCheckForUpdates } from './auto-update.js';
 import { showEnterLicenseKeyMenu } from './license-window.js';
-import { exportBackupInteractive, restoreBackupInteractive } from './backup-actions.js';
 
 export function installApplicationMenu(): void {
   const template: MenuItemConstructorOptions[] = [
@@ -74,13 +73,13 @@ export function installApplicationMenu(): void {
         {
           label: 'Export Backup…',
           click: () => {
-            void exportBackupInteractive();
+            void import('./backup-actions.js').then((m) => m.exportBackupInteractive());
           },
         },
         {
           label: 'Restore from Backup…',
           click: () => {
-            void restoreBackupInteractive();
+            void import('./backup-actions.js').then((m) => m.restoreBackupInteractive());
           },
         },
         { type: 'separator' },
