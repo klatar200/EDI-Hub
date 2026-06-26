@@ -84,6 +84,10 @@ old tag on GitHub and locally first, then create a new version number.
 **v0.0.17-alpha+** disables differential downloads (avoids the progress bar
 resetting to 0% mid-update) and uses silent NSIS apply (`/S`).
 
+**v0.0.18-alpha+** switches to a one-click NSIS installer. The assisted
+installer showed a per-user vs all-users wizard on every update because that
+custom page ignores `/S`; one-click applies updates with no wizard.
+
 **Symptom:** Help → Check for Updates offers an older version (e.g. v0.0.6
 while you run v0.0.8), or restart does not apply an update.
 

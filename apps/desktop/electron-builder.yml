@@ -27,11 +27,14 @@
 #    Prisma engine) are prebuilt; we never want electron-builder to
 #    invoke node-gyp on them.
 #
+#  - `nsis.oneClick: true` — required for silent auto-update. The assisted
+#    installer (`oneClick: false`) shows a custom per-user vs all-users page
+#    that `/S` cannot suppress, so updates popped an interactive wizard.
+#    One-click still honors `perMachine: false` (no UAC on first install).
+#
 #  - `nsis.perMachine: false` — per-user install means no UAC prompt on
-#    install. Customer admins can still install machine-wide via the
-#    /allusers flag. `deleteAppDataOnUninstall: false` preserves the
-#    user's pgdata + raw files on uninstall so an accidental uninstall
-#    doesn't lose customer data.
+#    install. `deleteAppDataOnUninstall: false` preserves the user's pgdata
+#    + raw files on uninstall so an accidental uninstall doesn't lose data.
 
 appId: com.edihub.desktop
 productName: EDI Hub
@@ -125,11 +128,10 @@ win:
   # GitHub-secret + verification flow.
 
 nsis:
-  oneClick: false
-  allowToChangeInstallationDirectory: true
+  oneClick: true
   perMachine: false
   deleteAppDataOnUninstall: false
-  # Apply updates silently into the existing per-user install (no re-prompt).
+  # Relaunch after silent `/S` update when electron-updater passes --force-run.
   runAfterFinish: true
 
 # D7 Sprint 1 — auto-update feed via GitHub Releases.
