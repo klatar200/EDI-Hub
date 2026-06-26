@@ -189,9 +189,11 @@ export function loadConfig(): AppConfig {
     throw new Error(`Unsupported STORAGE_BACKEND='${raw}'. Allowed: 's3' (default) or 'local'.`);
   })();
 
-  return {
+  const nodeEnv = optional('NODE_ENV', 'development');
+
+  const config: AppConfig = {
     port: intEnv('PORT', 3000),
-    nodeEnv: optional('NODE_ENV', 'development'),
+    nodeEnv,
     maxFileSizeBytes: intEnv('MAX_FILE_SIZE_BYTES', 25 * 1024 * 1024),
     s3: {
       bucket: storageBackend === 's3' ? required('S3_BUCKET') : optional('S3_BUCKET', ''),
@@ -267,4 +269,31 @@ export function loadConfig(): AppConfig {
       dir: optional('WEB_STATIC_DIR', ''),
     },
   };
+
+  return config;
+}
+
+/** W1.1 — refuse production boot without Clerk. Call after `loadConfig` and
+ *  `applySecretsFromManager` so Secrets Manager overlays are included. */
+export function assertProductionAuthConfig(config: AppConfig): void {
+  if (config.nodeEnv !== 'production') return;
+
+  const missing: string[] = [];
+  if (!config.clerk.secretKey.trim()) missing.push('CLERK_SECRET_KEY');
+  if (!config.clerk.webhookSecret.trim()) missing.push('CLERK_WEBHOOK_SECRET');
+  if (!config.clerk.publishableKey?.trim()) {
+    missing.push('VITE_CLERK_PUBLISHABLE_KEY or CLERK_PUBLISHABLE_KEY');
+  }
+
+  if (missing.length > 0) {
+    throw new Error(
+      `Production boot refused: missing Clerk configuration: ${missing.join(', ')}. ` +
+        'Set all Clerk secrets (via env or Secrets Manager) before NODE_ENV=production.',
+    );
+  }
+}
+
+/** One-line auth mode for startup logs. */
+export function resolveAuthMode(config: AppConfig): 'clerk' | 'dev-fallback' {
+  return config.clerk.secretKey.trim() ? 'clerk' : 'dev-fallback';
 }

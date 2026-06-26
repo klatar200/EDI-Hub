@@ -73,7 +73,11 @@ function makeFakeS3(): { client: S3Client; objects: Map<string, Buffer>; putCoun
   return { client, objects, putCount: () => puts };
 }
 
-interface Row { id: string; s3Key: string; fileHash: string; isaControlNumber: string | null; source: string; status: string; errorMessage: string | null; ingestedAt: Date }
+interface Row { id: string; tenantId: string; s3Key: string; fileHash: string; isaControlNumber: string | null; source: string; status: string; errorMessage: string | null; ingestedAt: Date }
+
+function isaKey(tenantId: string, isa: string): string {
+  return `${tenantId}:${isa}`;
+}
 
 function makeFakePrisma(): { client: PrismaClient; rows: Map<string, Row>; interchanges: Map<string, unknown> } {
   const rows = new Map<string, Row>();
@@ -83,9 +87,14 @@ function makeFakePrisma(): { client: PrismaClient; rows: Map<string, Row>; inter
   const client = {
     rawFile: {
       async create({ data }: { data: Record<string, unknown> }) {
-        const row: Row = { errorMessage: null, ingestedAt: (data.ingestedAt as Date) ?? new Date(), ...(data as object) } as Row;
+        const row: Row = {
+          tenantId: String(data.tenantId ?? ''),
+          errorMessage: null,
+          ingestedAt: (data.ingestedAt as Date) ?? new Date(),
+          ...(data as object),
+        } as Row;
         rows.set(row.id, row);
-        if (row.isaControlNumber) byIsa.set(row.isaControlNumber, row.id);
+        if (row.isaControlNumber) byIsa.set(isaKey(row.tenantId, row.isaControlNumber), row.id);
         return row;
       },
       async update({ where, data }: { where: { id: string }; data: Record<string, unknown> }) {
@@ -93,10 +102,25 @@ function makeFakePrisma(): { client: PrismaClient; rows: Map<string, Row>; inter
         Object.assign(row, data);
         return row;
       },
-      async findUnique({ where }: { where: { id?: string; isaControlNumber?: string; s3Key?: string } }) {
-        if (where.id) return rows.get(where.id) ?? null;
-        if (where.isaControlNumber) { const id = byIsa.get(where.isaControlNumber); return id ? rows.get(id)! : null; }
-        if (where.s3Key) { for (const r of rows.values()) if (r.s3Key === where.s3Key) return r; }
+      async findUnique({ where }: { where: Record<string, unknown> }) {
+        const w = where as {
+          id?: string;
+          s3Key?: string;
+          isaControlNumber?: string;
+          tenantId_isaControlNumber?: { tenantId: string; isaControlNumber: string };
+        };
+        if (w.tenantId_isaControlNumber) {
+          const { tenantId, isaControlNumber } = w.tenantId_isaControlNumber;
+          const id = byIsa.get(isaKey(tenantId, isaControlNumber));
+          return id ? rows.get(id)! : null;
+        }
+        if (w.id) return rows.get(w.id) ?? null;
+        if (w.isaControlNumber) {
+          for (const r of rows.values()) {
+            if (r.isaControlNumber === w.isaControlNumber) return r;
+          }
+        }
+        if (w.s3Key) { for (const r of rows.values()) if (r.s3Key === w.s3Key) return r; }
         return null;
       },
       async findMany({ take, skip }: { take?: number; skip?: number } = {}) {

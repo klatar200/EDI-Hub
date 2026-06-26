@@ -6,9 +6,42 @@
 
 **Rule:** Each sprint ends in something demoable or signed off. Operator steps need your AWS + Clerk credentials — the agent prepares code/docs; you run `terraform apply` and dashboard wiring.
 
+**Deferred until core is solid:** Sprint A1/A2 (AWS, live Clerk keys, Secrets Manager) do **not** block product work. Use local `docker-compose` + dev Clerk test keys (or dev-fallback) while fixing core structure. Return to A1 when you're ready to wire staging.
+
 ---
 
-## Sprint A1 — Staging environment (current)
+## Path A-core — Structure first (no AWS required)
+
+Do this **before** collecting production secrets or running `terraform apply`.
+
+| Order | Work | Doc | Needs secrets? |
+|-------|------|-----|----------------|
+| 1 | Production auth guardrails + tenant-scoped ISA dedup | `FIX_PLAN.md` **W1.1, W1.2** | No — **done** |
+| 2 | Green CI (lint + full test suite) | **W2.2, W2.3** | No |
+| 3 | Multi-tenant detection (alerts for all tenants) | **W2.1** | No |
+| 4 | Tenant context hardening + repo hygiene | **W3.3, W3.4** | No |
+| 5 | UI overhaul (lifecycle + alerts readability) | `PHASE_UI_PLAN.md` gates A/B/C | No (local dev) |
+| 6 | Architecture ADRs (queue design, CORS) | **W3.1, W3.2** | No |
+| 7 | Polish | **W4.x** | No |
+
+**Local dev stack** (no AWS):
+
+```bash
+npm run infra:up          # Postgres + MinIO + SFTP
+npm run db:migrate
+npm run dev:api
+npm run dev:web
+```
+
+Clerk test keys in `.env` are optional for API work — dev-fallback pins to the pilot tenant when Clerk is unset.
+
+**When to start AWS:** After W1–W2 are green and you want staging. That's Sprint A1 below — one concentrated secrets-gathering session, not spread across early sprints.
+
+---
+
+## Sprint A1 — Staging environment (deferred)
+
+> **Skip until Path A-core is done** and you are ready to gather AWS + Clerk live/test secrets in one session.
 
 **Goal:** A HTTPS staging API that the web app can talk to, backed by real RDS + S3 + Secrets Manager.
 
@@ -226,6 +259,4 @@ Recruit 1–2 non-employer design partners → feedback loop → first paid cont
 | **Keagan** | AWS creds, `terraform apply`, Secrets Manager values, Clerk dashboard, DNS, smoke tests, drills, business/legal gates |
 | **Agent** | Code fixes, Terraform additions, runbook gaps, UI implementation after gates, CI, tests |
 
-**Start now:** Sprint **A1.0** — install Terraform + AWS CLI, then **A1.2** — fill
-`infra/env/staging.tfvars`, set `$env:TF_VAR_db_master_password` (PowerShell) or
-`export TF_VAR_db_master_password` (bash), run `terraform init` / `apply`.
+**Start now:** Path **A-core** — `FIX_PLAN.md` workstreams W1 → W2 (no AWS). When core is green, resolve UI gates and start Sprint A3. Defer Sprint A1 until you deliberately schedule a deploy week.

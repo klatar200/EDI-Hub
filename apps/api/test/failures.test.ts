@@ -62,12 +62,29 @@ function okPrisma(): PrismaClient {
       async create({ data }: { data: Record<string, unknown> }) {
         const row = { id: String(data.id), ...(data as object) } as { id: string; status: string; isaControlNumber: string | null };
         rows.set(row.id, row);
-        if (row.isaControlNumber) byIsa.set(row.isaControlNumber, row.id);
+        if (row.isaControlNumber) {
+          const tenantId = String((data as { tenantId?: string }).tenantId ?? '');
+          byIsa.set(`${tenantId}:${row.isaControlNumber}`, row.id);
+        }
         return row;
       },
-      async findUnique({ where }: { where: { id?: string; isaControlNumber?: string } }) {
-        if (where.isaControlNumber) { const id = byIsa.get(where.isaControlNumber); return id ? rows.get(id)! : null; }
-        if (where.id) return rows.get(where.id) ?? null;
+      async findUnique({ where }: { where: Record<string, unknown> }) {
+        const w = where as {
+          id?: string;
+          isaControlNumber?: string;
+          tenantId_isaControlNumber?: { tenantId: string; isaControlNumber: string };
+        };
+        if (w.tenantId_isaControlNumber) {
+          const { tenantId, isaControlNumber } = w.tenantId_isaControlNumber;
+          const id = byIsa.get(`${tenantId}:${isaControlNumber}`);
+          return id ? rows.get(id)! : null;
+        }
+        if (w.isaControlNumber) {
+          for (const [key, id] of byIsa) {
+            if (key.endsWith(`:${w.isaControlNumber}`)) return rows.get(id)!;
+          }
+        }
+        if (w.id) return rows.get(w.id) ?? null;
         return null;
       },
       async count() { return rows.size; },

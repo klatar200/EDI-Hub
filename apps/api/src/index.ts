@@ -11,7 +11,7 @@ import { buildServer } from './server.js';
 import { ensureBucket } from './storage/s3.js';
 import { startConfiguredChannels } from './channels/registry.js';
 import { disconnectPrisma } from '@edi/db';
-import { loadConfig } from './config.js';
+import { loadConfig, assertProductionAuthConfig, resolveAuthMode } from './config.js';
 import { applySecretsFromManager } from './services/secrets.js';
 import { readHubConfig, isDesktopHubMode } from './services/hub-config.js';
 import { createJobsAdapter } from './jobs/factory.js';
@@ -26,7 +26,12 @@ async function main(): Promise<void> {
   // no-op (EnvSecretSource just re-reads process.env), so this path is
   // safe to run unconditionally.
   const config = await applySecretsFromManager(loadConfig());
+  assertProductionAuthConfig(config);
   const app = await buildServer({ config });
+  app.log.info(
+    { authMode: resolveAuthMode(config), nodeEnv: config.nodeEnv },
+    'Auth mode active',
+  );
 
   // Dev safety net: make sure the bucket exists locally. On AWS this is a
   // no-op (the Terraform-provisioned bucket already exists). Skipped for the

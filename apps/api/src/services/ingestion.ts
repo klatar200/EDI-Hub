@@ -126,7 +126,10 @@ export async function ingestRawFile(deps: IngestionDeps, input: IngestInput): Pr
   // Guarantees that a DB outage fails fast and never orphans bytes in S3.
   try {
     if (isaControlNumber) {
-      const existing = await deps.prisma.rawFile.findUnique({ where: { isaControlNumber } });
+      const tenantId = tenantContext.requireTenantId();
+      const existing = await deps.prisma.rawFile.findUnique({
+        where: { tenantId_isaControlNumber: { tenantId, isaControlNumber } },
+      });
       if (existing) {
         deps.logger.info(
           { ...baseLog, outcome: 'duplicate', existingId: existing.id, durationMs: Date.now() - startedAt },
