@@ -13,6 +13,7 @@ import type { MenuItemConstructorOptions } from 'electron';
 import { existsSync, mkdirSync } from 'node:fs';
 import { manualCheckForUpdates } from './auto-update.js';
 import { showEnterLicenseKeyMenu } from './license-window.js';
+import { updateLogFilePath } from './update-logger.js';
 
 export function installApplicationMenu(): void {
   const template: MenuItemConstructorOptions[] = [
@@ -64,6 +65,14 @@ export function installApplicationMenu(): void {
             const logsDir = app.getPath('logs');
             if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true });
             void shell.openPath(logsDir);
+          },
+        },
+        {
+          label: 'Open Update Log',
+          click: () => {
+            const logsDir = app.getPath('logs');
+            if (!existsSync(logsDir)) mkdirSync(logsDir, { recursive: true });
+            void shell.openPath(updateLogFilePath());
           },
         },
         { type: 'separator' },
