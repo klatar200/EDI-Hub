@@ -30,13 +30,11 @@ setup('capture clerk session', async ({ page }) => {
   //
   // The recommended UX: sign in, wait until you're sitting on the
   // dashboard (the transactions table is visible), then click Resume.
-  // eslint-disable-next-line no-console
   console.log('[parity-setup] sign in via the open Chromium window, then click "Resume" in the inspector.');
   await page.pause();
 
   // Persist cookies + origin localStorage so the parity specs can load
   // a fully signed-in state.
   await page.context().storageState({ path: join(process.cwd(), STATE_PATH) });
-  // eslint-disable-next-line no-console
   console.log(`[parity-setup] saved storage state to ${STATE_PATH}`);
 });

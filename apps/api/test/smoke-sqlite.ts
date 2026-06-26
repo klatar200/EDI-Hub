@@ -56,7 +56,6 @@ const TENANT_A = '11111111-1111-4111-8111-111111111111';
 const TENANT_B = '22222222-2222-4222-8222-222222222222';
 
 function step(label: string): void {
-  // eslint-disable-next-line no-console
   console.log(`[smoke:sqlite] ${label}`);
 }
 
@@ -219,12 +218,10 @@ async function main(): Promise<void> {
   });
 
   await disconnectPrisma();
-  // eslint-disable-next-line no-console
   console.log('\n[smoke:sqlite] all 10 round-trip checks PASSED');
 }
 
 main().catch(async (err) => {
-  // eslint-disable-next-line no-console
   console.error('\n[smoke:sqlite] FAILED:', err);
   try {
     await disconnectPrisma();

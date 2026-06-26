@@ -84,7 +84,6 @@ export const tenantContext = {
     if (ctx) return ctx.tenantId;
     if (!warnedNoContext) {
       warnedNoContext = true;
-      // eslint-disable-next-line no-console
       console.warn(
         '[tenant-context] requireTenantId() called without a context — falling back to PILOT_TENANT_ID. ' +
         'In production this should never happen; wrap the call in tenantContext.run({ tenantId }, ...).',
