@@ -4,6 +4,8 @@
 > before the first paying external customer can use the hub. Code is in
 > the repo and CI is green — these are the steps that can't be automated
 > by the agent. Check off and date each line as it's done.
+>
+> **Path A sprint map:** `ops/PATH_A_SPRINT_PLAN.md` (staging → M5 → UI → commercialization).
 
 ## Infrastructure apply (per environment)
 

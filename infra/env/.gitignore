@@ -1,0 +1,3 @@
+# Environment-specific Terraform variable files — never commit real IDs or secrets.
+*.tfvars
+!*.tfvars.example
