@@ -4,6 +4,8 @@
  */
 import { test, beforeEach } from 'node:test';
 import assert from 'node:assert/strict';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from '@prisma/client';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
@@ -465,4 +467,30 @@ test('parseAndStore leaves all three timestamps null on unknown direction', asyn
   assert.equal(txn.generatedAt, undefined);
   assert.equal(txn.transmittedAt, undefined);
   assert.equal(txn.confirmedAt, undefined);
+});
+
+const US_FOODS_DIR = join(process.cwd(), '..', '..', 'Test Files', 'lifecycles', 'us-foods', 'group-1');
+
+test('parseAndStore persists poNumber for US Foods pipe-delimited 850/855/810', async () => {
+  const cases: Array<{ file: string; rawId: string; setId: string; po: string; direction: 'inbound' | 'outbound' }> = [
+    { file: '01_850_purchase_order.edi', rawId: 'uf-850', setId: '850', po: '7599901Q', direction: 'inbound' },
+    { file: '02_855_acknowledgment.edi', rawId: 'uf-855', setId: '855', po: '7599901Q', direction: 'outbound' },
+    { file: '03_810_invoice.edi', rawId: 'uf-810', setId: '810', po: '7599901Q', direction: 'outbound' },
+  ];
+
+  for (const c of cases) {
+    const content = readFileSync(join(US_FOODS_DIR, c.file));
+    const state: FakeState = {
+      row: { id: c.rawId, s3Key: `raw/${c.file}`, status: 'RECEIVED', errorMessage: null },
+      interchanges: new Map(),
+      deletes: 0,
+    };
+    const deps = makeDeps(content, state, ['7085892400']);
+    const result = await parseAndStore(deps, { rawFileId: c.rawId, content });
+    assert.equal(result.outcome, 'parsed', c.file);
+    const txn = firstTxn(state);
+    assert.equal(txn.transactionSetId, c.setId, c.file);
+    assert.equal(txn.poNumber, c.po, c.file);
+    assert.equal(txn.direction, c.direction, c.file);
+  }
 });

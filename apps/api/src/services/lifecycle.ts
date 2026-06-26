@@ -21,6 +21,10 @@
  */
 import type { PrismaClient } from '@prisma/client';
 import {
+  extractBusinessKeys,
+  type DecomposedTransaction,
+} from '@edi/edi-parser';
+import {
   DEFAULT_GROCERY_FLOW,
   DEFAULT_STANDARD_FLOW,
   deriveOutboundStage,
@@ -36,6 +40,12 @@ import {
 } from '@edi/shared';
 import { resolvePartnerByIsa } from './partners.js';
 import { applyAckOverrides } from './ack-decoder.js';
+
+/** Sets that carry a PO reference in BAK/BIG/BCH when the indexed column is
+ *  missing (e.g. files parsed before Phase 4 backfill, or a transient ingest
+ *  bug). Lifecycle re-derives the PO from segments for these on the same
+ *  trading-partner pair before declaring a gap. */
+const ORPHAN_PO_SETS = ['855', '810', '856', '860', '880'] as const;
 
 // ─────────────────────────────────────────────────────────────
 // Seed flows. Intentionally data, not code branches — Phase 6
@@ -233,6 +243,67 @@ const INCLUDE = {
   functionalGroup: { include: { interchange: { include: { rawFile: true } } } },
 } as const;
 
+const INCLUDE_WITH_SEGMENTS = {
+  ...INCLUDE,
+  segments: { include: { elements: true } },
+} as const;
+
+interface SegmentElementRow { index: number; value: string }
+interface SegmentRow { tag: string; position: number; elements: SegmentElementRow[] }
+type TxnRowWithSegments = TxnRow & { segments: SegmentRow[] };
+
+function toDecomposed(row: TxnRowWithSegments): DecomposedTransaction {
+  const segments = [...row.segments]
+    .sort((a, b) => a.position - b.position)
+    .map((s) => ({
+      tag: s.tag,
+      position: s.position,
+      elements: [...s.elements].sort((a, b) => a.index - b.index).map((e) => ({ index: e.index, value: e.value })),
+    }));
+  return {
+    transactionSetId: row.transactionSetId,
+    controlNumber: row.controlNumber,
+    declaredSegmentCount: null,
+    segmentCount: segments.length,
+    segments,
+  };
+}
+
+/** Pick up same-partner transactions whose `po_number` column is null but
+ *  whose BAK/BIG/BCH segment still references the spine PO. */
+async function stitchOrphanTransactions(
+  prisma: PrismaClient,
+  spine: ResolvedSpine,
+  anchor: TxnRow,
+  knownIds: ReadonlySet<string>,
+): Promise<TxnRow[]> {
+  const senderId = anchor.functionalGroup.interchange.senderId;
+  const receiverId = anchor.functionalGroup.interchange.receiverId;
+  const candidates = (await prisma.transaction.findMany({
+    where: {
+      ...(knownIds.size > 0 ? { id: { notIn: [...knownIds] } } : {}),
+      poNumber: null,
+      transactionSetId: { in: [...ORPHAN_PO_SETS] },
+      functionalGroup: {
+        interchange: {
+          OR: [
+            { senderId, receiverId },
+            { senderId: receiverId, receiverId: senderId },
+          ],
+        },
+      },
+    },
+    include: INCLUDE_WITH_SEGMENTS,
+  })) as unknown as TxnRowWithSegments[];
+
+  const matched: TxnRow[] = [];
+  for (const row of candidates) {
+    const keys = extractBusinessKeys(toDecomposed(row));
+    if (keys.poNumber === spine.po) matched.push(row);
+  }
+  return matched;
+}
+
 export interface GetLifecycleOptions {
   /** OUR_ISA_IDS — used to resolve the trading partner from the interchange
    *  pair so we can apply their configured lifecycle flow if any. */
@@ -255,6 +326,16 @@ export async function getLifecycle(
   })) as unknown as TxnRow[];
 
   if (poTxns.length === 0) return null;
+
+  // Rows indexed by po_number miss outbound docs when the column was never
+  // backfilled. Re-derive from segments for the same partner pair.
+  const stitchAnchor =
+    poTxns.find((t) => t.transactionSetId !== '997' && t.transactionSetId !== '999') ?? poTxns[0];
+  if (stitchAnchor) {
+    const known = new Set(poTxns.map((t) => t.id));
+    const orphans = await stitchOrphanTransactions(prisma, spine, stitchAnchor, known);
+    poTxns.push(...orphans);
+  }
 
   // Find 997s/999s that ack any of these PO transactions: those whose
   // ackedGroupControl matches one of the PO transactions' group controls.
