@@ -4,7 +4,7 @@
 **Last updated:** 2026-06-25  
 **Status:** Phases **0–10 code-complete** in the repo. **Path A-core remediation** (FIX_PLAN W1–W2, W3.3, W3.4) complete. **Production deploy and first external customer** not yet done.
 
-> **This is the only planning document.** All content from §11 Clerk setup, §14 Desktop architecture, §15 Desktop sprint plan, `PHASE_10_SPRINT_PLAN.md`, §7 UI overhaul, §12 Security checklist, §13 Remediation, §9 Path A deploy track, and §10 Pre-production checklist lives in this file. Those paths are redirect stubs only — edit here.
+> **This is the only planning document.** All product planning, operator checklists, security sign-off, remediation items, deploy steps, Clerk setup, UI gates, Phase 10 detail, and desktop track plans live in this file. Former standalone files (`CLERK_SETUP.md`, `DESKTOP_PLAN.md`, etc.) are redirect stubs — edit here only.
 
 ---
 
