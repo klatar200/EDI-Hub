@@ -29,9 +29,11 @@ import {
   setUpdateSplashError,
   setUpdateSplashInstalling,
 } from './update-splash.js';
+import { mergeDownloadPercent } from './auto-update-progress.js';
 import { isNewerVersion } from './version-compare.js';
 
 export { isNewerVersion } from './version-compare.js';
+export { mergeDownloadPercent } from './auto-update-progress.js';
 
 interface PersistedConfig {
   pendingWhatsNew?: string;
@@ -60,6 +62,13 @@ function writeConfig(next: PersistedConfig): void {
   writeFileSync(path, JSON.stringify(next, null, 2), 'utf8');
 }
 
+/** NSIS passes `--updated` on relaunch; we also set pendingWhatsNew before quit. */
+export function isPostUpdateRelaunch(argv: readonly string[] = process.argv): boolean {
+  if (argv.includes('--updated')) return true;
+  const pending = readConfig().pendingWhatsNew;
+  return pending != null && pending === app.getVersion();
+}
+
 /** Main process calls this before `quitAndInstall` so shutdown hooks stand aside. */
 export function isQuittingForUpdate(): boolean {
   return quittingForUpdate;
@@ -73,8 +82,7 @@ function configureUpdaterOnce(): void {
   autoUpdater.autoInstallOnAppQuit = false;
   autoUpdater.autoRunAppAfterInstall = true;
   autoUpdater.disableWebInstaller = true;
-  // Differential download often fails on unsigned builds, then restarts the
-  // progress bar at 0% for a full installer pull — confusing and slower.
+  // Belt-and-suspenders with electron-builder `differentialPackage: false`.
   autoUpdater.disableDifferentialDownload = true;
 
   autoUpdater.on('error', (err: Error) => {
@@ -114,14 +122,9 @@ async function downloadAndInstall(version: string, splashAlreadyOpen = false): P
 
   let peakPercent = 0;
   const onProgress = (progress: ProgressInfo): void => {
-    // If electron-updater retries with a full installer, percent snaps back
-    // toward 0 — keep the bar monotonic and explain the second pass.
-    if (progress.percent < peakPercent - 2) {
-      setUpdateSplashDownloading(version, progress.percent, 'Finishing download…');
-    } else {
-      peakPercent = Math.max(peakPercent, progress.percent);
-      setUpdateSplashDownloading(version, peakPercent);
-    }
+    const merged = mergeDownloadPercent(peakPercent, progress.percent);
+    peakPercent = merged.peakPercent;
+    setUpdateSplashDownloading(version, peakPercent, merged.hint);
   };
 
   autoUpdater.on('download-progress', onProgress);
@@ -153,6 +156,11 @@ async function downloadAndInstall(version: string, splashAlreadyOpen = false): P
 export async function runStartupUpdateGate(): Promise<'continue'> {
   if (!app.isPackaged) {
     console.log('[edi-hub] auto-update: dev mode, skipping startup gate');
+    return 'continue';
+  }
+
+  if (isPostUpdateRelaunch()) {
+    console.log('[edi-hub] auto-update: post-update relaunch, skipping startup gate');
     return 'continue';
   }
 
