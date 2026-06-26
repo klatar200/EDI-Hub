@@ -94,6 +94,18 @@ opens today's file. Share that file (or paste its contents) when reporting
 update issues — it records check/download/install phases, electron-updater
 internals, percent drops, and post-update boot timing.
 
+**v0.0.23-alpha+** applies updates with a **visible NSIS progress window**
+(non-silent) after download. v0.0.22 and earlier used silent `/S` apply,
+which hid all UI for several minutes while the old install was removed —
+the Start Menu shortcut stopped working until NSIS finished.
+
+**Expected update timeline (v0.0.23+):**
+
+1. In-app download progress (~10–30s for ~130MB)
+2. Brief “Installing…” message, then EDI Hub closes
+3. **Installer progress window** while files are replaced (~3–6 min) — shortcut may not work during this step
+4. EDI Hub reopens automatically; `install_complete` in the update log records `gapMs`
+
 **Symptom:** After updating, EDI Hub fails to launch with
 `Cannot find module 'electron-updater'`.
 

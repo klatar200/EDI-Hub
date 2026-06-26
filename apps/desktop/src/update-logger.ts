@@ -24,6 +24,8 @@ export type UpdateLogEvent =
   | 'download_progress'
   | 'download_complete'
   | 'install_begin'
+  | 'install_handoff'
+  | 'install_complete'
   | 'install_quit'
   | 'manual_check'
   | 'manual_confirm'

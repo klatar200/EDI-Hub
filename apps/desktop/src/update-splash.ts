@@ -175,7 +175,11 @@ export function setUpdateSplashInstalling(version: string): void {
   pushState({
     phase: 'installing',
     title: 'Installing update',
-    message: `Installing <span class="version">v${version}</span>. EDI Hub will restart automatically.`,
+    message:
+      `Installing <span class="version">v${version}</span>.<br><br>` +
+      'EDI Hub will close and an <strong>installer progress window</strong> will take over. ' +
+      'Replacing files can take several minutes — your Start Menu shortcut may not work ' +
+      'until it finishes, then EDI Hub will reopen automatically.',
   });
 }
 

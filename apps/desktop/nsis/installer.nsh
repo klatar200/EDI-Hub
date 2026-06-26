@@ -1,16 +1,9 @@
-; Hide the NSIS progress window during electron-updater silent apply (/S).
-; One-click installers still create an MUI instfiles page; without this the
-; user sees a second "EDI Hub Setup" progress bar after our in-app download UI.
+; Auto-updates call quitAndInstall(false, true) — no /S flag — so the
+; one-click SpiderBanner shows file-extract progress during the multi-minute
+; apply. Only set auto-close for optional manual silent CLI installs.
 
 !macro customInit
   ${If} ${Silent}
     SetAutoClose true
-    ShowWindow $HWNDPARENT ${SW_HIDE}
-  ${EndIf}
-!macroend
-
-!macro customInstall
-  ${If} ${Silent}
-    ShowWindow $HWNDPARENT ${SW_HIDE}
   ${EndIf}
 !macroend

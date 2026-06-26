@@ -34,6 +34,7 @@ import {
   logUpdate,
   resetDownloadProgressLogging,
 } from './update-logger.js';
+import { consumeInstallHandoff, writeInstallHandoff } from './install-handoff.js';
 
 export { isNewerVersion } from './version-compare.js';
 export { mergeDownloadPercent } from './auto-update-progress.js';
@@ -143,18 +144,24 @@ function markPendingWhatsNew(version: string): void {
   logUpdate('install_begin', { pendingWhatsNew: version, configPath: configPath() });
 }
 
-function installDownloadedUpdate(version: string): void {
+async function installDownloadedUpdate(version: string): Promise<void> {
   logUpdate('install_quit', {
     targetVersion: version,
-    isSilent: true,
+    isSilent: false,
     isForceRunAfter: true,
     quittingForUpdate: true,
   });
   console.log(`[edi-hub] auto-update: installing v${version}`);
   setUpdateSplashInstalling(version);
   markPendingWhatsNew(version);
+  writeInstallHandoff(version);
   quittingForUpdate = true;
-  autoUpdater.quitAndInstall(true, true);
+  // Brief pause so the handoff message is readable before our window closes.
+  await sleep(2500);
+  // Non-silent NSIS — shows the one-click extract progress bar for the
+  // ~minutes spent replacing files. Silent (/S) hid that UI entirely and
+  // left users with a dead shortcut and no feedback.
+  autoUpdater.quitAndInstall(false, true);
 }
 
 async function sleep(ms: number): Promise<void> {
@@ -201,7 +208,7 @@ async function downloadAndInstall(version: string, splashAlreadyOpen = false): P
     autoUpdater.removeListener('download-progress', onProgress);
     logUpdate('download_complete', { targetVersion: version, peakPercent });
 
-    installDownloadedUpdate(version);
+    await installDownloadedUpdate(version);
     await sleep(60_000);
   } catch (err) {
     autoUpdater.removeListener('download-progress', onProgress);
@@ -227,6 +234,7 @@ export async function runStartupUpdateGate(): Promise<'continue'> {
   }
 
   if (isPostUpdateRelaunch()) {
+    consumeInstallHandoff();
     logUpdate('post_update_skip', {
       argv: process.argv,
       pendingWhatsNew: readConfig().pendingWhatsNew,
