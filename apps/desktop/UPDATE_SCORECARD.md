@@ -14,7 +14,7 @@ Grades each fix round against what a user on Windows actually experienced.
 | 5 | 0.0.21 | `electron-updater` forced into package + CI pack verify | **Fail→Partial** | `Cannot find module 'electron-updater'` after update until manual reinstall |
 | 6 | 0.0.22 | Version bump (test target) | **N/A** | Stepping-stone release; still ran 0.0.21 updater code paths |
 | 7 | 0.0.23 | `quitAndInstall(false,true)`, install handoff, splash copy | **Fail** (for 0.0.22→0.0.23) | User still saw `/S` silent install because **updater runs from the installed app (0.0.22), not the target (0.0.23)**. ~5m22s dead zone, JS error on dead shortcut, eventual success on 0.0.23 |
-| 8 | 0.0.24 | CI `verify-update-behavior.mjs` + unit tests; test release from 0.0.23 | **Pending** | First release where installed code should log `isSilent:false`, no `/S`, `install_handoff` + `install_complete` |
+| 8 | 0.0.24 | CI `verify-update-behavior.mjs` + unit tests; test release from 0.0.23 | **Pass** | 0.0.23→0.0.24 log: `isSilent:false`, args `--updated,--force-run` (no `/S`), `install_handoff` + `install_complete` (`gapMs`: 303758), clean boot to 0.0.24-alpha, `whats_new` shown. No JS error reported. |
 
 ## Root cause the scorecard exposes
 
@@ -47,12 +47,18 @@ Before any future desktop release ships:
 4. During apply you should see an **NSIS installer progress window** (not a blank multi-minute wait).
 5. Do **not** click the Start Menu shortcut until the installer window closes — it points at a missing exe mid-apply (this is the likely JS error source).
 
-## Agent self-grade for round 8 (pre-user test)
+## Round 8 user validation (0.0.23 → 0.0.24, 2026-06-26)
 
-| Check | Result |
-|-------|--------|
-| `verify-update-behavior.mjs` passes on built `dist/auto-update.js` | Run in CI |
-| Unit tests pass | Run in CI |
-| Version bumped to 0.0.24-alpha | Yes |
-| RELEASE.md documents N→N+1 constraint | Yes |
-| Cannot run Windows NSIS end-to-end in Linux agent | **Limitation** — static + unit tests only; user validates live apply |
+| Criterion | Log evidence | Result |
+|-----------|--------------|--------|
+| Non-silent install | `install_quit` → `"isSilent":false`; updater `Install: isSilent: false` | ✅ |
+| No `/S` flag | `Executing: ... args: --updated,--force-run` | ✅ |
+| Install handoff | `install_handoff` at 20:15:23.590Z | ✅ |
+| Install complete timing | `install_complete` → `gapMs: 303758` (~5m 4s) | ✅ |
+| Successful relaunch | `session_start` → `appVersion":"0.0.24-alpha"` with `--updated` | ✅ |
+| Post-update UX | `whats_new` for 0.0.24-alpha | ✅ |
+| No module crash | No `electron-updater` or JS error in log | ✅ |
+
+**Timeline:** download ~3s → 2.5s install splash → NSIS apply ~5m 4s → boot ~80s → window ready.
+
+Compare to round 7 (0.0.22→0.0.23): same ~5m apply duration, but round 7 used silent `/S` with no handoff logging and a reported JS error on the dead shortcut.
