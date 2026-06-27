@@ -17,6 +17,7 @@ import type {
   ApiErrorResponse,
   PartnerConfigInput,
   PartnerConfigListResponse,
+  SegmentLabelOverrides,
   TradingPartnerRecord,
 } from '@edi/shared';
 import { tenantContext } from '@edi/db';
@@ -100,7 +101,7 @@ function readInput(body: unknown): PartnerConfigInput {
       ? (body.ackCodeOverrides as Record<string, unknown>)
       : undefined,
     segmentLabelOverrides: isObject(body.segmentLabelOverrides)
-      ? (body.segmentLabelOverrides as import('@edi/shared').SegmentLabelOverrides)
+      ? (body.segmentLabelOverrides as SegmentLabelOverrides)
       : undefined,
     slaWindows: Array.isArray(body.slaWindows)
       ? (body.slaWindows as unknown[]).filter(isObject).map((w) => ({

@@ -19,13 +19,20 @@ export function SettingsPage(): JSX.Element {
     mutationFn: (input: TenantSettingsPatch) => api.settings.patch(input),
     onSuccess: () => {
       void qc.invalidateQueries({ queryKey: ['settings'] });
-      toast.show('Settings saved');
+      toast.success('Settings saved');
     },
-    onError: () => toast.show('Could not save settings', 'error'),
+    onError: () => toast.error('Could not save settings'),
   });
 
-  if (q.isLoading) return <Skeleton className="h-40" />;
-  if (q.isError || !q.data) return <ErrorState message="Could not load settings." onRetry={() => void q.refetch()} />;
+  if (q.isLoading) return <Skeleton.Table rows={4} columnWidths={['100%']} />;
+  if (q.isError || !q.data) {
+    return (
+      <ErrorState
+        title="Could not load settings"
+        action={<button type="button" className="btn" onClick={() => void q.refetch()}>Retry</button>}
+      />
+    );
+  }
 
   const s = q.data.settings;
   const canEdit = q.data.canEdit;
