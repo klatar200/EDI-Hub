@@ -99,11 +99,34 @@ Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.m
 
 ---
 
-## 6. Active product backlog
+## 6. Product sprints (lifecycle-first)
 
-Approved product features (pending sprint grouping) → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
+Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 
-_Next planning step:_ finish Round 2 review in `PRODUCT_BACKLOG.md`, then group into sprints._
+| Sprint | Focus | Backlog IDs | Status |
+|--------|--------|-------------|--------|
+| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ Done |
+| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ Done |
+| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ Done |
+| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ Done |
+| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ Done |
+| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ Done |
+| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Done |
+| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Done |
+| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Done |
+| **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Done |
+| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Done |
+| **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Done |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Done |
+
+**PS-1 deliverables (reference):**
+
+- `GET /api/lifecycles` — paginated `LifecycleSummary[]` (default sort: `startedAt` desc)
+- `/` → `LifecyclesPage`; `/transactions` → secondary drill-down
+- Row summary: partner, flow, status counts, alert badge, parse-error badge (F32)
+- Expand stub loads `GET /lifecycle?po=` on row expand (full UX in PS-2)
+
+Approved features not yet grouped or deferred → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 
 ---
 
