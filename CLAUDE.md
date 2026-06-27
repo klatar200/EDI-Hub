@@ -4,7 +4,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EDI Data Hub — an EDI observability platform. Ingests inbound and outbound X12 EDI transactions, decomposes them into structured data, and presents a single hub for monitoring, searching, troubleshooting, and alerting. Read `BUILD_PLAN.md` for the full product roadmap and phase plan.
+EDI Data Hub — an EDI observability platform. Ingests inbound and outbound X12 EDI transactions, decomposes them into structured data, and presents a single hub for monitoring, searching, troubleshooting, and alerting. Read `BUILD_PLAN.md` for the active roadmap; `README.md` for shipped features; `FUTURE_FEATURES.md` for optional/deferred work.
 
 **North Star:** Transaction lifecycle stitching — pull up a PO number and see the 850, 855, 856, 810, and all 997s in one chronological view.
 
