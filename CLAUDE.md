@@ -76,6 +76,12 @@ Core tables:
 
 ---
 
+## Git workflow (Cursor agents)
+
+**Direct to `main` — no PRs.** All Cursor agent work commits and pushes straight to `main`. Do not create feature branches or pull requests. See `.cursor/rules/direct-to-main.mdc` for the full rule. CI on push to `main` is the quality gate.
+
+---
+
 ## Commands
 
 > Commands will be added here as the project is scaffolded. Below are the intended patterns.
