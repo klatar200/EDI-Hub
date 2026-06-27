@@ -1,0 +1,14 @@
+node_modules
+**/node_modules
+**/dist
+.git
+.github
+*.md
+.env
+.env.*
+apps/desktop
+ops
+infra/openas2
+playwright-report
+test-results
+.cursor

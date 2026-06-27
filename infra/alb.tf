@@ -126,7 +126,7 @@ resource "aws_lb_target_group" "api" {
   vpc_id      = var.vpc_id
 
   health_check {
-    path                = "/health"
+    path                = "/readiness"
     matcher             = "200"
     healthy_threshold   = 2
     unhealthy_threshold = 3

@@ -254,7 +254,14 @@ Full Clerk steps → [§11](#11-clerk-setup).
 
 #### API + web deploy
 
-Terraform covers data plane (RDS, S3, ALB, secrets). Wire ECS/ECR or your container pattern; ALB health check `/readiness`; deploy web static assets.
+**Codified in repo (operator applies to AWS):**
+
+- [`Dockerfile`](../Dockerfile) — production API + React bundle (ADR 0002 same-origin)
+- [`infra/ecs.tf`](../infra/ecs.tf) — ECR, Fargate cluster, task definition, service, IAM
+- [`infra/api-container/README.md`](../infra/api-container/README.md) — build/push runbook
+- [`.github/workflows/deploy-api.yml`](../.github/workflows/deploy-api.yml) — optional CI push to ECR
+
+**Operator steps:** build image with `VITE_CLERK_PUBLISHABLE_KEY`, push to ECR (`api_ecr_repository_url` output), set `api_image` + `clerk_publishable_key` in tfvars, `terraform apply`. ALB health check → `/readiness`; leave `CORS_ALLOWED_ORIGINS` unset.
 
 #### Smoke test
 
