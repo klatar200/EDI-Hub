@@ -201,12 +201,20 @@ function makePrisma(store: IsoStore): PrismaClient {
       store.audits.push(row);
       return clone(row);
     },
-    async findMany({ where = {} }: { where?: Record<string, unknown> } = {}) {
+    async findMany({ where = {}, take, skip }: { where?: Record<string, unknown>; take?: number; skip?: number } = {}) {
       // Audit list also tenant-filters.
       let rows = filterByTenant(store.audits, where);
       if (typeof where.action === 'string') rows = rows.filter((r) => r.action === where.action);
       rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      return rows.map((r) => clone(r)!);
+      const sliced = typeof take === 'number'
+        ? rows.slice(skip ?? 0, (skip ?? 0) + take)
+        : rows;
+      return sliced.map((r) => clone(r)!);
+    },
+    async count({ where = {} }: { where?: Record<string, unknown> } = {}) {
+      let rows = filterByTenant(store.audits, where);
+      if (typeof where.action === 'string') rows = rows.filter((r) => r.action === where.action);
+      return rows.length;
     },
   };
 

@@ -360,8 +360,13 @@ export const api = {
     a.remove();
     URL.revokeObjectURL(url);
   },
-  exportLifecyclesZip: (pos: string[]) =>
-    api.exportLifecyclesCsv({ pos, format: 'zip', includeFormats: ['txt', 'csv', 'pdf'] }),
+  exportLifecyclesZip: (pos: string[], opts?: { includeRaw?: boolean }) =>
+    api.exportLifecyclesCsv({
+      pos,
+      format: 'zip',
+      includeFormats: ['txt', 'csv', 'pdf'],
+      includeRaw: opts?.includeRaw,
+    }),
 };
 
 export type { TransactionSummary };

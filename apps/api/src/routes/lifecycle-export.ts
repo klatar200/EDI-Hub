@@ -82,7 +82,14 @@ export async function lifecycleExportRoutes(
         const include = request.body?.includeFormats?.length
           ? request.body.includeFormats.filter((f): f is 'txt' | 'csv' | 'pdf' => f === 'txt' || f === 'csv' || f === 'pdf')
           : (['txt', 'csv', 'pdf'] as const);
-        const zip = await buildLifecycleExportZip(app.prisma, pos, ourIsaIds, [...include]);
+        const zip = await buildLifecycleExportZip({
+          prisma: app.prisma,
+          pos,
+          ourIsaIds,
+          formats: [...include],
+          includeRaw: request.body?.includeRaw === true,
+          storage: app.storage,
+        });
         return reply
           .header('Content-Type', 'application/zip')
           .header('Content-Disposition', 'attachment; filename="lifecycles-export.zip"')

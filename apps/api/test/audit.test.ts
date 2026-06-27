@@ -180,6 +180,16 @@ function makePrisma(store: FakeStore): PrismaClient {
     },
   };
 
+  const filterAudits = (where: Record<string, unknown> = {}) => {
+    let rows = [...store.audits];
+    if (typeof where.action === 'string') rows = rows.filter((r) => r.action === where.action);
+    if (typeof where.actorId === 'string') rows = rows.filter((r) => r.actorId === where.actorId);
+    const range = where.createdAt as { gte?: Date; lte?: Date } | undefined;
+    if (range?.gte) rows = rows.filter((r) => r.createdAt.getTime() >= range.gte!.getTime());
+    if (range?.lte) rows = rows.filter((r) => r.createdAt.getTime() <= range.lte!.getTime());
+    return rows;
+  };
+
   const auditModel = {
     async create({ data }: { data: Record<string, unknown> }) {
       const row: CapturedAudit = {
@@ -205,15 +215,12 @@ function makePrisma(store: FakeStore): PrismaClient {
       take?: number;
       skip?: number;
     } = {}) {
-      let rows = [...store.audits];
-      if (typeof where.action === 'string') rows = rows.filter((r) => r.action === where.action);
-      if (typeof where.actorId === 'string') rows = rows.filter((r) => r.actorId === where.actorId);
-      const range = where.createdAt as { gte?: Date; lte?: Date } | undefined;
-      if (range?.gte) rows = rows.filter((r) => r.createdAt.getTime() >= range.gte!.getTime());
-      if (range?.lte) rows = rows.filter((r) => r.createdAt.getTime() <= range.lte!.getTime());
-      // Most-recent-first ordering, matching the route.
+      const rows = filterAudits(where);
       rows.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
       return rows.slice(skip, skip + take);
+    },
+    async count({ where = {} }: { where?: Record<string, unknown> } = {}) {
+      return filterAudits(where).length;
     },
   };
 
@@ -356,8 +363,9 @@ test('GET /audit returns audit rows newest-first', async () => {
   }
   const list = await app.inject({ method: 'GET', url: '/api/audit' });
   assert.equal(list.statusCode, 200);
-  const body = list.json() as { items: Array<{ action: string }>; count: number };
+  const body = list.json() as { items: Array<{ action: string }>; count: number; total: number };
   assert.equal(body.count, 3);
+  assert.equal(body.total, 3);
   // All three should be partner.create. The route orders by createdAt DESC.
   for (const item of body.items) assert.equal(item.action, 'partner.create');
   await app.close();

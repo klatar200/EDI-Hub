@@ -1,11 +1,12 @@
 /**
- * PS-11 F57 — build a ZIP of lifecycle exports (txt/csv/pdf per PO).
+ * PS-11 F57 / PB-6 F58 — build a ZIP of lifecycle exports (txt/csv/pdf + optional raw EDI).
  */
 import { createRequire } from 'node:module';
 import { PassThrough } from 'node:stream';
 import type { Archiver } from 'archiver';
 import type { PrismaClient } from '@prisma/client';
-import type { LifecycleExportFormat } from '@edi/shared';
+import type { LifecycleExportFormat, LifecycleResponse } from '@edi/shared';
+import type { StorageAdapter } from '../storage/interface.js';
 import { getLifecycle } from './lifecycle.js';
 import { lifecycleToCsv, lifecycleToPdf, lifecycleToTxt } from './lifecycle-export-format.js';
 
@@ -16,11 +17,15 @@ function safePoName(po: string): string {
   return po.replace(/[^\w.-]+/g, '_');
 }
 
+function safeFilePart(value: string): string {
+  return value.replace(/[^\w.-]+/g, '_') || 'file';
+}
+
 function appendLifecycleFormats(
   archive: Archiver,
   po: string,
   formats: LifecycleExportFormat[],
-  lc: Awaited<ReturnType<typeof getLifecycle>>,
+  lc: LifecycleResponse | null,
 ): void {
   if (!lc) return;
   const dir = safePoName(po);
@@ -35,12 +40,61 @@ function appendLifecycleFormats(
   }
 }
 
-export async function buildLifecycleExportZip(
+/** Collect unique raw files referenced by lifecycle events. */
+export function rawFileRefsFromLifecycle(lc: LifecycleResponse): Array<{
+  rawFileId: string;
+  setId: string;
+  controlNumber: string | null;
+}> {
+  const seen = new Set<string>();
+  const refs: Array<{ rawFileId: string; setId: string; controlNumber: string | null }> = [];
+  for (const e of lc.events) {
+    if (e.kind !== 'transaction' || !e.rawFileId || seen.has(e.rawFileId)) continue;
+    seen.add(e.rawFileId);
+    refs.push({
+      rawFileId: e.rawFileId,
+      setId: e.transactionSetId,
+      controlNumber: e.controlNumber,
+    });
+  }
+  return refs;
+}
+
+export async function appendRawEdiToArchive(
+  archive: Archiver,
+  po: string,
+  lc: LifecycleResponse | null,
   prisma: PrismaClient,
-  pos: string[],
-  ourIsaIds: string[],
-  formats: LifecycleExportFormat[],
+  storage: StorageAdapter,
+): Promise<void> {
+  if (!lc) return;
+  const dir = safePoName(po);
+  const refs = rawFileRefsFromLifecycle(lc);
+  for (const ref of refs) {
+    const row = await prisma.rawFile.findUnique({
+      where: { id: ref.rawFileId },
+      select: { s3Key: true },
+    });
+    if (!row?.s3Key) continue;
+    const bytes = await storage.download(row.s3Key);
+    const name = `${dir}/raw/${safeFilePart(ref.setId)}-${safeFilePart(ref.controlNumber ?? ref.rawFileId)}.edi`;
+    archive.append(bytes, { name });
+  }
+}
+
+export interface BuildLifecycleExportZipOptions {
+  prisma: PrismaClient;
+  pos: string[];
+  ourIsaIds: string[];
+  formats: LifecycleExportFormat[];
+  includeRaw?: boolean;
+  storage?: StorageAdapter;
+}
+
+export async function buildLifecycleExportZip(
+  options: BuildLifecycleExportZipOptions,
 ): Promise<Buffer> {
+  const { prisma, pos, ourIsaIds, formats, includeRaw, storage } = options;
   const archive = archiver('zip', { zlib: { level: 9 } });
   const done = new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = [];
@@ -55,6 +109,9 @@ export async function buildLifecycleExportZip(
   for (const po of pos) {
     const lc = await getLifecycle(prisma, { po }, { ourIsaIds });
     appendLifecycleFormats(archive, po, formats, lc);
+    if (includeRaw && storage && lc) {
+      await appendRawEdiToArchive(archive, po, lc, prisma, storage);
+    }
   }
 
   await archive.finalize();

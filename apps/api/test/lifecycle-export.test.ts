@@ -10,6 +10,7 @@ import {
   lifecycleToPdf,
   lifecycleToTxt,
 } from '../src/services/lifecycle-export-format.js';
+import { rawFileRefsFromLifecycle } from '../src/services/lifecycle-export-zip.js';
 import { buildServer } from '../src/server.js';
 import type { AppConfig } from '../src/config.js';
 import type { S3Client } from '@aws-sdk/client-s3';
@@ -114,6 +115,13 @@ const config = {
 } as AppConfig;
 
 const fakeS3 = { config: { requestHandler: {}, maxAttempts: 1, endpointProvider: () => ({ url: new URL('http://localhost:9000') }) }, async send() { return {}; } } as unknown as S3Client;
+
+test('rawFileRefsFromLifecycle dedupes raw file ids', () => {
+  const refs = rawFileRefsFromLifecycle(SAMPLE);
+  assert.equal(refs.length, 1);
+  assert.equal(refs[0]!.rawFileId, 'r-1');
+  assert.equal(refs[0]!.setId, '850');
+});
 
 test('GET /lifecycles/:po/export rejects bad format', async () => {
   const app = await buildServer({ config, s3: fakeS3 });

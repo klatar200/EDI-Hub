@@ -23,7 +23,7 @@
 | F19 | Dictionary override UI | ✅ | — |
 | F20 | Theme toggle in settings | ✅ | — |
 | F21 | Extended transaction sets | ⚠️ | PB-7 |
-| F22 | Audit log viewer | ⚠️ | PB-6 |
+| F22 | Audit log viewer | ✅ | PB-6 |
 | F25 | Expand-in-place lifecycle | ✅ | — |
 | F26 | Lifecycle list filters | ✅ | — |
 | F27 | Conversation due dates | ❌ | PB-8 (optional) |
@@ -53,9 +53,9 @@
 | F53 | Duplicate file explanation | 🔜 | PB-2 |
 | F54 | Retry parse | ⚠️ | PB-2 |
 | F55 | Raw download from expand | ✅ | — |
-| F56 | Ops notes on lifecycle | ⚠️ | PB-6 |
+| F56 | Ops notes on lifecycle | ✅ | PB-6 |
 | F57 | Bulk export | ✅ | — |
-| F58 | Export includes raw EDI | ❌ | PB-6 |
+| F58 | Export includes raw EDI | ✅ | PB-6 |
 | F59 | Transaction set glossary | ✅ | — |
 | F60 | Parser improvement feedback | 🔜 | PB-2 |
 | F61 | Help menu docs | ✅ | — |

@@ -1,0 +1,29 @@
+---
+description: Agents must confirm GitHub Actions CI passed on main before declaring work complete or starting the next sprint.
+alwaysApply: true
+---
+
+# Verify GitHub CI before moving on (mandatory)
+
+Local `npm run test:ci` is necessary but **not sufficient**. Before finishing a task, starting the next backlog sprint, or telling the user work is done:
+
+1. **Push to `origin main`** (per direct-to-main workflow).
+2. **Watch the GitHub Actions `CI` workflow** for that push:
+   - `gh run list --branch main --limit 3`
+   - `gh run watch <run-id> --exit-status`
+   - On failure: `gh run view <run-id> --log-failed` — fix on `main`, push again, repeat.
+3. **Do not proceed** until the latest `main` CI run is **success** (both `Typecheck, Lint & Test` and `Playwright UI parity` jobs, unless parity is skipped via missing secret).
+
+## Local pre-push gate
+
+Run before every push:
+
+```bash
+npm run test:ci
+```
+
+`test:ci` mirrors the CI build job: `db:generate`, `typecheck`, `lint`, all workspace tests, and `apps/web` production build.
+
+## When CI fails after push
+
+Fix on `main`, commit, push, and re-verify GitHub CI. Do not batch unrelated backlog work on a broken tree.

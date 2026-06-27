@@ -13,7 +13,7 @@ All Cursor agent work in this repository ships **directly to `main`**. Do not us
 2. **Implement on `main`.** Do not create `cursor/*` branches or any other feature branch for agent work.
 3. **Commit on `main`** with clear, descriptive commit messages.
 4. **Push to `origin main`:** `git push origin main`
-5. **CI is the gate.** The `CI` workflow runs on every push to `main` (typecheck, lint, tests). Fix failures on `main` and push again.
+5. **CI is the gate.** The `CI` workflow runs on every push to `main` (typecheck, lint, tests). Fix failures on `main` and push again. See `.cursor/rules/verify-github-ci.mdc` — agents must confirm GitHub Actions passed before declaring work complete.
 
 ## Forbidden
 

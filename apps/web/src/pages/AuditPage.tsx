@@ -1,9 +1,10 @@
 /**
- * PS-11 — Admin audit log viewer (F22).
+ * PS-11 / PB-6 F22 — Admin audit log viewer with before/after diff.
  */
-import { useState } from 'react';
+import { useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.ts';
+import { AuditDiffPanel } from '../components/AuditDiffPanel.tsx';
 import { PageHeader, Card, DataTable, FormField, Input, ErrorState, Skeleton, Pagination } from '../components/ui';
 
 const PAGE_SIZE = 50;
@@ -11,6 +12,7 @@ const PAGE_SIZE = 50;
 export function AuditPage(): JSX.Element {
   const [action, setAction] = useState('');
   const [offset, setOffset] = useState(0);
+  const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const q = useQuery({
     queryKey: ['audit', action, offset],
@@ -41,6 +43,7 @@ export function AuditPage(): JSX.Element {
           <DataTable>
             <DataTable.Thead>
               <DataTable.Tr>
+                <DataTable.Th aria-label="Expand"> </DataTable.Th>
                 <DataTable.Th>When</DataTable.Th>
                 <DataTable.Th>Action</DataTable.Th>
                 <DataTable.Th>Target</DataTable.Th>
@@ -49,16 +52,36 @@ export function AuditPage(): JSX.Element {
             </DataTable.Thead>
             <DataTable.Tbody>
               {q.data.items.map((row) => (
-                <DataTable.Tr key={row.id}>
-                  <DataTable.Td muted>{new Date(row.createdAt).toLocaleString()}</DataTable.Td>
-                  <DataTable.Td><span className="font-mono text-xs">{row.action}</span></DataTable.Td>
-                  <DataTable.Td muted>{row.targetType} · {row.targetId.slice(0, 8)}…</DataTable.Td>
-                  <DataTable.Td muted>{row.actorId?.slice(0, 8) ?? 'system'}…</DataTable.Td>
-                </DataTable.Tr>
+                <Fragment key={row.id}>
+                  <DataTable.Tr>
+                    <DataTable.Td>
+                      <button
+                        type="button"
+                        className="text-xs text-[var(--color-brand-600)]"
+                        aria-expanded={expandedId === row.id}
+                        data-testid={`audit-expand-${row.id}`}
+                        onClick={() => setExpandedId((id) => (id === row.id ? null : row.id))}
+                      >
+                        {expandedId === row.id ? '−' : '+'}
+                      </button>
+                    </DataTable.Td>
+                    <DataTable.Td muted>{new Date(row.createdAt).toLocaleString()}</DataTable.Td>
+                    <DataTable.Td><span className="font-mono text-xs">{row.action}</span></DataTable.Td>
+                    <DataTable.Td muted>{row.targetType} · {row.targetId.slice(0, 8)}…</DataTable.Td>
+                    <DataTable.Td muted>{row.actorId?.slice(0, 8) ?? 'system'}…</DataTable.Td>
+                  </DataTable.Tr>
+                  {expandedId === row.id ? (
+                    <DataTable.Tr key={`${row.id}-diff`}>
+                      <DataTable.Td colSpan={5} className="bg-[var(--color-surface-muted)]/40">
+                        <AuditDiffPanel row={row} />
+                      </DataTable.Td>
+                    </DataTable.Tr>
+                  ) : null}
+                </Fragment>
               ))}
             </DataTable.Tbody>
           </DataTable>
-          <Pagination count={q.data.count} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
+          <Pagination count={q.data.total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
         </>
       ) : null}
     </div>

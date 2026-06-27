@@ -841,7 +841,10 @@ export interface AuditListResponse {
   items: AuditEventRecord[];
   limit: number;
   offset: number;
+  /** Number of rows returned in this page. */
   count: number;
+  /** Total rows matching filters (for pagination). */
+  total: number;
 }
 
 /** PS-11 F57 — bulk lifecycle export request. */
@@ -853,6 +856,8 @@ export interface LifecycleBulkExportInput {
   format?: 'csv' | 'zip';
   /** Included in zip exports; defaults to all three. */
   includeFormats?: LifecycleExportFormat[];
+  /** PB-6 F58 — attach raw EDI bytes under each PO folder in ZIP exports. */
+  includeRaw?: boolean;
 }
 
 /** PS-11 F19 — Z-segment label overrides on partner config. */

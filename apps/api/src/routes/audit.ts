@@ -104,11 +104,14 @@ export async function auditRoutes(
         skip: offset,
       })) as unknown as AuditEventRow[];
 
+      const total = await app.prisma.auditEvent.count({ where });
+
       return reply.code(200).send({
         items: rows.map(toDto),
         limit,
         offset,
         count: rows.length,
+        total,
       });
     },
   );

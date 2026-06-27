@@ -63,14 +63,31 @@ function LifecycleNotes({ po }: { po: string }): JSX.Element {
       void qc.invalidateQueries({ queryKey: ['lifecycle-notes', po] });
     },
   });
+  const deleteM = useMutation({
+    mutationFn: (id: string) => api.lifecycleNotes.remove(po, id),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: ['lifecycle-notes', po] }),
+  });
   return (
     <div className="mt-4 rounded-md border border-[var(--color-surface-border)] p-3" data-testid={`notes-${po}`}>
       <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">Ops notes</h4>
       <ul className="mt-2 space-y-2 text-sm">
         {(notesQ.data?.items ?? []).map((n) => (
-          <li key={n.id} className="text-[var(--color-fg-muted)]">
-            <span className="text-[var(--color-fg)]">{n.body}</span>
-            <span className="ml-2 text-xs">— {n.authorDisplayName ?? 'ops'}</span>
+          <li key={n.id} className="flex items-start gap-2 text-[var(--color-fg-muted)]">
+            <span className="flex-1">
+              <span className="text-[var(--color-fg)]">{n.body}</span>
+              <span className="ml-2 text-xs">— {n.authorDisplayName ?? 'ops'}</span>
+            </span>
+            {isOps ? (
+              <button
+                type="button"
+                className="text-xs text-[var(--color-error-600)] hover:underline disabled:opacity-50"
+                data-testid={`delete-note-${n.id}`}
+                disabled={deleteM.isPending}
+                onClick={() => deleteM.mutate(n.id)}
+              >
+                Delete
+              </button>
+            ) : null}
           </li>
         ))}
       </ul>
@@ -278,6 +295,7 @@ function LifecycleRow({
 export function LifecyclesPage(): JSX.Element {
   const [sp, setSp] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [includeRawInZip, setIncludeRawInZip] = useState(false);
   const partnersConfigQ = useQuery({ queryKey: ['partners-config'], queryFn: () => api.partnersConfig.list() });
   const settingsQ = useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
   const preferencesQ = useQuery({ queryKey: ['preferences'], queryFn: () => api.preferences.get() });
@@ -357,6 +375,15 @@ export function LifecyclesPage(): JSX.Element {
           <div className="flex flex-wrap items-center gap-2">
             {selected.size > 0 ? (
               <>
+                <label className="flex items-center gap-1.5 text-sm text-[var(--color-fg-muted)]">
+                  <input
+                    type="checkbox"
+                    checked={includeRawInZip}
+                    data-testid="export-include-raw"
+                    onChange={(e) => setIncludeRawInZip(e.target.checked)}
+                  />
+                  Include raw EDI in ZIP
+                </label>
                 <button
                   type="button"
                   className="rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]"
@@ -368,7 +395,7 @@ export function LifecyclesPage(): JSX.Element {
                   type="button"
                   className="rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]"
                   data-testid="export-lifecycles-zip"
-                  onClick={() => void api.exportLifecyclesZip([...selected])}
+                  onClick={() => void api.exportLifecyclesZip([...selected], { includeRaw: includeRawInZip })}
                 >
                   Export ZIP ({selected.size})
                 </button>
