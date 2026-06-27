@@ -4,26 +4,37 @@
 
 environment = "staging"
 
+enable_scheduled_backups = false
+
 # S3 raw-file bucket — must be globally unique
 bucket_name        = "edi-raw-files-staging-YOUR_ACCOUNT_ID"
 environment_prefix = "edi/staging"
 
 # RDS
-db_name                  = "edi_hub"
-db_master_username       = "edi_admin"
-# db_master_password     → export TF_VAR_db_master_password='...' before apply
+db_name            = "edi_hub"
+db_master_username = "edi_admin"
+# db_master_password → export TF_VAR_db_master_password='...' before apply
 
-# Networking — use a VPC with private subnets for RDS and public subnets for ALB
-vpc_id                   = "vpc-xxxxxxxx"
-public_subnet_ids        = ["subnet-public-a", "subnet-public-b"]
-db_subnet_ids            = ["subnet-private-a", "subnet-private-b"]
-db_allowed_security_group_ids = ["sg-api-task-staging"]
+# Networking — VPC with private subnets for RDS, public subnets for ALB + API task
+vpc_id             = "vpc-xxxxxxxx"
+public_subnet_ids  = ["subnet-public-a", "subnet-public-b"]
+db_subnet_ids      = ["subnet-private-a", "subnet-private-b"]
+# db_allowed_security_group_ids — leave empty; ecs.tf wires API task SG → RDS automatically
+db_allowed_security_group_ids = []
 
 # DNS + TLS (ACM cert validated via Route 53)
-public_domain   = "api.staging.edihub.example.com"
+public_domain   = "app.staging.edihub.example.com"
 route53_zone_id = "Z123EXAMPLE"
 
-# Phase 10 backups (fill after ECR image exists — see infra/backup-container/)
+# Clerk — publishable key is public; must match the docker build arg
+clerk_publishable_key = "pk_test_..."
+
+# API container — push image first (see infra/api-container/README.md), then set tag here
+api_image = "123456789012.dkr.ecr.us-east-1.amazonaws.com/edi-hub-api-staging:2026-06-25-abc1234"
+# api_subnet_ids — omit to reuse public_subnet_ids
+# api_desired_count = 1
+
+# Phase 10 backups — enable after the ECS cluster exists (use api_ecs_cluster_arn output)
 # backup_bucket_name         = "edi-hub-backups-staging-YOUR_ACCOUNT_ID"
 # backup_replica_bucket_name = "edi-hub-backups-staging-replica-YOUR_ACCOUNT_ID"
 # backup_image               = "123456789012.dkr.ecr.us-east-1.amazonaws.com/edi-hub-backup:latest"

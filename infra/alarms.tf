@@ -35,6 +35,7 @@ resource "aws_sns_topic" "oncall" {
 # ─────────────────────────────────────────────────────────────
 
 resource "aws_cloudwatch_metric_alarm" "backup_stale" {
+  count               = var.enable_scheduled_backups ? 1 : 0
   alarm_name          = "edi-hub-backup-stale-${var.environment}"
   alarm_description   = "Weekly pg_dump has not succeeded in the last 10 days. See ops/RUNBOOKS.md#backup-stale."
   comparison_operator = "LessThanThreshold"

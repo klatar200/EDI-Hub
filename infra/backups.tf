@@ -14,6 +14,8 @@
 variable "backup_bucket_name" {
   type        = string
   description = "Globally unique name for the logical-backup bucket (e.g. edi-hub-backups-prod)."
+  default     = null
+  nullable    = true
 }
 
 variable "backup_replica_region" {
@@ -25,6 +27,8 @@ variable "backup_replica_region" {
 variable "backup_replica_bucket_name" {
   type        = string
   description = "Bucket name in the destination region (must be globally unique)."
+  default     = null
+  nullable    = true
 }
 
 provider "aws" {
@@ -40,6 +44,7 @@ provider "aws" {
 # ─────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "backups" {
+  count               = var.enable_scheduled_backups ? 1 : 0
   bucket              = var.backup_bucket_name
   object_lock_enabled = true
 
@@ -51,19 +56,22 @@ resource "aws_s3_bucket" "backups" {
 }
 
 resource "aws_s3_bucket_versioning" "backups" {
-  bucket = aws_s3_bucket.backups.id
+  count  = var.enable_scheduled_backups ? 1 : 0
+  bucket = aws_s3_bucket.backups[0].id
   versioning_configuration { status = "Enabled" }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "backups" {
-  bucket = aws_s3_bucket.backups.id
+  count  = var.enable_scheduled_backups ? 1 : 0
+  bucket = aws_s3_bucket.backups[0].id
   rule {
     apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "backups" {
-  bucket                  = aws_s3_bucket.backups.id
+  count                   = var.enable_scheduled_backups ? 1 : 0
+  bucket                  = aws_s3_bucket.backups[0].id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -75,7 +83,8 @@ resource "aws_s3_bucket_public_access_block" "backups" {
 # shorten the lock until the retention expires. Belt + suspenders against
 # accidental + malicious deletion.
 resource "aws_s3_bucket_object_lock_configuration" "backups" {
-  bucket = aws_s3_bucket.backups.id
+  count  = var.enable_scheduled_backups ? 1 : 0
+  bucket = aws_s3_bucket.backups[0].id
   rule {
     default_retention {
       mode = "COMPLIANCE"
@@ -88,7 +97,8 @@ resource "aws_s3_bucket_object_lock_configuration" "backups" {
 # (non-current versions) at 1 year. Current versions stay forever — the
 # operator deletes them by lifting object lock + delete.
 resource "aws_s3_bucket_lifecycle_configuration" "backups" {
-  bucket = aws_s3_bucket.backups.id
+  count  = var.enable_scheduled_backups ? 1 : 0
+  bucket = aws_s3_bucket.backups[0].id
   rule {
     id     = "tiering-and-expiry"
     status = "Enabled"
@@ -110,7 +120,8 @@ resource "aws_s3_bucket_lifecycle_configuration" "backups" {
 
 # Reject any PUT that isn't SSE-encrypted; reject any non-TLS request.
 resource "aws_s3_bucket_policy" "backups_security" {
-  bucket = aws_s3_bucket.backups.id
+  count  = var.enable_scheduled_backups ? 1 : 0
+  bucket = aws_s3_bucket.backups[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -119,7 +130,7 @@ resource "aws_s3_bucket_policy" "backups_security" {
         Effect    = "Deny"
         Principal = "*"
         Action    = "s3:PutObject"
-        Resource  = "${aws_s3_bucket.backups.arn}/*"
+        Resource  = "${aws_s3_bucket.backups[0].arn}/*"
         Condition = {
           StringNotEquals = {
             "s3:x-amz-server-side-encryption" = "AES256"
@@ -132,8 +143,8 @@ resource "aws_s3_bucket_policy" "backups_security" {
         Principal = "*"
         Action    = "s3:*"
         Resource = [
-          aws_s3_bucket.backups.arn,
-          "${aws_s3_bucket.backups.arn}/*"
+          aws_s3_bucket.backups[0].arn,
+          "${aws_s3_bucket.backups[0].arn}/*"
         ]
         Condition = { Bool = { "aws:SecureTransport" = "false" } }
       }
@@ -146,6 +157,7 @@ resource "aws_s3_bucket_policy" "backups_security" {
 # ─────────────────────────────────────────────────────────────
 
 resource "aws_s3_bucket" "backups_replica" {
+  count               = var.enable_scheduled_backups ? 1 : 0
   provider            = aws.replica
   bucket              = var.backup_replica_bucket_name
   object_lock_enabled = true
@@ -158,22 +170,25 @@ resource "aws_s3_bucket" "backups_replica" {
 }
 
 resource "aws_s3_bucket_versioning" "backups_replica" {
+  count    = var.enable_scheduled_backups ? 1 : 0
   provider = aws.replica
-  bucket   = aws_s3_bucket.backups_replica.id
+  bucket   = aws_s3_bucket.backups_replica[0].id
   versioning_configuration { status = "Enabled" }
 }
 
 resource "aws_s3_bucket_server_side_encryption_configuration" "backups_replica" {
+  count    = var.enable_scheduled_backups ? 1 : 0
   provider = aws.replica
-  bucket   = aws_s3_bucket.backups_replica.id
+  bucket   = aws_s3_bucket.backups_replica[0].id
   rule {
     apply_server_side_encryption_by_default { sse_algorithm = "AES256" }
   }
 }
 
 resource "aws_s3_bucket_public_access_block" "backups_replica" {
+  count                   = var.enable_scheduled_backups ? 1 : 0
   provider                = aws.replica
-  bucket                  = aws_s3_bucket.backups_replica.id
+  bucket                  = aws_s3_bucket.backups_replica[0].id
   block_public_acls       = true
   block_public_policy     = true
   ignore_public_acls      = true
@@ -181,8 +196,9 @@ resource "aws_s3_bucket_public_access_block" "backups_replica" {
 }
 
 resource "aws_s3_bucket_object_lock_configuration" "backups_replica" {
+  count    = var.enable_scheduled_backups ? 1 : 0
   provider = aws.replica
-  bucket   = aws_s3_bucket.backups_replica.id
+  bucket   = aws_s3_bucket.backups_replica[0].id
   rule {
     default_retention {
       mode = "COMPLIANCE"
@@ -196,7 +212,8 @@ resource "aws_s3_bucket_object_lock_configuration" "backups_replica" {
 # ─────────────────────────────────────────────────────────────
 
 resource "aws_iam_role" "backup_replication" {
-  name = "edi-hub-backup-replication-${var.environment}"
+  count = var.enable_scheduled_backups ? 1 : 0
+  name  = "edi-hub-backup-replication-${var.environment}"
   assume_role_policy = jsonencode({
     Version = "2012-10-17"
     Statement = [{
@@ -208,8 +225,9 @@ resource "aws_iam_role" "backup_replication" {
 }
 
 resource "aws_iam_role_policy" "backup_replication" {
-  name = "edi-hub-backup-replication-${var.environment}"
-  role = aws_iam_role.backup_replication.id
+  count = var.enable_scheduled_backups ? 1 : 0
+  name  = "edi-hub-backup-replication-${var.environment}"
+  role  = aws_iam_role.backup_replication[0].id
   policy = jsonencode({
     Version = "2012-10-17"
     Statement = [
@@ -219,7 +237,7 @@ resource "aws_iam_role_policy" "backup_replication" {
           "s3:GetReplicationConfiguration",
           "s3:ListBucket",
         ]
-        Resource = aws_s3_bucket.backups.arn
+        Resource = aws_s3_bucket.backups[0].arn
       },
       {
         Effect = "Allow"
@@ -228,7 +246,7 @@ resource "aws_iam_role_policy" "backup_replication" {
           "s3:GetObjectVersionAcl",
           "s3:GetObjectVersionTagging",
         ]
-        Resource = "${aws_s3_bucket.backups.arn}/*"
+        Resource = "${aws_s3_bucket.backups[0].arn}/*"
       },
       {
         Effect = "Allow"
@@ -237,21 +255,20 @@ resource "aws_iam_role_policy" "backup_replication" {
           "s3:ReplicateDelete",
           "s3:ReplicateTags",
         ]
-        Resource = "${aws_s3_bucket.backups_replica.arn}/*"
+        Resource = "${aws_s3_bucket.backups_replica[0].arn}/*"
       },
     ]
   })
 }
 
 resource "aws_s3_bucket_replication_configuration" "backups" {
-  # Replication requires versioning enabled on both sides; depend explicitly
-  # so terraform applies in the right order.
+  count = var.enable_scheduled_backups ? 1 : 0
   depends_on = [
     aws_s3_bucket_versioning.backups,
     aws_s3_bucket_versioning.backups_replica,
   ]
-  role   = aws_iam_role.backup_replication.arn
-  bucket = aws_s3_bucket.backups.id
+  role   = aws_iam_role.backup_replication[0].arn
+  bucket = aws_s3_bucket.backups[0].id
 
   rule {
     id     = "replicate-all"
@@ -261,18 +278,18 @@ resource "aws_s3_bucket_replication_configuration" "backups" {
     delete_marker_replication { status = "Disabled" }
 
     destination {
-      bucket        = aws_s3_bucket.backups_replica.arn
+      bucket        = aws_s3_bucket.backups_replica[0].arn
       storage_class = "STANDARD_IA"
     }
   }
 }
 
 output "backup_bucket_name" {
-  value       = aws_s3_bucket.backups.id
+  value       = try(aws_s3_bucket.backups[0].id, null)
   description = "Primary backup bucket — the pg_dump job writes here."
 }
 
 output "backup_replica_bucket_name" {
-  value       = aws_s3_bucket.backups_replica.id
+  value       = try(aws_s3_bucket.backups_replica[0].id, null)
   description = "Cross-region replica — fallback target for restore."
 }

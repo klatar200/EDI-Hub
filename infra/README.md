@@ -15,8 +15,10 @@ This folder holds the **real-AWS** definitions, applied per environment.
 |---|---|
 | `s3.tf` | Raw-file bucket — versioned, private, SSE-S3, bucket policy that denies un-encrypted or non-TLS access. |
 | `rds.tf` | Encrypted Postgres 16, private subnets only, `rds.force_ssl=1`, deletion protection, 14-day backups. |
-| `alb.tf` | Public ALB with HTTPS:443 (ACM cert, TLS 1.3 policy) and HTTP:80 → HTTPS redirect, Route 53 ALIAS, target group pointed at the API task. |
+| `alb.tf` | Public ALB with HTTPS:443 (ACM cert, TLS 1.3 policy) and HTTP:80 → HTTPS redirect, Route 53 ALIAS, target group pointed at the API task. Health check: `/readiness`. |
+| `ecs.tf` | ECS Fargate cluster, ECR repo, API task definition + service (same-origin web bundle via `WEB_STATIC_DIR`), IAM roles, task security group. |
 | `secrets.tf` | Four `aws_secretsmanager_secret` entries (DB URL + Clerk keys + Slack webhook) encrypted with a project-owned KMS CMK. |
+| `api-container/` | Dockerfile build/push runbook for the production API+web image. |
 | `openas2/` | AS2 sidecar config — see its own README. |
 
 ## Prerequisites
@@ -39,13 +41,51 @@ terraform apply -target=aws_s3_bucket.raw_files
 terraform apply -target=aws_kms_key.secrets
 
 # 2) Networking inputs — provide VPC/subnet/zone ids via tfvars
-terraform apply -var-file=env/prod.tfvars
+terraform apply -var-file=env/staging.tfvars
 
 # 3) Populate the secret values out-of-band (AWS console or `aws secretsmanager
 #    put-secret-value`). Never commit secret material to git or tfvars.
+
+# 4) Build and push the API image, set api_image in tfvars, re-apply.
+#    See api-container/README.md for docker build + ECR push steps.
 ```
 
-A starter `env/prod.tfvars` looks like:
+### Staging bootstrap (Sprint A1)
+
+Minimal path to a running HTTPS hub:
+
+1. **Storage + KMS** — targeted apply for S3 bucket and secrets CMK.
+2. **Data plane** — RDS, ALB, Secrets Manager entries, CloudWatch log group.
+3. **Secrets values** — paste `DATABASE_URL` (with `sslmode=require`), Clerk keys, optional Slack webhook.
+4. **Container** — `docker build` from repo root (see [`api-container/README.md`](api-container/README.md)), push to ECR, set `api_image` + `clerk_publishable_key` in `env/staging.tfvars`.
+5. **ECS service** — full `terraform apply` creates the Fargate service behind the ALB.
+6. **Clerk** — authorized origin = `https://<public_domain>`; webhook = `https://<public_domain>/webhooks/clerk`.
+7. **Smoke** — `curl https://<public_domain>/health` and sign in via the SPA.
+
+Scheduled backups (`backup-task.tf`) require `backup_cluster_arn` from the ECS output — enable in a follow-up apply after the cluster exists.
+
+A starter `env/staging.tfvars` looks like:
+
+```hcl
+environment              = "staging"
+bucket_name              = "edi-raw-files-staging-YOUR_ACCOUNT_ID"
+environment_prefix       = "edi/staging"
+db_name                  = "edi_hub"
+db_master_username       = "edi_admin"
+db_subnet_ids            = ["subnet-aaa", "subnet-bbb"]
+db_allowed_security_group_ids = []   # ecs.tf wires API → RDS automatically
+vpc_id                   = "vpc-xxx"
+public_subnet_ids        = ["subnet-public-a", "subnet-public-b"]
+public_domain            = "app.staging.edihub.example.com"
+route53_zone_id          = "Z123EXAMPLE"
+clerk_publishable_key    = "pk_test_..."
+api_image                = "<account>.dkr.ecr.us-east-1.amazonaws.com/edi-hub-api-staging:<tag>"
+# db_master_password via TF_VAR_db_master_password
+```
+
+Copy [`env/staging.tfvars.example`](env/staging.tfvars.example) as a starting point.
+
+A production `env/prod.tfvars` looks like:
 
 ```hcl
 environment              = "prod"
@@ -54,12 +94,14 @@ environment_prefix       = "edi/prod"
 db_name                  = "edi_hub"
 db_master_username       = "edi_admin"
 db_subnet_ids            = ["subnet-aaa", "subnet-bbb"]
-db_allowed_security_group_ids = ["sg-api-task"]
+db_allowed_security_group_ids = []
 vpc_id                   = "vpc-xxx"
 public_subnet_ids        = ["subnet-public-a", "subnet-public-b"]
-public_domain            = "api.edihub.example.com"
+public_domain            = "app.edihub.example.com"
 route53_zone_id          = "Z123EXAMPLE"
-# db_master_password is provided via TF_VAR_db_master_password env var, not the file.
+clerk_publishable_key    = "pk_live_..."
+api_image                = "<account>.dkr.ecr.us-east-1.amazonaws.com/edi-hub-api-prod:<tag>"
+# db_master_password via TF_VAR_db_master_password
 ```
 
 ## RDS encryption migration (existing-instance path)

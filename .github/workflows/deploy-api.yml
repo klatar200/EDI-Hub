@@ -1,0 +1,88 @@
+# Build and push the production API+web image to ECR.
+#
+# Manual dispatch — requires AWS credentials and Clerk publishable key in repo secrets.
+#
+# Secrets:
+#   AWS_ROLE_ARN or AWS_ACCESS_KEY_ID + AWS_SECRET_ACCESS_KEY
+#   AWS_REGION (variable, default us-east-1)
+#   VITE_CLERK_PUBLISHABLE_KEY — staging/prod pk_* key (matches clerk_publishable_key tfvar)
+#   ECR_REPOSITORY — full repo URI without tag (output: api_ecr_repository_url)
+
+name: Deploy API image
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment (staging | prod)
+        required: true
+        default: staging
+        type: choice
+        options:
+          - staging
+          - prod
+      image_tag:
+        description: Optional image tag (default — date + short SHA)
+        required: false
+        type: string
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build-push:
+    name: Build & push to ECR
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      AWS_REGION: ${{ vars.AWS_REGION || 'us-east-1' }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ secrets.AWS_DEPLOY_ROLE_ARN }}
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ env.AWS_REGION }}
+
+      - name: Login to ECR
+        id: ecr
+        uses: aws-actions/amazon-ecr-login@v2
+
+      - name: Resolve image tag
+        id: meta
+        run: |
+          if [ -n "${{ inputs.image_tag }}" ]; then
+            echo "tag=${{ inputs.image_tag }}" >> "$GITHUB_OUTPUT"
+          else
+            echo "tag=$(date +%Y-%m-%d)-$(git rev-parse --short HEAD)" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Build image
+        env:
+          VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+        run: |
+          if [ -z "${VITE_CLERK_PUBLISHABLE_KEY:-}" ]; then
+            echo "::error::VITE_CLERK_PUBLISHABLE_KEY secret is required for production web build."
+            exit 1
+          fi
+          docker build \
+            --build-arg VITE_CLERK_PUBLISHABLE_KEY="$VITE_CLERK_PUBLISHABLE_KEY" \
+            -t edi-hub-api:${{ steps.meta.outputs.tag }} .
+
+      - name: Push to ECR
+        env:
+          ECR_REPOSITORY: ${{ secrets.ECR_REPOSITORY }}
+        run: |
+          if [ -z "${ECR_REPOSITORY:-}" ]; then
+            echo "::error::ECR_REPOSITORY secret must be set to the Terraform api_ecr_repository_url output."
+            exit 1
+          fi
+          docker tag edi-hub-api:${{ steps.meta.outputs.tag }} "${ECR_REPOSITORY}:${{ steps.meta.outputs.tag }}"
+          docker push "${ECR_REPOSITORY}:${{ steps.meta.outputs.tag }}"
+          echo "### Image pushed" >> "$GITHUB_STEP_SUMMARY"
+          echo "\`${ECR_REPOSITORY}:${{ steps.meta.outputs.tag }}\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "Set \`api_image\` in env/${{ inputs.environment }}.tfvars and run \`terraform apply\`." >> "$GITHUB_STEP_SUMMARY"
