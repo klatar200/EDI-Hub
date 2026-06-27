@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
 import { AlertsPage } from '../src/pages/AlertsPage.tsx';
+import { MeProvider } from '../src/lib/useRole.tsx';
 
 interface FakeResponse { ok: boolean; status: number; json: () => Promise<unknown> }
 function json(body: unknown): Promise<FakeResponse> {
@@ -50,6 +51,12 @@ beforeEach(() => {
       }
       return json(SAMPLE);
     }
+    if (url.includes('/me')) return json({ id: 'u-1', role: 'ops', displayName: 'Ops', email: 'ops@test' });
+    if (url.includes('/ops/detect') && init?.method === 'POST') return json({ ok: true });
+    if (url.includes('/alerts/bulk-ack') && init?.method === 'POST') {
+      acked = true;
+      return json({ acknowledged: 1 });
+    }
     return json({});
   }));
 });
@@ -59,9 +66,11 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
-        <AlertsPage />
-      </MemoryRouter>
+      <MeProvider>
+        <MemoryRouter>
+          <AlertsPage />
+        </MemoryRouter>
+      </MeProvider>
     </QueryClientProvider>,
   );
 }
@@ -109,3 +118,36 @@ test('snooze select is rendered for active alerts', async () => {
   expect(await screen.findByTestId('snooze-select')).toBeInTheDocument();
 });
 
+test('partner filter refetches alerts with partnerName query', async () => {
+  const fetchMock = vi.fn((input: unknown) => {
+    const url = String(input);
+    if (url.includes('/me')) return json({ id: 'u-1', role: 'ops', displayName: 'Ops', email: 'ops@test' });
+    if (url.includes('/alerts')) return json(SAMPLE);
+    return json({});
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  renderPage();
+  await screen.findByText(/Sysco: 810 outbound missing 997 ack/);
+  fireEvent.change(screen.getByTestId('partner-filter'), { target: { value: 'Sysco' } });
+  await waitFor(() => {
+    const alertCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/alerts') && String(c[0]).includes('partnerName=Sysco'));
+    expect(alertCall).toBeDefined();
+  });
+});
+
+test('run detection posts to ops/detect', async () => {
+  renderPage();
+  await screen.findByText(/Sysco: 810 outbound missing 997 ack/);
+  fireEvent.click(await screen.findByTestId('run-detection'));
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/ops/detect'), expect.objectContaining({ method: 'POST' }));
+  });
+});
+
+test('bulk ack posts to alerts/bulk-ack', async () => {
+  renderPage();
+  fireEvent.click(await screen.findByTestId('bulk-ack'));
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/alerts/bulk-ack'), expect.objectContaining({ method: 'POST' }));
+  });
+});
