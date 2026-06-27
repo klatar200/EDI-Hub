@@ -34,12 +34,14 @@ interface FakeTxn {
   generatedAt: Date | null;
   transmittedAt: Date | null;
   confirmedAt: Date | null;
+  isaControlNumber?: string | null;
+  source?: 'upload' | 'sftp' | 'as2';
   functionalGroup: {
     controlNumber: string;
     interchange: {
       senderId: string;
       receiverId: string;
-      rawFile: { id: string; ingestedAt: Date };
+      rawFile: { id: string; ingestedAt: Date; isaControlNumber: string | null; source: 'upload' | 'sftp' | 'as2' };
     };
   };
 }
@@ -64,7 +66,12 @@ function tx(o: Partial<FakeTxn> & { id: string; transactionSetId: string; contro
       interchange: {
         senderId: 'SENDER',
         receiverId: 'RECEIVER',
-        rawFile: { id: `raw-${o.id}`, ingestedAt: new Date(o.ingestedAt) },
+        rawFile: {
+          id: `raw-${o.id}`,
+          ingestedAt: new Date(o.ingestedAt),
+          isaControlNumber: o.isaControlNumber ?? `00000${o.controlNumber}`.slice(-9),
+          source: o.source ?? 'sftp',
+        },
       },
     },
   };
@@ -274,6 +281,17 @@ test('one 997 acking two transactions links to both', async () => {
   assert.equal(t2.status, 'rejected');
   assert.equal(t2.ackedByTransactionId, 'ack-multi');
   assert.equal(r!.events.filter((e) => e.transactionId === 'ack-multi').length, 1);
+  assert.equal(t1.instanceIndex, 1);
+  assert.equal(t2.instanceIndex, 2);
+  assert.equal(t1.source, 'sftp');
+});
+
+test('single document of a type has null instanceIndex', async () => {
+  const prisma = makePrisma([orig850, ack850]);
+  const r = await getLifecycle(prisma, { po: 'PO-100' });
+  assert.ok(r);
+  const t850 = r!.events.find((e) => e.transactionId === 't-850')!;
+  assert.equal(t850.instanceIndex, null);
 });
 
 test('out-of-order ingestion still produces chronological output', async () => {

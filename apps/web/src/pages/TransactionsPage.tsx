@@ -34,6 +34,17 @@ import {
 const PAGE_SIZE = 25;
 const SETS = ['850', '855', '856', '860', '875', '880', '810', '997'];
 const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
+const DIRECTIONS = [
+  { value: 'inbound', label: 'Inbound' },
+  { value: 'outbound', label: 'Outbound' },
+  { value: 'unknown', label: 'Unknown' },
+] as const;
+
+const DIRECTION_LABEL: Record<string, string> = {
+  inbound: 'Inbound',
+  outbound: 'Outbound',
+  unknown: 'Unknown',
+};
 
 export function TransactionsPage(): JSX.Element {
   const [sp, setSp] = useSearchParams();
@@ -46,6 +57,10 @@ export function TransactionsPage(): JSX.Element {
     partner: sp.get('partner') ?? undefined,
     status: sp.get('status') ?? undefined,
     po: sp.get('po') ?? undefined,
+    invoice: sp.get('invoice') ?? undefined,
+    direction: sp.get('direction') ?? undefined,
+    from: sp.get('from') ?? undefined,
+    to: sp.get('to') ?? undefined,
     limit: PAGE_SIZE,
     offset,
   };
@@ -69,7 +84,10 @@ export function TransactionsPage(): JSX.Element {
   }
 
   const items = txQ.data?.items ?? [];
-  const hasAnyFilter = Boolean(filters.set || filters.partner || filters.status || filters.po);
+  const hasAnyFilter = Boolean(
+    filters.set || filters.partner || filters.status || filters.po
+    || filters.invoice || filters.direction || filters.from || filters.to,
+  );
 
   // Partner option list — configured names first, then any "raw" ISA ids
   // that aren't yet claimed by a configured partner.
@@ -98,6 +116,12 @@ export function TransactionsPage(): JSX.Element {
               {SETS.map((s) => <option key={s} value={s}>{s}</option>)}
             </Select>
           </FormField>
+          <FormField label="Direction">
+            <Select size="sm" value={filters.direction ?? ''} onChange={(e) => setFilter('direction', e.target.value || undefined)}>
+              <option value="">All</option>
+              {DIRECTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+            </Select>
+          </FormField>
           <FormField label="Partner">
             <Select size="sm" value={filters.partner ?? ''} onChange={(e) => setFilter('partner', e.target.value || undefined)}>
               <option value="">All</option>
@@ -120,15 +144,28 @@ export function TransactionsPage(): JSX.Element {
           <FormField label="PO number">
             <Input size="sm" placeholder="PO-…" value={filters.po ?? ''} onChange={(e) => setFilter('po', e.target.value || undefined)} />
           </FormField>
+          <FormField label="Invoice">
+            <Input size="sm" placeholder="INV-…" value={filters.invoice ?? ''} onChange={(e) => setFilter('invoice', e.target.value || undefined)} />
+          </FormField>
+          <FormField label="From">
+            <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
+          </FormField>
+          <FormField label="To">
+            <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
+          </FormField>
         </div>
       </Card>
 
       {/* Active-filter chips above the table — quick removal without scrolling. */}
       <FilterChipRow onClearAll={hasAnyFilter ? clearAll : undefined}>
-        {filters.set     ? <FilterChip key="set"     label="Set"     value={filters.set}     onRemove={() => setFilter('set',     undefined)} /> : null}
-        {filters.partner ? <FilterChip key="partner" label="Partner" value={filters.partner} onRemove={() => setFilter('partner', undefined)} /> : null}
-        {filters.status  ? <FilterChip key="status"  label="Status"  value={filters.status}  onRemove={() => setFilter('status',  undefined)} /> : null}
-        {filters.po      ? <FilterChip key="po"      label="PO"      value={filters.po}      onRemove={() => setFilter('po',      undefined)} /> : null}
+        {filters.set       ? <FilterChip key="set"       label="Set"       value={filters.set}       onRemove={() => setFilter('set',       undefined)} /> : null}
+        {filters.direction ? <FilterChip key="direction" label="Direction" value={DIRECTION_LABEL[filters.direction] ?? filters.direction} onRemove={() => setFilter('direction', undefined)} /> : null}
+        {filters.partner   ? <FilterChip key="partner"   label="Partner"   value={filters.partner}   onRemove={() => setFilter('partner',   undefined)} /> : null}
+        {filters.status    ? <FilterChip key="status"    label="Status"    value={filters.status}    onRemove={() => setFilter('status',    undefined)} /> : null}
+        {filters.po        ? <FilterChip key="po"        label="PO"        value={filters.po}        onRemove={() => setFilter('po',        undefined)} /> : null}
+        {filters.invoice   ? <FilterChip key="invoice"   label="Invoice"   value={filters.invoice}   onRemove={() => setFilter('invoice',   undefined)} /> : null}
+        {filters.from      ? <FilterChip key="from"      label="From"      value={filters.from}      onRemove={() => setFilter('from',      undefined)} /> : null}
+        {filters.to        ? <FilterChip key="to"        label="To"        value={filters.to}        onRemove={() => setFilter('to',        undefined)} /> : null}
       </FilterChipRow>
 
       {txQ.isLoading ? (
@@ -155,6 +192,7 @@ export function TransactionsPage(): JSX.Element {
             <DataTable.Tr>
               <DataTable.Th>Set</DataTable.Th>
               <DataTable.Th>PO / Invoice</DataTable.Th>
+              <DataTable.Th>Direction</DataTable.Th>
               <DataTable.Th>Sender</DataTable.Th>
               <DataTable.Th>Receiver</DataTable.Th>
               <DataTable.Th>Status</DataTable.Th>
@@ -173,6 +211,11 @@ export function TransactionsPage(): JSX.Element {
                   >
                     {t.poNumber ?? t.invoiceNumber ?? t.controlNumber}
                   </Link>
+                </DataTable.Td>
+                <DataTable.Td>
+                  <StatusPill tone={t.direction === 'inbound' ? 'info' : t.direction === 'outbound' ? 'brand' : 'neutral'} size="sm">
+                    {DIRECTION_LABEL[t.direction] ?? t.direction}
+                  </StatusPill>
                 </DataTable.Td>
                 <DataTable.Td>{t.senderId ?? '—'}</DataTable.Td>
                 <DataTable.Td>{t.receiverId ?? '—'}</DataTable.Td>

@@ -19,7 +19,7 @@ function fakeFetch(input: unknown): Promise<FakeResponse> {
           id: 't1', transactionSetId: '850', controlNumber: '0001',
           poNumber: 'PO-12345', invoiceNumber: null, purpose: '00',
           senderId: 'ACME', receiverId: 'GLOBEX', status: 'PARSED',
-          ingestedAt: '2026-06-17T12:00:00.000Z',
+          ingestedAt: '2026-06-17T12:00:00.000Z', direction: 'inbound',
         },
       ],
       limit: 25, offset: 0, count: 1,

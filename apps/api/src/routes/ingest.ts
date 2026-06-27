@@ -103,7 +103,7 @@ export async function ingestRoutes(
 
     const where: { status?: RawFileStatus; source?: SourceChannel; ingestedAt?: { gte?: Date; lte?: Date } } = {};
     if (q.status && STATUS_SET.has(q.status as RawFileStatus)) where.status = q.status as RawFileStatus;
-    if (q.source === 'upload' || q.source === 'sftp') where.source = q.source;
+    if (q.source === 'upload' || q.source === 'sftp' || q.source === 'as2') where.source = q.source;
     if (q.from || q.to) {
       where.ingestedAt = {};
       if (q.from) where.ingestedAt.gte = new Date(q.from);

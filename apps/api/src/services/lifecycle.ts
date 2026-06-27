@@ -36,6 +36,7 @@ import {
   type LifecycleStatus,
   type RejectionElementError,
   type RejectionSegmentError,
+  type SourceChannel,
   type TradingPartnerRecord,
 } from '@edi/shared';
 import { resolvePartnerByIsa } from './partners.js';
@@ -160,7 +161,7 @@ interface TxnRow {
     interchange: {
       senderId: string;
       receiverId: string;
-      rawFile: { id: string; ingestedAt: Date };
+      rawFile: { id: string; ingestedAt: Date; isaControlNumber: string | null; source: SourceChannel };
     };
   };
 }
@@ -324,6 +325,34 @@ function resolveEventDirection(
   return stored === 'unknown' && derived !== 'unknown' ? derived : stored;
 }
 
+function rawFileMeta(t: TxnRow): { isaControlNumber: string | null; source: SourceChannel } {
+  const rf = t.functionalGroup.interchange.rawFile;
+  return { isaControlNumber: rf.isaControlNumber, source: rf.source };
+}
+
+/** When multiple documents share (setId, direction), stamp 1-based indexes. */
+function assignInstanceIndexes(events: LifecycleEvent[]): void {
+  const totals = new Map<string, number>();
+  for (const e of events) {
+    if (e.kind !== 'transaction') continue;
+    const k = `${e.transactionSetId}::${e.direction}`;
+    totals.set(k, (totals.get(k) ?? 0) + 1);
+  }
+  const counters = new Map<string, number>();
+  for (const e of events) {
+    if (e.kind !== 'transaction') continue;
+    const k = `${e.transactionSetId}::${e.direction}`;
+    const total = totals.get(k) ?? 1;
+    if (total <= 1) {
+      e.instanceIndex = null;
+      continue;
+    }
+    const idx = (counters.get(k) ?? 0) + 1;
+    counters.set(k, idx);
+    e.instanceIndex = idx;
+  }
+}
+
 export async function getLifecycle(
   prisma: PrismaClient,
   query: LifecycleQuery,
@@ -397,6 +426,7 @@ export async function getLifecycle(
     const ack = ackByOriginal.get(t.id);
     const evStatus: LifecycleStatus = ack ? statusFromAk5(ack.entry.status) : 'received';
     const isRejected = evStatus === 'rejected';
+    const rfMeta = rawFileMeta(t);
     events.push({
       kind: 'transaction',
       transactionSetId: t.transactionSetId,
@@ -415,12 +445,11 @@ export async function getLifecycle(
       ackedByTransactionId: ack?.ackTxnId ?? null,
       rejectionSummary: isRejected ? summarizeErrors(ack!.entry.errors) ?? ack!.entry.statusMessage : null,
       rejectionDetails: isRejected && ack!.entry.errors.length > 0 ? ack!.entry.errors : null,
-      // Phase 8 Sprint 1 — outbound stage from the three timestamps. Inbound
-      // rows have all three null, so this comes back as null too — the UI
-      // hides the stage badge when there's no signal.
       outboundStage: deriveOutboundStage(t.generatedAt, t.transmittedAt, t.confirmedAt),
-      // Phase 8 Sprint 3 — populated below once we've resolved the partner.
       partnerChannel: null,
+      isaControlNumber: rfMeta.isaControlNumber,
+      source: rfMeta.source,
+      instanceIndex: null,
     });
   }
   for (const ack of ackCandidates) {
@@ -433,6 +462,7 @@ export async function getLifecycle(
     const summary = status === 'rejected'
       ? summarizeErrors(allErrors) ?? (entries.find((e) => statusFromAk5(e.status) === 'rejected')?.statusMessage ?? null)
       : null;
+    const ackRfMeta = rawFileMeta(ack);
     events.push({
       kind: 'transaction',
       transactionSetId: ack.transactionSetId,
@@ -451,16 +481,17 @@ export async function getLifecycle(
       ackedByTransactionId: null,
       rejectionSummary: summary,
       rejectionDetails: allErrors.length > 0 ? allErrors : null,
-      // A 997/999 we sent is an outbound transaction in its own right; its
-      // stage derives the same way. Inbound acks naturally come back as null.
       outboundStage: deriveOutboundStage(ack.generatedAt, ack.transmittedAt, ack.confirmedAt),
-      // Phase 8 Sprint 3 — populated below once we've resolved the partner.
       partnerChannel: null,
+      isaControlNumber: ackRfMeta.isaControlNumber,
+      source: ackRfMeta.source,
+      instanceIndex: null,
     });
   }
 
   // Sort chronologically. Stable ISO-8601 strings sort lexically.
   events.sort((a, b) => (a.ingestedAt ?? '').localeCompare(b.ingestedAt ?? ''));
+  assignInstanceIndexes(events);
 
   // Phase 6 Sprint 2 — resolve the partner from any of the PO transactions
   // and look for a configured flow whose entrySetId matches a set we see. If
@@ -525,8 +556,10 @@ export async function getLifecycle(
         rejectionDetails: null,
         // Gaps don't carry a stage — there's no transaction to derive from.
         outboundStage: null,
-        // Gaps also don't carry a partner channel — they're expected, not real.
         partnerChannel: null,
+        isaControlNumber: null,
+        source: null,
+        instanceIndex: null,
       });
     }
   }
