@@ -211,6 +211,12 @@ function TimelineRow({
                 </span>
               )}
 
+              {event.headerSummary ? (
+                <span className="w-full text-xs text-[var(--color-fg-muted)]" data-testid="header-summary">
+                  {event.headerSummary}
+                </span>
+              ) : null}
+
               {event.kind === 'transaction' && event.transactionId ? (
                 <span className="flex items-center gap-2 print:hidden">
                   {showDownloadRaw && event.rawFileId ? (

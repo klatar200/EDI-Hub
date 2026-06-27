@@ -14,6 +14,7 @@ import type { ApiErrorResponse, LifecycleListFilters, LifecycleListResponse, Lif
 import { tenantContext } from '@edi/db';
 import { getLifecycle } from '../services/lifecycle.js';
 import { listLifecycles } from '../services/lifecycles.js';
+import { readTenantSettings } from '../services/tenant-settings.js';
 
 import { requiresRole } from '../plugins/rbac.js';
 
@@ -37,6 +38,8 @@ function parseLifecycleListQuery(q: Record<string, string | undefined>): Lifecyc
     pos: q.pos
       ? q.pos.split(',').map((p) => p.trim()).filter((p) => p.length > 0)
       : undefined,
+    sort:
+      q.sort === 'startedAt:asc' || q.sort === 'startedAt:desc' ? q.sort : undefined,
   };
 }
 export async function lifecycleRoutes(
@@ -89,9 +92,11 @@ export async function lifecycleRoutes(
     async (request, reply) => {
       const tenantId = tenantContext.requireTenantId();
       const tenant = await app.prisma.tenant.findUnique({ where: { id: tenantId } });
+      const settings = await readTenantSettings(app.prisma, tenantId);
       const filters = parseLifecycleListQuery(request.query);
       const result = await listLifecycles(app.prisma, filters, {
         ourIsaIds: tenant?.ourIsaIds ?? [],
+        globalSlaCountdownEnabled: settings.slaCountdownEnabled,
       });
       const body: LifecycleListResponse = result;
       return reply.code(200).send(body);

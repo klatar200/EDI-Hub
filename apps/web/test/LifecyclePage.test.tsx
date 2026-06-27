@@ -20,6 +20,7 @@ const EVENT_DEFAULTS = {
   isaControlNumber: null,
   source: null,
   instanceIndex: null,
+  headerSummary: null,
 } as const;
 
 const HAPPY_PATH = {

@@ -18,7 +18,7 @@ const SAMPLE: LifecycleResponse = {
   po: 'PO-100',
   enteredBy: { kind: 'po', value: 'PO-100' },
   flow: 'standard',
-  partner: { id: 'p-1', displayName: 'Acme' },
+  partner: { id: 'p-1', displayName: 'Acme', slaCountdownEnabled: false, slaWindows: [] },
   events: [
     {
       kind: 'transaction',
@@ -38,6 +38,7 @@ const SAMPLE: LifecycleResponse = {
       isaControlNumber: '000000001',
       source: 'upload',
       instanceIndex: 1,
+      headerSummary: null,
     },
     {
       kind: 'gap',
@@ -57,6 +58,7 @@ const SAMPLE: LifecycleResponse = {
       isaControlNumber: null,
       source: null,
       instanceIndex: null,
+      headerSummary: null,
     },
   ],
 };

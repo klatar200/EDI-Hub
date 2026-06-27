@@ -43,6 +43,7 @@ interface DbPartnerRow {
   ackCodeOverrides: unknown;
   segmentLabelOverrides: unknown;
   slaWindows: unknown;
+  slaCountdownEnabled: boolean;
   /** Phase 8 Sprint 3 — JSONB; '{}' default means "not yet configured". */
   connectivity: unknown;
   createdAt: Date;
@@ -181,6 +182,7 @@ export function toRecord(row: DbPartnerRow): TradingPartnerRecord {
     ackCodeOverrides: readAckOverrides(row.ackCodeOverrides),
     segmentLabelOverrides: readSegmentLabelOverrides(row.segmentLabelOverrides ?? {}),
     slaWindows: readSlaWindows(row.slaWindows),
+    slaCountdownEnabled: row.slaCountdownEnabled ?? false,
     connectivity: readConnectivity(row.connectivity),
     createdAt: row.createdAt.toISOString(),
     updatedAt: row.updatedAt.toISOString(),

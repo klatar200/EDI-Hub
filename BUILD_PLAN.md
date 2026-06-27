@@ -130,8 +130,8 @@ Finish partial features and unscheduled items. Status matrix: [`docs/FEATURE_STA
 | **PB-1** | Alerts + detection UI | F8, F50, F49 | ✅ Done |
 | **PB-2** | Ingest triage polish | F53, F54, F60 | ✅ Done |
 | **PB-3** | Dashboard completeness | F1, F3, F45 | ✅ Done |
-| **PB-4** | Settings + SLA behavior | F13, F33 | 🔜 In progress |
-| **PB-5** | Lifecycle detail richness | F7, F31, F44 | 🔜 In progress |
+| **PB-4** | Settings + SLA behavior | F13, F33 | ✅ Done |
+| **PB-5** | Lifecycle detail richness | F7, F31, F44 | ✅ Done |
 | **PB-6** | Export + admin polish | F58, F22, F56 | ⏳ Planned |
 | **PB-7** | Extended sets productization | F21, F31 | ⏳ Planned |
 | **PB-8** | Later / scoped (optional) | F27, F37, F38 | ⏳ Optional |
