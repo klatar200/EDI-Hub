@@ -49,6 +49,9 @@ apps/web/vite.config.ts.timestamp-*.mjs
 # .continue/ — IDE-side AI assistant cache
 .continue/
 
+# Clerk Next.js reference sample (removed from repo; guard against reintroduction)
+clerk-nextjs/
+
 # Allow .auth/ structure (README + .gitignore) but block the captured
 # Clerk session blob.
 # (The .auth/.gitignore already excludes state.json.)

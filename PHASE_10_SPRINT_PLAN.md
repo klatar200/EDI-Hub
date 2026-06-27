@@ -1,5 +1,7 @@
 # Phase 10 — Production Readiness & Operations: Sprint Plan
 
+> **Phase status:** Phase 10 is **code-complete** (M5 in code). Operator drills and deploy checklist: **`BUILD_PLAN.md`** § Deploy track · **`ops/PRE_PRODUCTION_TODO.md`**. This file is historical sprint detail.
+
 **Phase goal:** Make the system survivable in the real world. Before Phase
 10 the app boots, accepts traffic, and is secure (Phase 9). After Phase 10
 it can be operated by a person who isn't the author — logs are searchable,

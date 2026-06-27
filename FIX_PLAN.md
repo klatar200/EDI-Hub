@@ -1,8 +1,10 @@
 # EDI Data Hub — Remediation Build Plan
 
+> **Status (2026-06-25):** W1.1, W1.2, W2.1, W2.2, W2.3, W3.3, and W3.4 are **complete**. Remaining items (W3.1, W3.2, W4.x) are tracked in **`BUILD_PLAN.md`** § Path A-core remediation and § Ordered next steps. This file is retained for root-cause detail and exit criteria from the original audit.
+
 **Owner:** Keagan
 **Author:** Generated from a full-codebase audit (2026-06-22)
-**Status:** Proposed
+**Status:** W1–W2 and W3.3/W3.4 complete; W3.1–W4 open (see `BUILD_PLAN.md`)
 **Scope:** Resolve every gap and error surfaced in the state-of-the-app review. Ordered by risk, not by effort.
 
 ---

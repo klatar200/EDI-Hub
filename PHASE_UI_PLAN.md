@@ -1,5 +1,7 @@
 # UI Overhaul — Phase plan (Path A · Sprint A3)
 
+> **Roadmap status:** Gates and sequencing are in **`BUILD_PLAN.md`** § UI overhaul. This file holds gate options and sprint deliverables.
+
 **Status:** Draft — decision gates open  
 **Scope rule (anti-drift):** Every change must improve **monitoring, troubleshooting, or alerting** readability — especially lifecycle stitching and alerts. No theming for itsing's sake.
 

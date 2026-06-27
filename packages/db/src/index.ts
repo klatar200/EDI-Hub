@@ -20,6 +20,7 @@ export * from '@prisma/client';
 export {
   tenantContext,
   PILOT_TENANT_ID,
+  TenantContextMissingError,
   type TenantContextValue,
 } from './tenant-context.js';
 export {
