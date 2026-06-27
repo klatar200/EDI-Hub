@@ -12,9 +12,9 @@ Review items here when planning post-launch sprints. Each entry should serve mon
 
 | Feature | Notes |
 |---|---|
-| **BullMQ + Redis scheduler** | Today: sync ingestion + cron/Task Scheduler for detection/retention. Add when sub-minute cadence or queue observability justifies Redis. See BUILD_PLAN §8 W3.1. |
+| **BullMQ + Redis scheduler** | Today: sync ingestion + cron/Task Scheduler for detection/retention. Add when sub-minute cadence or queue observability justifies Redis. Deferred per [ADR 0001](docs/adr/0001-w3.1-synchronous-ingestion-with-reconcile.md). |
 | **Per-tenant `OUR_ISA_IDS`** | Verify at deploy; may already be tenant-scoped. |
-| **CORS / split-origin** | Only if production uses separate `app.` and `api.` hosts without a reverse proxy. See BUILD_PLAN §8 W3.2. |
+| **CORS / split-origin** | Only when production deliberately uses separate `app.` and `api.` hosts. Default is same-origin per [ADR 0002](docs/adr/0002-w3.2-same-origin-default-cors-escape-hatch.md). |
 | **WAF on ALB** | Revisit if abuse appears post-launch. |
 | **Multi-region failover** | Phase 12+ enterprise tier. |
 | **APM / distributed tracing** | OpenTelemetry or Datadog when the call graph goes multi-service. |
