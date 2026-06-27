@@ -31,6 +31,7 @@ import { IngestionsPage } from './pages/IngestionsPage.tsx';
 import { SearchPage } from './pages/SearchPage.tsx';
 import { LifecyclePage } from './pages/LifecyclePage.tsx';
 import { MetricsPage } from './pages/MetricsPage.tsx';
+import { DashboardPage } from './pages/DashboardPage.tsx';
 import { PartnersConfigPage } from './pages/PartnersConfigPage.tsx';
 import { AlertsPage } from './pages/AlertsPage.tsx';
 import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
@@ -85,6 +86,7 @@ function SetupGate(): JSX.Element {
         <Route path="/ingestions" element={<IngestionsPage />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/lifecycle/:po" element={<LifecyclePage />} />
+        <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/metrics" element={<MetricsPage />} />
         <Route path="/partners-config" element={<PartnersConfigPage />} />
         <Route path="/alerts" element={<AlertsPage />} />

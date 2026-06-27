@@ -18,6 +18,8 @@ import type {
   PartnerConfigListResponse,
   PartnersResponse,
   RejectionRateResponse,
+  DashboardResponse,
+  DashboardIngestWindow,
   SearchResponse,
   SetupPatchInput,
   SetupStatusResponse,
@@ -205,6 +207,9 @@ export const api = {
   /** GET /metrics/rejection-rate — defaults to a rolling 30-day window. */
   rejectionRate: (params: { from?: string; to?: string; partner?: string } = {}) =>
     get<RejectionRateResponse>(`/metrics/rejection-rate${qs(params)}`),
+  /** PS-3 — ops dashboard aggregates. */
+  dashboard: (params: { ingestWindow?: DashboardIngestWindow; rejectionWindowDays?: 7 | 30 } = {}) =>
+    get<DashboardResponse>(`/dashboard${qs(params as Record<string, string | number | undefined>)}`),
   alerts: {
     list: (params: { status?: string; type?: string; partnerId?: string } = {}) =>
       get<AlertListResponse>(`/alerts${qs(params)}`),

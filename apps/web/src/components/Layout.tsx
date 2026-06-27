@@ -64,6 +64,7 @@ export function Layout(): JSX.Element {
 
   const primaryNav: NavItem[] = [
     { to: '/', label: 'Lifecycles', end: true },
+    { to: '/dashboard', label: 'Dashboard' },
     { to: '/transactions', label: 'Transactions' },
     { to: '/ingestions', label: 'Ingestions' },
     { to: '/metrics', label: 'Metrics' },

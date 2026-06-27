@@ -313,6 +313,63 @@ export interface RejectionRateResponse {
   rows: RejectionRateRow[];
 }
 
+// ─────────────────────────────────────────────────────────────
+// PS-3 — Ops dashboard
+// ─────────────────────────────────────────────────────────────
+
+export type DashboardIngestWindow = '24h' | '7d' | '30d' | 'all';
+
+export interface DashboardTrafficSilence {
+  /** ISO timestamp of most recent ingest from any partner; null when none. */
+  lastGlobalIngestAt: string | null;
+  /** True when no ingest in the configured stale window (default 6h). */
+  isGloballyStale: boolean;
+  staleWindowHours: number;
+  partners: Array<{
+    partnerId: string;
+    displayName: string;
+    lastIngestAt: string | null;
+  }>;
+}
+
+export interface DashboardOpenAlerts {
+  total: number;
+  bySeverity: { critical: number; warning: number; info: number };
+  topPartners: Array<{ partnerId: string | null; displayName: string; count: number }>;
+}
+
+export interface DashboardIngestHealth {
+  window: DashboardIngestWindow;
+  parsed: number;
+  parseError: number;
+  failed: number;
+  duplicate: number;
+  received: number;
+}
+
+export interface DashboardRejectionTrend {
+  partner: string;
+  /** Daily rejection rates (oldest → newest), length = windowDays. */
+  dailyRates: number[];
+}
+
+export interface DashboardPartnerHealthRow {
+  partnerId: string;
+  displayName: string;
+  lastIngestAt: string | null;
+  lastAckAt: string | null;
+  rejectionRate30d: number;
+  openAlertCount: number;
+}
+
+export interface DashboardResponse {
+  trafficSilence: DashboardTrafficSilence;
+  openAlerts: DashboardOpenAlerts;
+  ingestHealth: DashboardIngestHealth;
+  rejectionTrends: { windowDays: 7 | 30; trends: DashboardRejectionTrend[] };
+  partnerHealth: DashboardPartnerHealthRow[];
+}
+
 /** Phase 5 — rejection info attached to a non-997 transaction's detail
  *  response when it was rejected (AK5 R/M) by a 997. Null when there's no
  *  ack or the ack was accepted. */

@@ -27,6 +27,7 @@ import { rawFileRoutes } from '../src/routes/raw-files.js';
 import { searchRoutes } from '../src/routes/search.js';
 import { lifecycleRoutes } from '../src/routes/lifecycle.js';
 import { metricsRoutes } from '../src/routes/metrics.js';
+import { dashboardRoutes } from '../src/routes/dashboard.js';
 import { partnersConfigRoutes } from '../src/routes/partners-config.js';
 import { setupRoutes } from '../src/routes/setup.js';
 import { alertsRoutes } from '../src/routes/alerts.js';
@@ -67,6 +68,7 @@ const EXPECTED: Record<string, Role> = {
   'GET /api/search': 'viewer',
   'GET /api/lifecycle': 'viewer',
   'GET /api/lifecycles': 'viewer',
+  'GET /api/dashboard': 'viewer',
   'GET /api/metrics/rejection-rate': 'viewer',
   'GET /api/alerts': 'viewer',
   'GET /api/alerts/:id': 'viewer',
@@ -139,6 +141,7 @@ test('every registered route declares the requiredRole expected by the policy', 
       await apiScope.register(searchRoutes);
       await apiScope.register(lifecycleRoutes);
       await apiScope.register(metricsRoutes);
+      await apiScope.register(dashboardRoutes);
       await apiScope.register(partnersConfigRoutes);
       await apiScope.register(setupRoutes);
       await apiScope.register(alertsRoutes);
