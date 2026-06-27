@@ -5,6 +5,15 @@ import type { PrismaClient } from '@prisma/client';
 import type { LifecycleListFilters, LifecycleSummary } from '@edi/shared';
 import { getLifecycle, summarizeLifecycleEvents } from './lifecycle.js';
 
+/** Build human-readable expected-document warnings from gap events. */
+export function expectedWarningsFromEvents(
+  events: Array<{ kind: string; transactionSetId: string; direction: string; status: string }>,
+): string[] {
+  return events
+    .filter((e) => e.kind === 'gap' && e.status === 'expected_missing')
+    .map((e) => `${e.transactionSetId} (${e.direction}) expected — not yet received`);
+}
+
 interface PoRow {
   po: string;
   started_at: Date;
@@ -117,6 +126,17 @@ export async function listLifecycles(
     if (filters.hasParseError === true && !hasParseError) continue;
     if (filters.flow && lc.flow !== filters.flow) continue;
     if (filters.partnerId && lc.partner?.id !== filters.partnerId) continue;
+    if (filters.setId) {
+      const hasSet = lc.events.some(
+        (e) =>
+          e.kind === 'transaction' &&
+          e.transactionSetId === filters.setId &&
+          (!filters.setDirection || e.direction === filters.setDirection),
+      );
+      if (!hasSet) continue;
+    }
+
+    const expectedWarnings = expectedWarningsFromEvents(lc.events);
 
     summaries.push({
       po: row.po,
@@ -132,6 +152,7 @@ export async function listLifecycles(
       hasParseError,
       hasDuplicates: counts.hasDuplicates,
       additionalDocumentCount: counts.additionalDocumentCount,
+      expectedWarnings,
     });
   }
 

@@ -23,6 +23,7 @@ const LIST_ROW = {
   hasParseError: true,
   hasDuplicates: false,
   additionalDocumentCount: 0,
+  expectedWarnings: ['856 (outbound) expected — not yet received'],
 };
 
 const TIMELINE = {
@@ -96,5 +97,5 @@ test('expand loads timeline without route change', async () => {
   fireEvent.click(expandBtn);
   const panel = await screen.findByTestId('expand-panel-PO-100');
   expect(panel.textContent).toContain('850');
-  expect(panel.textContent).toContain('expected missing');
+  expect(panel.textContent).toContain('Expected — not received');
 });

@@ -7,7 +7,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { getLifecycle, summarizeLifecycleEvents } from '../src/services/lifecycle.js';
-import { listLifecycles } from '../src/services/lifecycles.js';
+import { listLifecycles, expectedWarningsFromEvents } from '../src/services/lifecycles.js';
 import { buildServer } from '../src/server.js';
 import type { AppConfig } from '../src/config.js';
 
@@ -167,6 +167,15 @@ const orig855 = tx({
 const orig850b = tx({
   id: 't-850b', transactionSetId: '850', controlNumber: 'T9', groupControl: '9',
   poNumber: 'PO-200', direction: 'inbound', ingestedAt: '2026-06-03T10:00:00Z',
+});
+
+test('expectedWarningsFromEvents surfaces gap rows as warnings', () => {
+  const warnings = expectedWarningsFromEvents([
+    { kind: 'gap', transactionSetId: '856', direction: 'outbound', status: 'expected_missing' },
+    { kind: 'transaction', transactionSetId: '850', direction: 'inbound', status: 'received' },
+  ]);
+  assert.equal(warnings.length, 1);
+  assert.match(warnings[0]!, /856/);
 });
 
 test('summarizeLifecycleEvents counts received, missing, rejected, duplicates', () => {

@@ -241,6 +241,20 @@ export const api = {
     if (!res.ok) throw new Error(`Could not load raw file (${res.status})`);
     return res.text();
   },
+  /** PS-2 — authenticated raw file download trigger. */
+  downloadRawFile: async (id: string, filename?: string): Promise<void> => {
+    const res = await fetch(`${BASE}/raw-files/${id}/content`, { headers: await authHeaders() });
+    if (!res.ok) throw new Error(`Could not download raw file (${res.status})`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = filename ?? `${id}.edi`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export type { TransactionSummary };

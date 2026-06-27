@@ -237,6 +237,8 @@ export interface LifecycleSummary {
   hasParseError: boolean;
   hasDuplicates: boolean;
   additionalDocumentCount: number;
+  /** PS-2 — proactive expected-document warnings (gap rows in the flow). */
+  expectedWarnings: string[];
 }
 
 export interface LifecycleListResponse {
@@ -255,6 +257,9 @@ export interface LifecycleListFilters {
   hasAlerts?: boolean;
   hasParseError?: boolean;
   flow?: LifecycleFlow;
+  /** PS-2 — filter to POs containing this set (optionally with direction). */
+  setId?: string;
+  setDirection?: LifecycleDirection;
 }
 
 // ─────────────────────────────────────────────────────────────

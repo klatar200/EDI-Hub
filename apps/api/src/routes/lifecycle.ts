@@ -29,6 +29,11 @@ function parseLifecycleListQuery(q: Record<string, string | undefined>): Lifecyc
     hasAlerts: q.hasAlerts === 'true' ? true : q.hasAlerts === 'false' ? false : undefined,
     hasParseError: q.hasParseError === 'true' ? true : q.hasParseError === 'false' ? false : undefined,
     flow: q.flow === 'standard' || q.flow === 'grocery' || q.flow === 'unknown' ? q.flow : undefined,
+    setId: q.setId || undefined,
+    setDirection:
+      q.setDirection === 'inbound' || q.setDirection === 'outbound' || q.setDirection === 'unknown'
+        ? q.setDirection
+        : undefined,
   };
 }
 export async function lifecycleRoutes(
