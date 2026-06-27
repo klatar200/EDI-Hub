@@ -14,7 +14,7 @@ const SAMPLE = {
     {
       id: 'a-1', partnerId: 'p-1', type: 'MISSING_ACK', severity: 'warning',
       title: 'Sysco: 810 outbound missing 997 ack', body: 'overdue by 65 minutes',
-      dedupeKey: 'k1', sourceRef: { poNumber: 'PO-12345', previewTrail: [{ channel: 'email', recipient: 'ops@sysco.com', at: '2026-06-18T10:00:00Z' }] },
+      dedupeKey: 'k1', sourceRef: { poNumber: 'PO-12345', withinMinutes: 60, overdueMinutes: 65, previewTrail: [{ channel: 'email', recipient: 'ops@sysco.com', at: '2026-06-18T10:00:00Z' }] },
       status: 'active',
       createdAt: '2026-06-18T10:00:00.000Z', lastSeenAt: '2026-06-18T10:00:00.000Z',
       acknowledgedAt: null, acknowledgedBy: null, suppressUntil: null,
@@ -65,6 +65,15 @@ function renderPage() {
     </QueryClientProvider>,
   );
 }
+
+test('renders structured partner, type label, and age vs SLA metadata', async () => {
+  renderPage();
+  await screen.findByText(/Sysco: 810 outbound missing 997 ack/);
+  expect(screen.getByTestId('alert-partner').textContent).toBe('Sysco');
+  expect(screen.getByTestId('alert-type-label').textContent).toBe('Missing 997 ack');
+  expect(screen.getByTestId('alert-age-sla').textContent).toContain('65m elapsed');
+  expect(screen.getByTestId('alert-age-sla').textContent).toContain('SLA 60m');
+});
 
 test('renders alerts with severity + title + body', async () => {
   renderPage();

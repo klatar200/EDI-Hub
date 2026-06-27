@@ -15,7 +15,6 @@ import { OrganizationSwitcher, UserButton } from '@clerk/react';
 import { RequireRole } from '../lib/useRole.tsx';
 import { api } from '../lib/api.ts';
 import { SearchBox } from './SearchBox.tsx';
-import { ThemeToggle } from './ui/ThemeToggle.tsx';
 
 interface NavItem {
   to: string;
@@ -137,7 +136,6 @@ export function Layout(): JSX.Element {
           {/* Search + identity on the right */}
           <div className="ml-auto flex items-center gap-3" data-testid="auth-controls">
             <SearchBox />
-            <ThemeToggle />
             <span aria-hidden className="h-5 w-px bg-[var(--color-surface-border)]" />
             <OrganizationSwitcher
               hidePersonal

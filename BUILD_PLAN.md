@@ -34,10 +34,10 @@
 | **SaaS phases 0–10** | ✅ Code-complete |
 | **Desktop track (D1–D9)** | ✅ Code-complete |
 | **Path A-core remediation** | ✅ W1.1, W1.2, W2.1–W2.3, W3.3, W3.4 done |
-| **Tests** | **382** — 46 db · 46 parser · 228 api · 41 web · 21 desktop |
+| **Tests** | **383** — 46 db · 46 parser · 228 api · 42 web · 21 desktop |
 | **CI** | typecheck · lint (0 warnings) · `test:ci` green |
 | **Production** | ⏳ Not deployed — [§10](#10-pre-production-operator-checklist) |
-| **Next focus** | UI overhaul (Sprint A3) → architecture ADRs → staging deploy |
+| **Next focus** | Architecture ADRs (W3.1/W3.2) → staging deploy |
 
 **M5 in code ≠ M5 in production.** Operator drills (restore, k6 baseline, runbook cold-read) must pass before M5 is declared in a live environment.
 
@@ -60,8 +60,8 @@
 | 1 | Path A-core remediation | ✅ Done |
 | 2 | Manual import UI | ✅ Done (Ingestions upload panel) |
 | 3 | Lifecycle duplicates UI | ✅ Done (instance labels + inline raw) |
-| 4 | **UI overhaul** — resolve gates A/B/C, implement | ⏳ **Next** → [§7](#7-ui-overhaul-sprint-a3) |
-| 5 | Queue + CORS architecture ADRs | ⏳ → [§8](#8-open-remediation--architecture-decisions) |
+| 4 | **UI overhaul** — Sprint A3 (A1/B1/C1 defaults) | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
+| 5 | Queue + CORS architecture ADRs | ⏳ **Next** → [§8](#8-open-remediation--architecture-decisions) |
 | 6 | Staging deploy (Sprint A1) | ⏳ Needs AWS → [§9](#9-deploy-track--staging--m5-proof) |
 | 7 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
 | 8 | Phase 11 commercialization | ⏳ → [§13](#13-phase-11--12--go-to-market) |
@@ -84,7 +84,7 @@ Low-priority polish (W4.x, desktop OPTIONAL-D1/D2, deferred product ideas) → [
 | 9 | **M4** | ✅ Multi-tenant, RBAC, audit, Clerk |
 | 10 | **M5** *code* | ✅ Code / ⏳ deploy proof |
 | Desktop | — | ✅ LAN server installer, auto-update |
-| UI overhaul | — | 📝 [§7](#7-ui-overhaul-sprint-a3) |
+| UI overhaul | — | ✅ [§7](#7-ui-overhaul-sprint-a3) |
 | 11–12 | **M6** | ⏳ [§13](#13-phase-11--12--go-to-market) |
 
 Feature detail for completed phases → [`README.md` § Features](README.md#features).
@@ -101,43 +101,28 @@ Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.m
 
 ## 6. Active product backlog
 
-### Manual import (MI)
-
-Backend `POST /ingest/upload` exists (ops role). Web Ingestions page is read-only. Build multi-file upload UI with progress, errors, and links to raw file / transaction on success.
-
-### Lifecycle duplicates (LD)
-
-Multiple invoices or ASNs per PO are valid. Backend returns all linked transactions; UI must show every same-type document and support raw-inline viewing.
+_No open product backlog items._ Manual import and lifecycle duplicates shipped on `main` (upload panel on Ingestions; lifecycle `instanceIndex` + inline raw).
 
 ---
 
 ## 7. UI overhaul (Sprint A3)
 
-**Status:** Gates open — pick before coding.  
+**Status:** ✅ Done — gates locked **A1 / B1 / C1** (defaults, 2026-06-25).  
 **Scope:** Readability for lifecycle + alerts only (no cosmetic churn).
 
-### Decision gates
+### Decision gates (locked)
 
-| Gate | Default | Options |
+| Gate | Choice | Notes |
 |---|---|---|
-| **A — Accent** | **A1** indigo/slate | A2 teal · A3 custom hex |
-| **B — Dark mode** | **B1** light only | B2 toggle · B3 dark default |
-| **C — Components** | **C1** shadcn on Lifecycle + Alerts only | C2 full shadcn · C3 CSS only |
-
-Reply with choices, e.g. `Gate A: A1, B: B1, C: C1`, or say "use defaults."
-
-### In scope (priority)
-
-1. Lifecycle timeline — status chips, gap warnings, inline 997 rejection summary  
-2. Alerts list — SLA context, partner, deep links, ack/snooze clarity  
-3. Transaction list polish (filters/URL state exist)  
-4. Partners config — SLA readability only  
+| **A — Accent** | **A1** indigo/slate | Brand tokens in `index.css` |
+| **B — Dark mode** | **B1** light only | Theme toggle removed; always light |
+| **C — Components** | **C1** shadcn on Lifecycle + Alerts | Card, StatusPill, PageHeader, etc. |
 
 ### Deliverables & exit criteria
 
-**A3.1 Lifecycle:** Timeline component for 850/855/856/810/997; missing-doc gaps as warnings; expandable AK3/AK4 plain English. *Exit:* spot a missing 856 on a PO in &lt;30s.
+**A3.1 Lifecycle:** ✅ Vertical timeline with gap warnings, duplicate badges, expandable AK3/AK4 detail, inline raw.
 
-**A3.2 Alerts:** Row shows partner, type, age vs SLA, deep link. *Exit:* triage top 5 alerts in ≤2 clicks each.
+**A3.2 Alerts:** ✅ Row shows partner chip, human type label, age vs SLA pill, lifecycle deep link, ack/snooze.
 
 **Out of scope:** Marketing site, desktop chrome, net-new API features.
 
@@ -168,7 +153,7 @@ Moved to [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) (webhook reconcile, raw-file
 
 ## 9. Deploy track — staging & M5 proof
 
-**When:** After UI gates resolved and you schedule a deploy week. Local dev needs no AWS:
+**When:** After architecture ADRs (W3.1/W3.2) and you schedule a deploy week. Local dev needs no AWS:
 
 ```bash
 npm run infra:up && npm run db:migrate

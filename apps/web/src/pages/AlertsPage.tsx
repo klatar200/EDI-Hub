@@ -46,6 +46,57 @@ const TYPE_OPTIONS: Array<{ value: AlertType | ''; label: string }> = [
   { value: 'STALE_TRAFFIC', label: 'Stale traffic' },
 ];
 
+const TYPE_LABEL: Record<AlertType, string> = {
+  MISSING_ACK: 'Missing 997 ack',
+  REJECTION_RATE_SPIKE: 'Rejection-rate spike',
+  STALE_TRAFFIC: 'Stale traffic',
+};
+
+/** Partner name is the prefix before the first colon in the detector title. */
+function partnerFromTitle(title: string): string | null {
+  const idx = title.indexOf(':');
+  if (idx <= 0) return null;
+  const name = title.slice(0, idx).trim();
+  return name.length > 0 ? name : null;
+}
+
+function formatAgeMinutes(createdAt: string): string {
+  const ageM = Math.max(0, Math.floor((Date.now() - new Date(createdAt).getTime()) / 60_000));
+  if (ageM < 60) return `${ageM}m old`;
+  const ageH = Math.floor(ageM / 60);
+  if (ageH < 48) return `${ageH}h old`;
+  return `${Math.floor(ageH / 24)}d old`;
+}
+
+/** Structured age vs SLA for triage — uses sourceRef when the detector populated it. */
+function ageVsSlaMeta(alert: AlertRecord): { label: string; tone: StatusTone; testId: string } {
+  const ref = alert.sourceRef;
+  const within = typeof ref.withinMinutes === 'number' ? ref.withinMinutes : null;
+  const overdue = typeof ref.overdueMinutes === 'number' ? ref.overdueMinutes : null;
+  if (within !== null && overdue !== null) {
+    const breached = overdue > within;
+    return {
+      label: `${overdue}m elapsed · SLA ${within}m`,
+      tone: breached ? 'error' : 'warn',
+      testId: 'alert-age-sla',
+    };
+  }
+  if (alert.type === 'REJECTION_RATE_SPIKE') {
+    const current = typeof ref.currentRate === 'number' ? ref.currentRate : null;
+    const baseline = typeof ref.baselineRate === 'number' ? ref.baselineRate : null;
+    if (current !== null && baseline !== null) {
+      const currentPct = (current * 100).toFixed(1);
+      const baselinePct = (baseline * 100).toFixed(1);
+      return {
+        label: `${currentPct}% now · baseline ${baselinePct}%`,
+        tone: current > baseline ? 'error' : 'warn',
+        testId: 'alert-age-sla',
+      };
+    }
+  }
+  return { label: formatAgeMinutes(alert.createdAt), tone: 'neutral', testId: 'alert-age' };
+}
+
 const SEVERITY_TONE: Record<AlertSeverity, StatusTone> = {
   info: 'info',
   warning: 'warn',
@@ -169,6 +220,8 @@ function AlertRow({
   const poNumber = typeof alert.sourceRef.poNumber === 'string' ? alert.sourceRef.poNumber : null;
   const snoozedUntil = alert.suppressUntil ? new Date(alert.suppressUntil) : null;
   const isSnoozed = snoozedUntil !== null && snoozedUntil.getTime() > Date.now();
+  const partner = partnerFromTitle(alert.title);
+  const ageMeta = ageVsSlaMeta(alert);
 
   return (
     <li data-testid="alert-row" className="relative">
@@ -183,12 +236,28 @@ function AlertRow({
             <div className="flex flex-wrap items-center gap-2">
               <StatusPill tone={SEVERITY_TONE[alert.severity]} withDot>{alert.severity}</StatusPill>
               <StatusPill tone={STATUS_TONE[alert.status]} size="sm">{alert.status}</StatusPill>
-              <span className="font-mono text-[11px] text-[var(--color-fg-subtle)]">{alert.type}</span>
-              <h2 className="text-sm font-semibold text-[var(--color-fg)]">{alert.title}</h2>
+              {partner ? (
+                <span
+                  data-testid="alert-partner"
+                  className="inline-flex items-center rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-fg)]"
+                >
+                  {partner}
+                </span>
+              ) : null}
+              <span
+                data-testid="alert-type-label"
+                className="inline-flex items-center rounded-full bg-[var(--color-brand-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-brand-700)]"
+              >
+                {TYPE_LABEL[alert.type]}
+              </span>
+              <span data-testid={ageMeta.testId}>
+                <StatusPill tone={ageMeta.tone} size="sm">{ageMeta.label}</StatusPill>
+              </span>
               <span className="ml-auto text-xs text-[var(--color-fg-muted)] tabular-nums">
                 {new Date(alert.createdAt).toLocaleString()}
               </span>
             </div>
+            <h2 className="text-sm font-semibold text-[var(--color-fg)]">{alert.title}</h2>
             <p className="text-sm text-[var(--color-fg-muted)]">{alert.body}</p>
             {preview.length > 0 ? (
               <div

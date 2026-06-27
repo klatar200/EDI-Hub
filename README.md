@@ -9,7 +9,7 @@ the 850, 855, 856, 810, and all 997s in one chronological view.
 
 **Planning:** Active roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Optional/deferred → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) · Agent conventions → [`CLAUDE.md`](CLAUDE.md) · Parser deviations → [`docs/EDI_DEVIATIONS.md`](docs/EDI_DEVIATIONS.md)
 
-**Tests:** 378 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
+**Tests:** 383 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
 
 ---
 
@@ -37,8 +37,9 @@ What is **shipped in the repo today** (Phases 0–10 + desktop track).
 - Transaction detail: typed header, line items, labeled element tree
 - **Raw vs parsed** side-by-side view with highlight sync
 - Global search (PO / invoice / ISA control number)
-- **Lifecycle page:** chronological PO timeline with missing-document gaps
-- Partners config, alerts, ingestions list, outbound stage badges
+- **Lifecycle page:** vertical timeline with missing-document gaps, duplicate badges, expandable 997 AK detail, inline raw
+- **Alerts page:** partner + type + age-vs-SLA chips, lifecycle deep links, ack/snooze
+- Partners config, ingestions list (with upload panel), outbound stage badges
 - Clerk authentication; role-aware UI
 
 ### Acknowledgments & monitoring

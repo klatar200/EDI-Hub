@@ -35,10 +35,9 @@ const ThemeContext = createContext<ThemeContextValue | null>(null);
 const STORAGE_KEY = 'edi-hub:theme';
 
 function readStored(): ThemeMode {
-  if (typeof window === 'undefined') return 'system';
-  const v = window.localStorage.getItem(STORAGE_KEY);
-  if (v === 'light' || v === 'dark' || v === 'system') return v;
-  return 'system';
+  // Gate B1 — light only. Dark/system modes are deferred (see BUILD_PLAN §7).
+  if (typeof window === 'undefined') return 'light';
+  return 'light';
 }
 
 function systemPrefersDark(): boolean {
