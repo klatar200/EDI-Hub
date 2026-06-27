@@ -60,7 +60,7 @@
 | 1 | Path A-core remediation | ✅ Done |
 | 2 | Manual import UI | ✅ Done (Ingestions upload panel) |
 | 3 | Lifecycle duplicates UI | ✅ Done (instance labels + inline raw) |
-| 4 | **UI overhaul** — Sprint A3 (A1/B1/C1 defaults) | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
+| 4 | **UI overhaul** — Sprint A3 (A1/B2/C1) | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
 | 5 | Queue + CORS architecture ADRs | ⏳ **Next** → [§8](#8-open-remediation--architecture-decisions) |
 | 6 | Staging deploy (Sprint A1) | ⏳ Needs AWS → [§9](#9-deploy-track--staging--m5-proof) |
 | 7 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
@@ -107,7 +107,7 @@ _No open product backlog items._ Manual import and lifecycle duplicates shipped 
 
 ## 7. UI overhaul (Sprint A3)
 
-**Status:** ✅ Done — gates locked **A1 / B1 / C1** (defaults, 2026-06-25).  
+**Status:** ✅ Done — gates locked **A1 / B2 / C1** (2026-06-25; B revised to keep theme toggle).  
 **Scope:** Readability for lifecycle + alerts only (no cosmetic churn).
 
 ### Decision gates (locked)
@@ -115,7 +115,7 @@ _No open product backlog items._ Manual import and lifecycle duplicates shipped 
 | Gate | Choice | Notes |
 |---|---|---|
 | **A — Accent** | **A1** indigo/slate | Brand tokens in `index.css` |
-| **B — Dark mode** | **B1** light only | Theme toggle removed; always light |
+| **B — Dark mode** | **B2** light / system / dark toggle | Header `ThemeToggle`; persisted in localStorage |
 | **C — Components** | **C1** shadcn on Lifecycle + Alerts | Card, StatusPill, PageHeader, etc. |
 
 ### Deliverables & exit criteria
