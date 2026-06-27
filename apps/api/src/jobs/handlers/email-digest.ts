@@ -6,6 +6,9 @@ import { tenantContext } from '@edi/db';
 import type { JobHandler } from '../interface.js';
 import { readTenantSettings } from '../../services/tenant-settings.js';
 import { emitAudit } from '../../services/audit.js';
+import { msUntilDigestHour } from '../email-digest-schedule.js';
+
+export const EMAIL_DIGEST_JOB_NAME = 'email-digest';
 
 export interface EmailDigestPayload {
   tenantId?: string;
@@ -14,6 +17,7 @@ export interface EmailDigestPayload {
 export function createEmailDigestHandler(deps: {
   prisma: PrismaClient;
   previewMode: boolean;
+  scheduleNext?: (tenantId: string, hourUtc: number) => Promise<void>;
 }): JobHandler {
   return async (payload: unknown) => {
     const p = payload as EmailDigestPayload;
@@ -45,18 +49,49 @@ export function createEmailDigestHandler(deps: {
             payloadDiff: { after: { emailDigestPreview: summary } },
           });
         });
-        return;
-      }
-      // Live send would use SES notifier — stubbed for v1; audit records the run.
-      await deps.prisma.$transaction(async (tx) => {
-        await emitAudit(tx, {
-          action: 'tenant.config-update',
-          targetType: 'tenant',
-          targetId: tenantId,
-          actorId: null,
-          payloadDiff: { after: { emailDigestSent: summary } },
+      } else {
+        // Live send would use SES notifier — stubbed for v1; audit records the run.
+        await deps.prisma.$transaction(async (tx) => {
+          await emitAudit(tx, {
+            action: 'tenant.config-update',
+            targetType: 'tenant',
+            targetId: tenantId,
+            actorId: null,
+            payloadDiff: { after: { emailDigestSent: summary } },
+          });
         });
-      });
+      }
+
+      if (deps.scheduleNext) {
+        await deps.scheduleNext(tenantId, settings.emailDigestHourUtc);
+      }
     });
   };
+}
+
+export async function scheduleEmailDigestForTenant(
+  enqueue: (payload: EmailDigestPayload, delayMs: number) => Promise<void>,
+  tenantId: string,
+  hourUtc: number,
+): Promise<void> {
+  await enqueue({ tenantId }, msUntilDigestHour(hourUtc));
+}
+
+export async function bootstrapEmailDigestSchedules(
+  prisma: PrismaClient,
+  enqueue: (payload: EmailDigestPayload, delayMs: number) => Promise<void>,
+): Promise<void> {
+  const { tenantContext } = await import('@edi/db');
+  const { parseTenantSettings } = await import('../../services/tenant-settings.js');
+  await tenantContext.bypass(async () => {
+    const tenants = await prisma.tenant.findMany({
+      where: { deletedAt: null },
+      select: { id: true, settings: true },
+    });
+    for (const tenant of tenants) {
+      const settings = parseTenantSettings(tenant.settings);
+      if (!settings.emailDigestEnabled) continue;
+      await scheduleEmailDigestForTenant(enqueue, tenant.id, settings.emailDigestHourUtc);
+    }
+  });
 }

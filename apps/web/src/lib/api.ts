@@ -342,7 +342,7 @@ export const api = {
     list: (params: { actorId?: string; action?: string; from?: string; to?: string; limit?: number; offset?: number } = {}) =>
       get<AuditListResponse>(`/audit${qs(params as Record<string, string | number | undefined>)}`),
   },
-  /** PS-11 — bulk lifecycle CSV export. */
+  /** PS-11 — bulk lifecycle CSV or ZIP export. */
   exportLifecyclesCsv: async (input: LifecycleBulkExportInput): Promise<void> => {
     const res = await fetch(`${BASE}/lifecycles/export`, {
       method: 'POST',
@@ -354,12 +354,14 @@ export const api = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'lifecycles-export.csv';
+    a.download = input.format === 'zip' ? 'lifecycles-export.zip' : 'lifecycles-export.csv';
     document.body.appendChild(a);
     a.click();
     a.remove();
     URL.revokeObjectURL(url);
   },
+  exportLifecyclesZip: (pos: string[]) =>
+    api.exportLifecyclesCsv({ pos, format: 'zip', includeFormats: ['txt', 'csv', 'pdf'] }),
 };
 
 export type { TransactionSummary };

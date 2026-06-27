@@ -310,13 +310,23 @@ export function LifecyclesPage(): JSX.Element {
         actions={
           <div className="flex flex-wrap items-center gap-2">
             {selected.size > 0 ? (
-              <button
-                type="button"
-                className="rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]"
-                onClick={() => void api.exportLifecyclesCsv({ pos: [...selected] })}
-              >
-                Export CSV ({selected.size})
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]"
+                  onClick={() => void api.exportLifecyclesCsv({ pos: [...selected] })}
+                >
+                  Export CSV ({selected.size})
+                </button>
+                <button
+                  type="button"
+                  className="rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]"
+                  data-testid="export-lifecycles-zip"
+                  onClick={() => void api.exportLifecyclesZip([...selected])}
+                >
+                  Export ZIP ({selected.size})
+                </button>
+              </>
             ) : null}
             <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
               {listQ.isLoading ? 'Loading…' : `${total} conversation${total === 1 ? '' : 's'}`}

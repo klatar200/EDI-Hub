@@ -16,6 +16,7 @@ const SAMPLE_LIST = {
       isaSenderIds: ['SYSCO'], isaReceiverIds: [],
       status: 'active', notes: null, contacts: [],
       supportedSets: ['850', '855', '810'], lifecycleFlows: [], ackCodeOverrides: {}, slaWindows: [],
+      segmentLabelOverrides: { '850': { ZZ: 'Custom ZZ label' } },
       // Phase 8 Sprint 3 — Sysco partner has a fully configured connectivity block.
       connectivity: {
         channel: 'AS2',
@@ -141,5 +142,15 @@ test('editor pre-fills Connectivity when editing a partner that has it configure
   expect(channel.value).toBe('AS2');
   expect(endpoint.value).toBe('https://sysco.example.com/as2');
   expect(tech.value).toBe('edi-ops@sysco.example.com');
+});
+
+test('editor shows segment label overrides from partner record', async () => {
+  renderPage();
+  const editButtons = await screen.findAllByText('Edit');
+  fireEvent.click(editButtons[0] as HTMLElement);
+  const editor = await screen.findByTestId('partner-editor');
+  expect(within(editor).getByTestId('segment-label-editor')).toBeInTheDocument();
+  expect(within(editor).getByDisplayValue('ZZ')).toBeInTheDocument();
+  expect(within(editor).getByDisplayValue('Custom ZZ label')).toBeInTheDocument();
 });
 

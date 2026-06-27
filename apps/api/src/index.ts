@@ -19,6 +19,12 @@ import {
   createDetectionHandler,
   DETECTION_JOB_NAME,
 } from './jobs/handlers/detection.js';
+import {
+  bootstrapEmailDigestSchedules,
+  createEmailDigestHandler,
+  EMAIL_DIGEST_JOB_NAME,
+  type EmailDigestPayload,
+} from './jobs/handlers/email-digest.js';
 import { reconcileStuckReceived } from './services/parsing.js';
 
 async function main(): Promise<void> {
@@ -67,8 +73,30 @@ async function main(): Promise<void> {
       logger: app.log,
     }),
   );
+  const digestPreviewMode = app.config.notifier.mode !== 'live';
+  const scheduleDigest = async (tenantId: string, hourUtc: number): Promise<void> => {
+    const { msUntilDigestHour } = await import('./jobs/email-digest-schedule.js');
+    await jobs.enqueue(EMAIL_DIGEST_JOB_NAME, { tenantId }, { delayMs: msUntilDigestHour(hourUtc) });
+  };
+  jobs.register(
+    EMAIL_DIGEST_JOB_NAME,
+    createEmailDigestHandler({
+      prisma: app.prisma,
+      previewMode: digestPreviewMode,
+      scheduleNext: scheduleDigest,
+    }),
+  );
   jobs.start();
   app.decorate('jobs', jobs);
+
+  void bootstrapEmailDigestSchedules(
+    app.prisma,
+    async (payload: EmailDigestPayload, delayMs: number) => {
+      await jobs.enqueue(EMAIL_DIGEST_JOB_NAME, payload, { delayMs });
+    },
+  ).catch((err) => {
+    app.log.warn({ err }, 'Email digest bootstrap failed (non-fatal)');
+  });
 
   // PS-5 — startup reconcile for RECEIVED rows stuck after a crash.
   void tenantContext.bypass(async () => {

@@ -8,6 +8,7 @@ import type { ApiErrorResponse, LifecycleBulkExportInput } from '@edi/shared';
 import { requiresRole } from '../plugins/rbac.js';
 import { getLifecycle, summarizeLifecycleEvents } from '../services/lifecycle.js';
 import { lifecycleToCsv, lifecycleToPdf, lifecycleToTxt } from '../services/lifecycle-export-format.js';
+import { buildLifecycleExportZip } from '../services/lifecycle-export-zip.js';
 import { tenantContext } from '@edi/db';
 
 function csvEscape(v: string): string {
@@ -75,6 +76,19 @@ export async function lifecycleExportRoutes(
           })
         : null;
       const ourIsaIds = tenant?.ourIsaIds ?? [];
+      const exportFormat = request.body?.format === 'zip' ? 'zip' : 'csv';
+
+      if (exportFormat === 'zip') {
+        const include = request.body?.includeFormats?.length
+          ? request.body.includeFormats.filter((f): f is 'txt' | 'csv' | 'pdf' => f === 'txt' || f === 'csv' || f === 'pdf')
+          : (['txt', 'csv', 'pdf'] as const);
+        const zip = await buildLifecycleExportZip(app.prisma, pos, ourIsaIds, [...include]);
+        return reply
+          .header('Content-Type', 'application/zip')
+          .header('Content-Disposition', 'attachment; filename="lifecycles-export.zip"')
+          .send(zip);
+      }
+
       const headers = [
         'po',
         'partner',

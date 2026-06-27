@@ -27,6 +27,7 @@ import {
   type TradingPartnerRecord,
   type AckCodeOverrides,
   type LifecycleDirection,
+  type SegmentLabelOverrides,
 } from '@edi/shared';
 import { ApiCallError, api } from '../lib/api.ts';
 import {
@@ -50,6 +51,12 @@ interface ConnectivityDraft {
   notes: string;
 }
 
+interface SegmentLabelRow {
+  setId: string;
+  segmentId: string;
+  label: string;
+}
+
 const EMPTY_CONNECTIVITY: ConnectivityDraft = {
   channel: '', endpoint: '', technicalContact: '', notes: '',
 };
@@ -66,6 +73,7 @@ interface DraftState {
   ackCodeOverrides: AckCodeOverrides;
   slaWindows: PartnerSlaWindow[];
   connectivity: ConnectivityDraft;
+  segmentLabelRows: SegmentLabelRow[];
 }
 
 const EMPTY_DRAFT: DraftState = {
@@ -73,7 +81,27 @@ const EMPTY_DRAFT: DraftState = {
   status: 'active', notes: '', contacts: [],
   supportedSets: '', lifecycleFlows: [], ackCodeOverrides: {}, slaWindows: [],
   connectivity: EMPTY_CONNECTIVITY,
+  segmentLabelRows: [],
 };
+
+function segmentRowsFromOverrides(o: SegmentLabelOverrides): SegmentLabelRow[] {
+  return Object.entries(o).flatMap(([setId, segments]) =>
+    Object.entries(segments).map(([segmentId, label]) => ({ setId, segmentId, label })),
+  );
+}
+
+function overridesFromRows(rows: SegmentLabelRow[]): SegmentLabelOverrides {
+  const out: SegmentLabelOverrides = {};
+  for (const row of rows) {
+    const setId = row.setId.trim();
+    const segmentId = row.segmentId.trim();
+    const label = row.label.trim();
+    if (!setId || !segmentId || !label) continue;
+    out[setId] ??= {};
+    out[setId]![segmentId] = label;
+  }
+  return out;
+}
 
 function fromRecord(r: TradingPartnerRecord): DraftState {
   return {
@@ -95,6 +123,7 @@ function fromRecord(r: TradingPartnerRecord): DraftState {
           notes: r.connectivity.notes ?? '',
         }
       : EMPTY_CONNECTIVITY,
+    segmentLabelRows: segmentRowsFromOverrides(r.segmentLabelOverrides ?? {}),
   };
 }
 
@@ -141,6 +170,7 @@ function toInput(d: DraftState): PartnerConfigInput {
     ackCodeOverrides: d.ackCodeOverrides,
     slaWindows: d.slaWindows,
     connectivity: draftConnectivityToInput(d.connectivity),
+    segmentLabelOverrides: overridesFromRows(d.segmentLabelRows),
   };
 }
 
@@ -393,6 +423,13 @@ export function PartnersConfigPage(): JSX.Element {
             />
           </Section>
 
+          <Section title="Segment label overrides" hint="Custom labels for Z-segments or non-standard elements (set → segment → label).">
+            <SegmentLabelOverridesEditor
+              rows={editing.draft.segmentLabelRows}
+              onChange={(segmentLabelRows) => setEditing({ ...editing, draft: { ...editing.draft, segmentLabelRows } })}
+            />
+          </Section>
+
           <Section title="Notes">
             <textarea
               className="input"
@@ -631,6 +668,67 @@ function AckOverridesEditor({
         );
       })}
     </>
+  );
+}
+
+function SegmentLabelOverridesEditor({
+  rows,
+  onChange,
+}: {
+  rows: SegmentLabelRow[];
+  onChange: (next: SegmentLabelRow[]) => void;
+}): JSX.Element {
+  return (
+    <div className="space-y-2" data-testid="segment-label-editor">
+      {rows.map((row, i) => (
+        <div key={i} className="grid grid-cols-12 gap-2 text-xs">
+          <input
+            className="input col-span-2 font-mono"
+            placeholder="Set"
+            value={row.setId}
+            onChange={(e) => {
+              const next = [...rows];
+              next[i] = { ...row, setId: e.target.value };
+              onChange(next);
+            }}
+          />
+          <input
+            className="input col-span-3 font-mono"
+            placeholder="Segment"
+            value={row.segmentId}
+            onChange={(e) => {
+              const next = [...rows];
+              next[i] = { ...row, segmentId: e.target.value };
+              onChange(next);
+            }}
+          />
+          <input
+            className="input col-span-6"
+            placeholder="Display label"
+            value={row.label}
+            onChange={(e) => {
+              const next = [...rows];
+              next[i] = { ...row, label: e.target.value };
+              onChange(next);
+            }}
+          />
+          <button
+            type="button"
+            className="col-span-1 text-[var(--color-error-700)] hover:underline"
+            onClick={() => onChange(rows.filter((_, j) => j !== i))}
+          >
+            ×
+          </button>
+        </div>
+      ))}
+      <button
+        type="button"
+        className="text-xs text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+        onClick={() => onChange([...rows, { setId: '', segmentId: '', label: '' }])}
+      >
+        + Add label override
+      </button>
+    </div>
   );
 }
 

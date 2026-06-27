@@ -807,9 +807,15 @@ export interface AuditListResponse {
   count: number;
 }
 
-/** PS-11 F57 — bulk lifecycle CSV export request. */
+/** PS-11 F57 — bulk lifecycle export request. */
+export type LifecycleExportFormat = 'txt' | 'csv' | 'pdf';
+
 export interface LifecycleBulkExportInput {
   pos: string[];
+  /** csv = summary manifest (default); zip = folder per PO with txt/csv/pdf. */
+  format?: 'csv' | 'zip';
+  /** Included in zip exports; defaults to all three. */
+  includeFormats?: LifecycleExportFormat[];
 }
 
 /** PS-11 F19 — Z-segment label overrides on partner config. */
