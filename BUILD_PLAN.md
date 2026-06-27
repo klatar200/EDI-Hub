@@ -101,7 +101,9 @@ Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.m
 
 ## 6. Active product backlog
 
-_No open product backlog items._ Manual import and lifecycle duplicates shipped on `main` (upload panel on Ingestions; lifecycle `instanceIndex` + inline raw).
+Approved product features (pending sprint grouping) → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
+
+_Next planning step:_ finish Round 2 review in `PRODUCT_BACKLOG.md`, then group into sprints._
 
 ---
 
