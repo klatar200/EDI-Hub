@@ -7,7 +7,7 @@ searching, troubleshooting, and alerting.
 **North Star:** Transaction lifecycle stitching — pull up a PO number and see
 the 850, 855, 856, 810, and all 997s in one chronological view.
 
-**Planning:** Active roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Approved backlog → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) · Optional/deferred → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) · Agent conventions → [`CLAUDE.md`](CLAUDE.md) · Parser deviations → [`docs/EDI_DEVIATIONS.md`](docs/EDI_DEVIATIONS.md)
+**Planning:** Active roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Architecture ADRs → [`docs/adr/`](docs/adr/) · Approved backlog (historical) → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) · Optional/deferred → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md)
 
 **Tests:** 436 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
 

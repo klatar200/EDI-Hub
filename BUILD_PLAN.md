@@ -38,7 +38,7 @@
 | **CI** | typecheck · lint (0 warnings) · `test:ci` green |
 | **Product backlog** | ✅ PS-0–PS-12 + PB-1–PB-8 complete — [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) |
 | **Production** | ⏳ Not deployed — [§10](#10-pre-production-operator-checklist) |
-| **Next focus** | Architecture ADRs (W3.1/W3.2) → staging deploy → M5 operational proof |
+| **Next focus** | Staging deploy (§9) → M5 operational proof (§10) |
 
 **M5 in code ≠ M5 in production.** Operator drills (restore, k6 baseline, runbook cold-read) must pass before M5 is declared in a live environment.
 
@@ -65,8 +65,8 @@
 | 3 | Lifecycle duplicates UI | ✅ Done |
 | 4 | UI overhaul — Sprint A3 | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
 | 5 | Product sprints PS-0–PS-12 + PB-1–PB-8 | ✅ Done → [§6](#6-completed-product-sprints-reference) |
-| 6 | Queue + CORS architecture ADRs | ⏳ **Next** → [§8](#8-open-remediation--architecture-decisions) |
-| 7 | Staging deploy (Sprint A1) | ⏳ Needs AWS → [§9](#9-deploy-track--staging--m5-proof) |
+| 6 | Queue + CORS architecture ADRs | ✅ Done → [§8](#8-open-remediation--architecture-decisions) · [`docs/adr/`](docs/adr/) |
+| 7 | Staging deploy (Sprint A1) | ⏳ **Next** → [§9](#9-deploy-track--staging--m5-proof) |
 | 8 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
 | 9 | Phase 11 commercialization | ⏳ → [§13](#13-phase-11--12--go-to-market) |
 | 10 | Phase 12 external pilot (M6) | ⏳ → [§13](#13-phase-11--12--go-to-market) |
@@ -178,18 +178,19 @@ Deferred or optional ideas → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
 
 Completed audit items (W1.1, W1.2, W2.1–W2.3, W3.3, W3.4): production auth guardrails, tenant-scoped ISA dedup, multi-tenant detection, green CI, production `requireTenantId` throw, `clerk-nextjs` removed.
 
-### W3.1 — Async queue (choose one, write ADR)
+### W3.1 — Async queue ✅ Accepted
 
-**Reality:** Ingestion is synchronous; detection/retention are cron scripts — not BullMQ.
+**ADR:** [`docs/adr/0001-w3.1-synchronous-ingestion-with-reconcile.md`](docs/adr/0001-w3.1-synchronous-ingestion-with-reconcile.md)
 
-- **Option A:** Add BullMQ + Redis (durable parse queue, worker scaling).  
-- **Option B:** Keep sync pipeline; add startup reconcile for `RECEIVED` rows never parsed.
+**Decision:** **Option B** — synchronous inline parse on ingest + startup reconcile for stuck `RECEIVED` rows. No BullMQ/Redis for M5. Background jobs stay on the Postgres `Job` table adapter.
 
-**Exit:** Docs match running code; Option B must leave no permanently-unparsed rows after restart.
+**Revisit:** When ingest volume or CPU isolation requires a dedicated parse-worker tier — see ADR for criteria.
 
-### W3.2 — CORS
+### W3.2 — CORS ✅ Accepted
 
-Decide same-origin (reverse proxy) vs split-origin. If split-origin, add `@fastify/cors` with config-driven allowlist.
+**ADR:** [`docs/adr/0002-w3.2-same-origin-default-cors-escape-hatch.md`](docs/adr/0002-w3.2-same-origin-default-cors-escape-hatch.md)
+
+**Decision:** **Same-origin default** — API serves React build via `WEB_STATIC_DIR` on one hostname for staging/M5. **`CORS_ALLOWED_ORIGINS`** only when deliberately splitting `app.` and `api.` hosts.
 
 ### W4.x polish
 
@@ -254,7 +255,11 @@ Full Clerk steps → [§11](#11-clerk-setup).
 
 #### API + web deploy
 
-Terraform covers data plane (RDS, S3, ALB, secrets). Wire ECS/ECR or your container pattern; ALB health check `/readiness`; deploy web static assets.
+Terraform covers data plane (RDS, S3, ALB, secrets). Wire ECS/ECR or your container pattern; ALB health check `/readiness`.
+
+**Web + API (per [ADR 0002](docs/adr/0002-w3.2-same-origin-default-cors-escape-hatch.md)):** bake `apps/web/dist` into the API image and set `WEB_STATIC_DIR`. Serve from the same hostname as the API — do **not** set `CORS_ALLOWED_ORIGINS`. Clerk authorized origin = that single public URL.
+
+Split-origin (CloudFront + `api.` subdomain) is supported via `CORS_ALLOWED_ORIGINS` + `VITE_API_URL` at build time — see ADR 0002 escape hatch.
 
 #### Smoke test
 
