@@ -103,21 +103,23 @@ Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.m
 
 Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 
+**Verification audit (2026-06-25):** PS-0–PS-12 code complete on `cursor/pb-backlog-6b3b`. PB sprints finish partial backlog items — see [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md).
+
 | Sprint | Focus | Backlog IDs | Status |
 |--------|--------|-------------|--------|
-| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ Done |
-| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ Done |
-| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ Done |
-| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ Done |
-| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ Done |
-| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ Done |
-| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Done |
-| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Done |
-| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Done |
+| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ Verified |
+| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ Verified |
+| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ Verified |
+| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ Verified |
+| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ Verified |
+| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ Verified |
+| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Verified |
+| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Verified |
+| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Verified |
 | **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Verified |
 | **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Verified |
 | **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Verified |
-| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Code complete |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Verified |
 
 ### Backlog completion sprints (PB-1–PB-8)
 
@@ -128,8 +130,8 @@ Finish partial features and unscheduled items. Status matrix: [`docs/FEATURE_STA
 | **PB-1** | Alerts + detection UI | F8, F50, F49 | ✅ Done |
 | **PB-2** | Ingest triage polish | F53, F54, F60 | ✅ Done |
 | **PB-3** | Dashboard completeness | F1, F3, F45 | ✅ Done |
-| **PB-4** | Settings + SLA behavior | F13, F33 | 🔜 F13 done; F33 next |
-| **PB-5** | Lifecycle detail richness | F7, F31, F44 | ⏳ Planned |
+| **PB-4** | Settings + SLA behavior | F13, F33 | 🔜 In progress |
+| **PB-5** | Lifecycle detail richness | F7, F31, F44 | 🔜 In progress |
 | **PB-6** | Export + admin polish | F58, F22, F56 | ⏳ Planned |
 | **PB-7** | Extended sets productization | F21, F31 | ⏳ Planned |
 | **PB-8** | Later / scoped (optional) | F27, F37, F38 | ⏳ Optional |

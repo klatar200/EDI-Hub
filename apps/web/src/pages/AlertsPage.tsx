@@ -24,37 +24,10 @@ import {
   Card,
   FormField,
   Select,
+  Input,
 } from '../components/ui';
+import { RequireRole } from '../lib/useRole.tsx';
 import { useToast } from '../lib/useToast.tsx';
-import { useHasRole } from '../lib/useRole.tsx';
-
-function alertTypeLabel(alert: AlertRecord): string {
-  if (alert.sourceRef.scope === 'unknown_isa') return 'Unknown ISA sender';
-  return TYPE_LABEL[alert.type];
-}
-
-/** Higher score = more overdue vs SLA (for sort). */
-function slaOverdueScore(alert: AlertRecord): number {
-  const ref = alert.sourceRef;
-  const within = typeof ref.withinMinutes === 'number' ? ref.withinMinutes : null;
-  const overdue = typeof ref.overdueMinutes === 'number' ? ref.overdueMinutes : null;
-  if (within !== null && overdue !== null) return overdue - within;
-  if (alert.type === 'REJECTION_RATE_SPIKE') {
-    const current = typeof ref.currentRate === 'number' ? ref.currentRate : 0;
-    const baseline = typeof ref.baselineRate === 'number' ? ref.baselineRate : 0;
-    return current - baseline;
-  }
-  return 0;
-}
-
-function sortAlerts(items: AlertRecord[], sortBy: 'sla' | 'recent'): AlertRecord[] {
-  if (sortBy === 'recent') return items;
-  return [...items].sort((a, b) => {
-    const diff = slaOverdueScore(b) - slaOverdueScore(a);
-    if (diff !== 0) return diff;
-    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
-  });
-}
 
 const SNOOZE_OPTIONS: Array<{ minutes: number; label: string }> = [
   { minutes: 60, label: '1 hour' },
@@ -80,6 +53,33 @@ const TYPE_LABEL: Record<AlertType, string> = {
   REJECTION_RATE_SPIKE: 'Rejection-rate spike',
   STALE_TRAFFIC: 'Stale traffic',
 };
+
+function alertTypeLabel(alert: AlertRecord): string {
+  if (alert.sourceRef.scope === 'unknown_isa') return 'Unknown ISA sender';
+  return TYPE_LABEL[alert.type];
+}
+
+function slaOverdueScore(alert: AlertRecord): number {
+  const ref = alert.sourceRef;
+  const within = typeof ref.withinMinutes === 'number' ? ref.withinMinutes : null;
+  const overdue = typeof ref.overdueMinutes === 'number' ? ref.overdueMinutes : null;
+  if (within !== null && overdue !== null) return overdue - within;
+  if (alert.type === 'REJECTION_RATE_SPIKE') {
+    const current = typeof ref.currentRate === 'number' ? ref.currentRate : 0;
+    const baseline = typeof ref.baselineRate === 'number' ? ref.baselineRate : 0;
+    return current - baseline;
+  }
+  return 0;
+}
+
+function sortAlerts(items: AlertRecord[], sortBy: 'sla' | 'recent'): AlertRecord[] {
+  if (sortBy === 'recent') return items;
+  return [...items].sort((a, b) => {
+    const diff = slaOverdueScore(b) - slaOverdueScore(a);
+    if (diff !== 0) return diff;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
 
 /** Partner name is the prefix before the first colon in the detector title. */
 function partnerFromTitle(title: string): string | null {
@@ -145,24 +145,16 @@ const SEVERITY_BAR: Record<AlertSeverity, string> = {
 export function AlertsPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
-  const isOps = useHasRole('ops');
   const [status, setStatus] = useState<AlertStatus | ''>('active');
   const [type, setType] = useState<AlertType | ''>('');
-  const [partnerId, setPartnerId] = useState('');
+  const [partnerName, setPartnerName] = useState('');
   const [sortBy, setSortBy] = useState<'sla' | 'recent'>('sla');
-
-  const partnersQ = useQuery({
-    queryKey: ['partners-config'],
-    queryFn: () => api.partnersConfig.list(),
-    staleTime: 60_000,
-  });
-
   const alertsQ = useQuery({
-    queryKey: ['alerts', status, type, partnerId],
+    queryKey: ['alerts', status, type, partnerName],
     queryFn: () => api.alerts.list({
       status: status || undefined,
       type: type || undefined,
-      partnerId: partnerId || undefined,
+      partnerName: partnerName.trim() || undefined,
     }),
   });
 
@@ -189,7 +181,6 @@ export function AlertsPage(): JSX.Element {
       toast.error('Could not snooze', { description: err instanceof Error ? err.message : 'Server returned an error.' });
     },
   });
-
   const detectM = useMutation({
     mutationFn: () => api.runDetection(),
     onSuccess: () => {
@@ -200,20 +191,22 @@ export function AlertsPage(): JSX.Element {
       toast.error('Detection failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
     },
   });
-
   const bulkAckM = useMutation({
-    mutationFn: () => api.alerts.bulkAck({ who: 'ops', partnerId: partnerId || undefined }),
-    onSuccess: (data) => {
-      toast.success(`Acknowledged ${data.acknowledged} alert(s)`);
+    mutationFn: () => api.alerts.bulkAck({
+      who: 'ops',
+      partnerName: partnerName.trim() || undefined,
+    }),
+    onSuccess: (res) => {
+      toast.success(`Acknowledged ${res.acknowledged} alert${res.acknowledged === 1 ? '' : 's'}`);
       void qc.invalidateQueries({ queryKey: ['alerts'] });
     },
     onError: (err) => {
-      toast.error('Bulk ack failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
+      toast.error('Bulk acknowledge failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
     },
   });
 
   const items = sortAlerts(alertsQ.data?.items ?? [], sortBy);
-  const partners = partnersQ.data?.items ?? [];
+  const activeCount = items.filter((a) => a.status === 'active').length;
 
   return (
     <div>
@@ -222,35 +215,14 @@ export function AlertsPage(): JSX.Element {
         subtitle="Missing acknowledgments + rejection-rate spikes against your configured partners."
         actions={
           <div className="flex flex-wrap items-end gap-2">
-            {isOps ? (
-              <button
-                type="button"
-                className="rounded border border-[var(--color-surface-border)] px-3 py-1.5 text-sm hover:bg-[var(--color-surface-muted)] disabled:opacity-50"
-                data-testid="run-detection-btn"
-                disabled={detectM.isPending}
-                onClick={() => detectM.mutate()}
-              >
-                {detectM.isPending ? 'Running…' : 'Run detection'}
-              </button>
-            ) : null}
-            {isOps && status === 'active' && items.length > 0 ? (
-              <button
-                type="button"
-                className="rounded border border-[var(--color-surface-border)] px-3 py-1.5 text-sm hover:bg-[var(--color-surface-muted)] disabled:opacity-50"
-                data-testid="bulk-ack-btn"
-                disabled={bulkAckM.isPending}
-                onClick={() => bulkAckM.mutate()}
-              >
-                Ack all visible
-              </button>
-            ) : null}
             <FormField label="Partner">
-              <Select size="sm" value={partnerId} onChange={(e) => setPartnerId(e.target.value)} data-testid="alert-partner-filter">
-                <option value="">All partners</option>
-                {partners.map((p) => (
-                  <option key={p.id} value={p.id}>{p.displayName}</option>
-                ))}
-              </Select>
+              <Input
+                size="sm"
+                placeholder="Filter by name…"
+                value={partnerName}
+                onChange={(e) => setPartnerName(e.target.value)}
+                data-testid="partner-filter"
+              />
             </FormField>
             <FormField label="Sort">
               <Select size="sm" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'sla' | 'recent')}>
@@ -268,6 +240,28 @@ export function AlertsPage(): JSX.Element {
                 {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
             </FormField>
+            <RequireRole role="ops">
+              <button
+                type="button"
+                className="btn"
+                data-testid="run-detection"
+                disabled={detectM.isPending}
+                onClick={() => detectM.mutate()}
+              >
+                {detectM.isPending ? 'Running…' : 'Run detection'}
+              </button>
+              {activeCount > 0 && status === 'active' ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  data-testid="bulk-ack"
+                  disabled={bulkAckM.isPending}
+                  onClick={() => bulkAckM.mutate()}
+                >
+                  {bulkAckM.isPending ? 'Working…' : `Ack all (${activeCount})`}
+                </button>
+              ) : null}
+            </RequireRole>
           </div>
         }
       />
@@ -283,24 +277,7 @@ export function AlertsPage(): JSX.Element {
       ) : items.length === 0 ? (
         <EmptyState
           title="No alerts match these filters"
-          description={
-            isOps
-              ? 'Run detection to evaluate missing acks, rejection spikes, and stale traffic against current data.'
-              : 'No alerts are visible with the current filters.'
-          }
-          action={
-            isOps ? (
-              <button
-                type="button"
-                className="btn"
-                data-testid="run-detection-empty"
-                disabled={detectM.isPending}
-                onClick={() => detectM.mutate()}
-              >
-                Run detection
-              </button>
-            ) : undefined
-          }
+          description="Use Run detection above to scan for missing acks, rejection spikes, and stale traffic."
         />
       ) : (
         <ol className="space-y-2">
