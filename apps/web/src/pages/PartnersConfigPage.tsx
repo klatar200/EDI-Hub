@@ -72,6 +72,7 @@ interface DraftState {
   lifecycleFlows: LifecycleFlowDefinition[];
   ackCodeOverrides: AckCodeOverrides;
   slaWindows: PartnerSlaWindow[];
+  slaCountdownEnabled: boolean;
   connectivity: ConnectivityDraft;
   segmentLabelRows: SegmentLabelRow[];
 }
@@ -80,6 +81,7 @@ const EMPTY_DRAFT: DraftState = {
   displayName: '', isaSenderIds: '', isaReceiverIds: '',
   status: 'active', notes: '', contacts: [],
   supportedSets: '', lifecycleFlows: [], ackCodeOverrides: {}, slaWindows: [],
+  slaCountdownEnabled: false,
   connectivity: EMPTY_CONNECTIVITY,
   segmentLabelRows: [],
 };
@@ -115,6 +117,7 @@ function fromRecord(r: TradingPartnerRecord): DraftState {
     lifecycleFlows: r.lifecycleFlows ?? [],
     ackCodeOverrides: r.ackCodeOverrides ?? {},
     slaWindows: r.slaWindows ?? [],
+    slaCountdownEnabled: r.slaCountdownEnabled ?? false,
     connectivity: r.connectivity
       ? {
           channel: r.connectivity.channel,
@@ -169,6 +172,7 @@ function toInput(d: DraftState): PartnerConfigInput {
     lifecycleFlows: d.lifecycleFlows,
     ackCodeOverrides: d.ackCodeOverrides,
     slaWindows: d.slaWindows,
+    slaCountdownEnabled: d.slaCountdownEnabled,
     connectivity: draftConnectivityToInput(d.connectivity),
     segmentLabelOverrides: overridesFromRows(d.segmentLabelRows),
   };
@@ -405,6 +409,16 @@ export function PartnersConfigPage(): JSX.Element {
           </Section>
 
           <Section title="SLA windows" hint="One row per (set, direction). withinMinutes is flat — calendar-aware is a Future Features item.">
+            <label className="mb-3 flex items-center gap-2 text-sm">
+              <input
+                type="checkbox"
+                checked={editing.draft.slaCountdownEnabled}
+                onChange={(e) =>
+                  setEditing({ ...editing, draft: { ...editing.draft, slaCountdownEnabled: e.target.checked } })
+                }
+              />
+              Show SLA countdown on lifecycle rows for this partner
+            </label>
             <SlaWindowsEditor
               rows={editing.draft.slaWindows}
               onChange={(rows) => setEditing({ ...editing, draft: { ...editing.draft, slaWindows: rows } })}

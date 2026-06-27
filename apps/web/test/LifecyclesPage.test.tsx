@@ -24,27 +24,28 @@ const LIST_ROW = {
   hasDuplicates: false,
   additionalDocumentCount: 0,
   expectedWarnings: ['856 (outbound) expected — not yet received'],
+  slaSummary: null,
 };
 
 const TIMELINE = {
   po: 'PO-100',
   enteredBy: { kind: 'po' as const, value: 'PO-100' },
   flow: 'standard' as const,
-  partner: { id: 'p-1', displayName: 'Acme Foods' },
+  partner: { id: 'p-1', displayName: 'Acme Foods', slaCountdownEnabled: false, slaWindows: [] },
   events: [
     {
       kind: 'transaction', transactionSetId: '850', direction: 'inbound', status: 'received',
       transactionId: 't-850', rawFileId: 'r-850', controlNumber: 'T1',
       ingestedAt: '2026-06-01T10:00:00.000Z', ackStatus: null, ackedByTransactionId: null,
       rejectionSummary: null, rejectionDetails: null, outboundStage: null, partnerChannel: null,
-      isaControlNumber: null, source: null, instanceIndex: null,
+      isaControlNumber: null, source: null, instanceIndex: null, headerSummary: null,
     },
     {
       kind: 'gap', transactionSetId: '856', direction: 'outbound', status: 'expected_missing',
       transactionId: null, rawFileId: null, controlNumber: null,
       ingestedAt: null, ackStatus: null, ackedByTransactionId: null,
       rejectionSummary: null, rejectionDetails: null, outboundStage: null, partnerChannel: null,
-      isaControlNumber: null, source: null, instanceIndex: null,
+      isaControlNumber: null, source: null, instanceIndex: null, headerSummary: null,
     },
   ],
 };

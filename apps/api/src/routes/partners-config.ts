@@ -113,6 +113,7 @@ function readInput(body: unknown): PartnerConfigInput {
           expectedAckSetId: typeof w.expectedAckSetId === 'string' ? w.expectedAckSetId : undefined,
         }))
       : undefined,
+    slaCountdownEnabled: typeof body.slaCountdownEnabled === 'boolean' ? body.slaCountdownEnabled : undefined,
     // Phase 8 Sprint 3 — connectivity:
     //   - omitted → undefined → PATCH leaves the current value alone
     //   - explicit null → cleared
@@ -203,6 +204,7 @@ export async function partnersConfigRoutes(
           ackCodeOverrides: (input.ackCodeOverrides ?? {}) as never,
           segmentLabelOverrides: (input.segmentLabelOverrides ?? {}) as never,
           slaWindows: (input.slaWindows ?? []) as never,
+          slaCountdownEnabled: input.slaCountdownEnabled ?? false,
           // Phase 8 Sprint 3 — empty `{}` default for an unconfigured partner,
           // matching the schema default and the readConnectivity sentinel.
           connectivity: (input.connectivity ?? {}) as never,
@@ -264,6 +266,8 @@ export async function partnersConfigRoutes(
           ackCodeOverrides: (input.ackCodeOverrides ?? {}) as never,
           segmentLabelOverrides: (input.segmentLabelOverrides ?? {}) as never,
           slaWindows: (input.slaWindows ?? []) as never,
+          slaCountdownEnabled:
+            input.slaCountdownEnabled === undefined ? undefined : input.slaCountdownEnabled,
           connectivity:
             input.connectivity === undefined
               ? undefined

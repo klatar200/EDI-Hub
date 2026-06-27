@@ -262,6 +262,8 @@ model TradingPartner {
   /// partner. Calendar-aware (business-hours / weekday-only) SLAs go to
   /// BUILD_PLAN §12 Future Features.
   slaWindows        Json          @default(dbgenerated("'[]'")) @map("sla_windows")
+  /// PB-4 F33 — show SLA countdown on lifecycle rows for this partner.
+  slaCountdownEnabled Boolean     @default(false) @map("sla_countdown_enabled")
   /// Phase 6 Sprint 1 — email-only contacts as `[{ name, email, role }]`.
   /// Phase 6 + Future Features will layer phone / Slack / on-call.
   contacts        Json          @default(dbgenerated("'[]'"))

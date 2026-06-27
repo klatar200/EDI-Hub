@@ -11,12 +11,12 @@
 | F4′ | Lifecycle-first homepage | ✅ | — |
 | F5 | Ingestion failure triage | ✅ | — |
 | F6 | Startup reconcile | ✅ | — |
-| F7 | Typed 855/856 headers | ⚠️ | PB-5 |
+| F7 | Typed 855/856 headers | ✅ | PB-5 |
 | F8 | Alert partner filter + bulk ack | ✅ | PB-1 |
 | F9 | Expected-document warnings | ✅ | — |
 | F10 | Channel health page | ✅ | — |
 | F11 | Outbound delivery timeline | ✅ | — |
-| F13 | Notification quiet hours | ⚠️ | PB-4 |
+| F13 | Notification quiet hours | ✅ | PB-4 |
 | F14 | Desktop Clerk in releases | ✅ | — |
 | F15 | Duplicate document compare | ✅ | — |
 | F16 | Saved views | ✅ | — |
@@ -29,9 +29,9 @@
 | F27 | Conversation due dates | ❌ | PB-8 (optional) |
 | F28 | Additional documents indicator | ✅ | — |
 | F29 | Global traffic silence widget | ✅ | F45 in dashboard |
-| F31 | Phased transaction-set roadmap | ⚠️ | PB-5 |
+| F31 | Phased transaction-set roadmap | ✅ | PB-5 |
 | F32 | Parse-error rollup | ✅ | — |
-| F33 | SLA countdown on row | ⚠️ | PB-4 |
+| F33 | SLA countdown on row | ✅ | PB-4 |
 | F34 | Export lifecycle | ✅ | — |
 | F35 | Re-parse from triage | ✅ | F54 |
 | F37 | Multi-PO invoice linking | ⚠️ | PB-8 (optional) |
@@ -41,7 +41,7 @@
 | F41 | Lifecycle row status summary | ✅ | — |
 | F42 | Search → lifecycle first | ✅ | — |
 | F43 | Pinned / watchlist POs | ✅ | — |
-| F44 | Lifecycle list default sort | ⚠️ | PB-5 |
+| F44 | Lifecycle list default sort | ✅ | PB-5 |
 | F45 | Traffic silence card | ✅ | PB-3 |
 | F46 | Open alerts summary card | ✅ | — |
 | F47 | Ingest health card | ✅ | — |

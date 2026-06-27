@@ -4,6 +4,7 @@
 import type { PrismaClient } from '@prisma/client';
 import type { LifecycleListFilters, LifecycleSummary } from '@edi/shared';
 import { getLifecycle, summarizeLifecycleEvents } from './lifecycle.js';
+import { computeSlaSummary, shouldShowSlaCountdown } from './sla-summary.js';
 
 /** Build human-readable expected-document warnings from gap events. */
 export function expectedWarningsFromEvents(
@@ -22,6 +23,7 @@ interface PoRow {
 
 export interface ListLifecyclesOptions {
   ourIsaIds: string[];
+  globalSlaCountdownEnabled?: boolean;
 }
 
 export interface ListLifecyclesResult {
@@ -42,6 +44,7 @@ export async function listLifecycles(
   const page = Math.max(1, filters.page ?? 1);
   const pageSize = Math.min(MAX_PAGE_SIZE, Math.max(1, filters.pageSize ?? DEFAULT_PAGE_SIZE));
   const offset = (page - 1) * pageSize;
+  const sortDir = filters.sort === 'startedAt:asc' ? 'ASC' : 'DESC';
 
   const conditions: string[] = ['t.po_number IS NOT NULL', 't.tenant_id = $1::uuid'];
   const params: unknown[] = [await tenantIdFromContext()];
@@ -86,7 +89,7 @@ export async function listLifecycles(
      INNER JOIN raw_files rf ON i.raw_file_id = rf.id
      WHERE ${whereSql}
      GROUP BY t.po_number
-     ORDER BY MIN(rf.ingested_at) DESC
+     ORDER BY MIN(rf.ingested_at) ${sortDir}
      LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
     ...params,
     pageSize,
@@ -118,6 +121,8 @@ export async function listLifecycles(
   });
   const parseErrorSet = new Set(parseErrorPos.map((r) => r.poNumber).filter(Boolean) as string[]);
 
+  const globalSlaEnabled = options.globalSlaCountdownEnabled ?? false;
+
   const summaries: LifecycleSummary[] = [];
   for (const row of poRows) {
     const lc = await getLifecycle(prisma, { po: row.po }, options);
@@ -143,6 +148,15 @@ export async function listLifecycles(
 
     const expectedWarnings = expectedWarningsFromEvents(lc.events);
 
+    let slaSummary: LifecycleSummary['slaSummary'] = null;
+    if (
+      lc.partner &&
+      shouldShowSlaCountdown(globalSlaEnabled, lc.partner.slaCountdownEnabled) &&
+      lc.partner.slaWindows.length > 0
+    ) {
+      slaSummary = computeSlaSummary(lc.events, lc.partner.slaWindows);
+    }
+
     summaries.push({
       po: row.po,
       partnerId: lc.partner?.id ?? null,
@@ -158,6 +172,7 @@ export async function listLifecycles(
       hasDuplicates: counts.hasDuplicates,
       additionalDocumentCount: counts.additionalDocumentCount,
       expectedWarnings,
+      slaSummary,
     });
   }
 

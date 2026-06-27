@@ -98,7 +98,7 @@ function LifecycleNotes({ po }: { po: string }): JSX.Element {
 
 function LifecycleRow({
   row,
-  slaCountdownEnabled,
+  showSlaColumn,
   selected,
   onToggleSelect,
   pinned,
@@ -106,7 +106,7 @@ function LifecycleRow({
   pinDisabled,
 }: {
   row: LifecycleSummary;
-  slaCountdownEnabled: boolean;
+  showSlaColumn: boolean;
   selected: boolean;
   onToggleSelect: (po: string, checked: boolean) => void;
   pinned: boolean;
@@ -169,9 +169,15 @@ function LifecycleRow({
         </DataTable.Td>
         <DataTable.Td muted>{formatDate(row.startedAt)}</DataTable.Td>
         <DataTable.Td muted>{formatDate(row.lastActivityAt)}</DataTable.Td>
-        {slaCountdownEnabled ? (
+        {showSlaColumn ? (
           <DataTable.Td muted className="text-xs">
-            {Math.max(0, Math.floor((Date.now() - new Date(row.lastActivityAt).getTime()) / 60_000))}m since activity
+            {row.slaSummary ? (
+              <span className={row.slaSummary.breached ? 'font-medium text-[var(--color-error-700)]' : ''}>
+                {row.slaSummary.label}
+              </span>
+            ) : (
+              '—'
+            )}
           </DataTable.Td>
         ) : null}
         <DataTable.Td>
@@ -214,7 +220,7 @@ function LifecycleRow({
       </DataTable.Tr>
       {expanded ? (
         <DataTable.Tr>
-          <DataTable.Td colSpan={8} className="bg-[var(--color-surface-muted)]/40">
+          <DataTable.Td colSpan={showSlaColumn ? 9 : 8} className="bg-[var(--color-surface-muted)]/40">
             {expandQ.isLoading ? (
               <p className="py-3 text-sm text-[var(--color-fg-muted)]">Loading timeline…</p>
             ) : expandQ.isError || !expandQ.data ? (
@@ -281,6 +287,7 @@ export function LifecyclesPage(): JSX.Element {
 
   const page = Math.max(1, Number.parseInt(sp.get('page') ?? '1', 10) || 1);
   const pinnedOnly = sp.get('pinnedOnly') === 'true';
+  const sort = sp.get('sort') === 'startedAt:asc' ? 'startedAt:asc' : 'startedAt:desc';
   const filters = {
     page,
     pageSize: PAGE_SIZE,
@@ -293,6 +300,7 @@ export function LifecyclesPage(): JSX.Element {
     setId: sp.get('setId') ?? undefined,
     setDirection: sp.get('setDirection') as 'inbound' | 'outbound' | undefined,
     pos: pinnedOnly && pinnedPos.length > 0 ? pinnedPos : undefined,
+    sort,
   };
 
   const listQ = useQuery({
@@ -330,6 +338,7 @@ export function LifecyclesPage(): JSX.Element {
   const rawItems = listQ.data?.items ?? [];
   const items = sortWithPinnedPos(rawItems, pinnedPos);
   const total = listQ.data?.total ?? 0;
+  const showSlaColumn = slaCountdownEnabled || items.some((r) => r.slaSummary);
   const viewQuery = filtersToViewQuery(sp);
   const hasAnyFilter = Boolean(
     filters.partnerId || filters.from || filters.to || filters.hasAlerts
@@ -414,6 +423,17 @@ export function LifecyclesPage(): JSX.Element {
           <FormField label="To">
             <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
           </FormField>
+          <FormField label="Sort">
+            <Select
+              size="sm"
+              value={sort}
+              data-testid="lifecycle-sort"
+              onChange={(e) => setFilter('sort', e.target.value === 'startedAt:asc' ? 'startedAt:asc' : 'startedAt:desc')}
+            >
+              <option value="startedAt:desc">Started — newest first</option>
+              <option value="startedAt:asc">Started — oldest first</option>
+            </Select>
+          </FormField>
           <FormField label="Alerts">
             <Select
               size="sm"
@@ -493,6 +513,7 @@ export function LifecyclesPage(): JSX.Element {
                 <DataTable.Th>Flow</DataTable.Th>
                 <DataTable.Th>Started</DataTable.Th>
                 <DataTable.Th>Last activity</DataTable.Th>
+                {showSlaColumn ? <DataTable.Th>SLA</DataTable.Th> : null}
                 <DataTable.Th>Documents</DataTable.Th>
                 <DataTable.Th>Alerts</DataTable.Th>
                 <DataTable.Th>Flags</DataTable.Th>
@@ -503,7 +524,7 @@ export function LifecyclesPage(): JSX.Element {
                 <LifecycleRow
                   key={row.po}
                   row={row}
-                  slaCountdownEnabled={slaCountdownEnabled}
+                  showSlaColumn={showSlaColumn}
                   selected={selected.has(row.po)}
                   pinned={pinnedPos.includes(row.po)}
                   onTogglePin={() => togglePin(row.po)}

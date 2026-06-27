@@ -227,6 +227,8 @@ export interface LifecycleEvent {
   /** 1-based index among events sharing the same (transactionSetId, direction).
    *  Null on gaps and when only one document of that type exists. */
   instanceIndex: number | null;
+  /** PB-5 F7 — one-line typed header for 855/856 (ship date, qty, carrier, ack type). */
+  headerSummary: string | null;
 }
 
 /** The PO-spine lifecycle response. */
@@ -240,7 +242,12 @@ export interface LifecycleResponse {
   /** Chronologically ordered events, with gaps inserted at their expected slot. */
   events: LifecycleEvent[];
   /** Resolved trading partner for this conversation, when identifiable. */
-  partner: { id: string; displayName: string } | null;
+  partner: {
+    id: string;
+    displayName: string;
+    slaCountdownEnabled: boolean;
+    slaWindows: PartnerSlaWindow[];
+  } | null;
 }
 
 /** PS-1 — paginated lifecycle list row (conversation summary). */
@@ -260,6 +267,8 @@ export interface LifecycleSummary {
   additionalDocumentCount: number;
   /** PS-2 — proactive expected-document warnings (gap rows in the flow). */
   expectedWarnings: string[];
+  /** PB-4 F33 — worst-case SLA countdown for this row; null when disabled or no open SLA. */
+  slaSummary: { label: string; breached: boolean } | null;
 }
 
 export interface LifecycleListResponse {
@@ -283,6 +292,8 @@ export interface LifecycleListFilters {
   setDirection?: LifecycleDirection;
   /** PS-10 F43 — restrict list to these PO numbers (comma-separated in query). */
   pos?: string[];
+  /** PB-5 F44 — sort by first-document timestamp (default startedAt:desc). */
+  sort?: 'startedAt:asc' | 'startedAt:desc';
 }
 
 // ─────────────────────────────────────────────────────────────
@@ -488,6 +499,8 @@ export interface TradingPartnerRecord {
   segmentLabelOverrides: SegmentLabelOverrides;
   /** Phase 6 Sprint 3 — empty array means "no SLA" (Phase 7 skips this partner). */
   slaWindows: PartnerSlaWindow[];
+  /** PB-4 F33 — show SLA countdown on lifecycle rows for this partner. */
+  slaCountdownEnabled: boolean;
   /** Phase 8 Sprint 3 — connectivity metadata. `null` means "not yet
    *  configured" — the connectivity editor section will be empty and the
    *  lifecycle UI's channel chip will be hidden. */
@@ -515,6 +528,8 @@ export interface PartnerConfigInput {
   segmentLabelOverrides?: SegmentLabelOverrides;
   /** Sprint 3 — per-(set, direction) SLA windows. */
   slaWindows?: PartnerSlaWindow[];
+  /** PB-4 F33 — per-partner SLA countdown toggle. */
+  slaCountdownEnabled?: boolean;
   /** Phase 8 Sprint 3 — partner connectivity. Omit on PATCH to leave the
    *  current value alone; pass `null` to explicitly clear it. */
   connectivity?: PartnerConnectivity | null;

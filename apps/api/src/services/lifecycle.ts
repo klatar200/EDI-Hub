@@ -22,6 +22,7 @@
 import type { PrismaClient } from '@prisma/client';
 import {
   extractBusinessKeys,
+  interpretTransaction,
   type DecomposedTransaction,
 } from '@edi/edi-parser';
 import {
@@ -278,7 +279,7 @@ async function stitchOrphanTransactions(
   spine: ResolvedSpine,
   anchor: TxnRow,
   knownIds: ReadonlySet<string>,
-): Promise<TxnRow[]> {
+): Promise<TxnRowWithSegments[]> {
   const senderId = anchor.functionalGroup.interchange.senderId;
   const receiverId = anchor.functionalGroup.interchange.receiverId;
   const candidates = (await prisma.transaction.findMany({
@@ -298,7 +299,7 @@ async function stitchOrphanTransactions(
     include: INCLUDE_WITH_SEGMENTS,
   })) as unknown as TxnRowWithSegments[];
 
-  const matched: TxnRow[] = [];
+  const matched: TxnRowWithSegments[] = [];
   for (const row of candidates) {
     const keys = extractBusinessKeys(toDecomposed(row));
     if (keys.poNumber === spine.po) matched.push(row);
@@ -328,6 +329,27 @@ function resolveEventDirection(
 function rawFileMeta(t: TxnRow): { isaControlNumber: string | null; source: SourceChannel } {
   const rf = t.functionalGroup.interchange.rawFile;
   return { isaControlNumber: rf.isaControlNumber, source: rf.source };
+}
+
+function headerSummaryForTransaction(row: TxnRowWithSegments | TxnRow | undefined): string | null {
+  if (!row || (row.transactionSetId !== '855' && row.transactionSetId !== '856')) return null;
+  if (!('segments' in row) || !Array.isArray(row.segments)) return null;
+  const interp = interpretTransaction(toDecomposed(row as TxnRowWithSegments));
+  if (interp.type === '855') {
+    const parts: string[] = [];
+    if (interp.ackType) parts.push(`Ack ${interp.ackType}`);
+    if (interp.totalQty) parts.push(`${interp.totalQty} units`);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  if (interp.type === '856') {
+    const parts: string[] = [];
+    if (interp.shipmentId) parts.push(`Ship ${interp.shipmentId}`);
+    if (interp.shipDate) parts.push(`Date ${interp.shipDate}`);
+    if (interp.carrierRef) parts.push(interp.carrierRef);
+    if (interp.totalQty) parts.push(`${interp.totalQty} units`);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  return null;
 }
 
 /** When multiple documents share (setId, direction), stamp 1-based indexes. */
@@ -366,8 +388,8 @@ export async function getLifecycle(
   // tagged with a PO — they normally aren't, so this stays the "originals" set.
   const poTxns = (await prisma.transaction.findMany({
     where: { poNumber: spine.po },
-    include: INCLUDE,
-  })) as unknown as TxnRow[];
+    include: INCLUDE_WITH_SEGMENTS,
+  })) as unknown as TxnRowWithSegments[];
 
   if (poTxns.length === 0) return null;
 
@@ -380,6 +402,8 @@ export async function getLifecycle(
     const orphans = await stitchOrphanTransactions(prisma, spine, stitchAnchor, known);
     poTxns.push(...orphans);
   }
+
+  const txnById = new Map(poTxns.map((t) => [t.id, t]));
 
   // Find 997s/999s that ack any of these PO transactions: those whose
   // ackedGroupControl matches one of the PO transactions' group controls.
@@ -450,6 +474,7 @@ export async function getLifecycle(
       isaControlNumber: rfMeta.isaControlNumber,
       source: rfMeta.source,
       instanceIndex: null,
+      headerSummary: headerSummaryForTransaction(txnById.get(t.id) ?? (t as TxnRowWithSegments)),
     });
   }
   for (const ack of ackCandidates) {
@@ -486,6 +511,7 @@ export async function getLifecycle(
       isaControlNumber: ackRfMeta.isaControlNumber,
       source: ackRfMeta.source,
       instanceIndex: null,
+      headerSummary: null,
     });
   }
 
@@ -560,6 +586,7 @@ export async function getLifecycle(
         isaControlNumber: null,
         source: null,
         instanceIndex: null,
+        headerSummary: null,
       });
     }
   }
@@ -595,7 +622,12 @@ export async function getLifecycle(
 
 function partnerSummary(partner: TradingPartnerRecord | null): LifecycleResponse['partner'] {
   if (!partner) return null;
-  return { id: partner.id, displayName: partner.displayName };
+  return {
+    id: partner.id,
+    displayName: partner.displayName,
+    slaCountdownEnabled: partner.slaCountdownEnabled,
+    slaWindows: partner.slaWindows,
+  };
 }
 
 /** Derive list-row counts from a stitched lifecycle timeline. */
