@@ -28,6 +28,7 @@ import { searchRoutes } from '../src/routes/search.js';
 import { lifecycleRoutes } from '../src/routes/lifecycle.js';
 import { metricsRoutes } from '../src/routes/metrics.js';
 import { dashboardRoutes } from '../src/routes/dashboard.js';
+import { opsRoutes } from '../src/routes/ops.js';
 import { partnersConfigRoutes } from '../src/routes/partners-config.js';
 import { setupRoutes } from '../src/routes/setup.js';
 import { alertsRoutes } from '../src/routes/alerts.js';
@@ -81,6 +82,8 @@ const EXPECTED: Record<string, Role> = {
   // Ops actions
   'PATCH /api/alerts/:id/ack': 'ops',
   'POST /api/alerts/:id/snooze': 'ops',
+  'POST /api/alerts/bulk-ack': 'ops',
+  'POST /api/ops/detect': 'ops',
 
   // Admin actions
   'POST /api/partners-config': 'admin',
@@ -142,6 +145,7 @@ test('every registered route declares the requiredRole expected by the policy', 
       await apiScope.register(lifecycleRoutes);
       await apiScope.register(metricsRoutes);
       await apiScope.register(dashboardRoutes);
+      await apiScope.register(opsRoutes);
       await apiScope.register(partnersConfigRoutes);
       await apiScope.register(setupRoutes);
       await apiScope.register(alertsRoutes);

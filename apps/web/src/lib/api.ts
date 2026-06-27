@@ -6,6 +6,7 @@
  */
 import type {
   AlertAckInput,
+  AlertBulkAckInput,
   AlertListResponse,
   AlertRecord,
   IngestListResponse,
@@ -211,14 +212,18 @@ export const api = {
   dashboard: (params: { ingestWindow?: DashboardIngestWindow; rejectionWindowDays?: 7 | 30 } = {}) =>
     get<DashboardResponse>(`/dashboard${qs(params as Record<string, string | number | undefined>)}`),
   alerts: {
-    list: (params: { status?: string; type?: string; partnerId?: string } = {}) =>
+    list: (params: { status?: string; type?: string; partnerId?: string; partnerName?: string } = {}) =>
       get<AlertListResponse>(`/alerts${qs(params)}`),
     get: (id: string) => get<AlertRecord>(`/alerts/${id}`),
     ack: (id: string, input: AlertAckInput & { suppressMinutes?: number }) =>
       send<AlertRecord>('PATCH', `/alerts/${id}/ack`, input),
+    bulkAck: (input: AlertBulkAckInput) =>
+      send<{ acknowledged: number }>('POST', '/alerts/bulk-ack', input),
     snooze: (id: string, minutes: number) =>
       send<AlertRecord>('POST', `/alerts/${id}/snooze`, { minutes }),
   },
+  /** PS-4 — trigger detection pass for current tenant. */
+  runDetection: () => send<{ ok: boolean }>('POST', '/ops/detect', {}),
   /** Phase 9 Sprint 3 — RBAC plumbing. */
   me: () => get<UserRecord>('/me'),
   users: {

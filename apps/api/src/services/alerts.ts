@@ -170,6 +170,17 @@ export async function listAlerts(
   if (filters.status) where.status = filters.status;
   if (filters.type) where.type = filters.type;
   if (filters.partnerId) where.partnerId = filters.partnerId;
+  if (filters.partnerName) {
+    const needle = filters.partnerName.trim().toLowerCase();
+    const partners = await prisma.tradingPartner.findMany({
+      where: { displayName: { contains: filters.partnerName, mode: 'insensitive' } },
+      select: { id: true, displayName: true },
+    });
+    const ids = partners
+      .filter((p) => p.displayName.toLowerCase().includes(needle))
+      .map((p) => p.id);
+    where.partnerId = { in: ids.length > 0 ? ids : ['__none__'] };
+  }
   if (filters.from || filters.to) {
     const range: { gte?: Date; lte?: Date } = {};
     if (filters.from) range.gte = new Date(filters.from);
@@ -189,6 +200,25 @@ export async function getAlert(
 ): Promise<AlertRecord | null> {
   const row = (await prisma.alert.findUnique({ where: { id } })) as unknown as DbAlertRow | null;
   return row ? toRecord(row) : null;
+}
+
+/** PS-4 — ack all active alerts for a partner (by id or display name). */
+export async function bulkAcknowledgeAlerts(
+  prisma: PrismaClient,
+  input: { who: string; partnerId?: string; partnerName?: string },
+  suppressMinutes = 60,
+  now: Date = new Date(),
+): Promise<number> {
+  const filters: AlertFilters = { status: 'active' };
+  if (input.partnerId) filters.partnerId = input.partnerId;
+  if (input.partnerName) filters.partnerName = input.partnerName;
+  const items = await listAlerts(prisma, filters);
+  let count = 0;
+  for (const a of items) {
+    const ok = await acknowledgeAlert(prisma, a.id, input.who, now, suppressMinutes);
+    if (ok) count += 1;
+  }
+  return count;
 }
 
 export async function acknowledgeAlert(

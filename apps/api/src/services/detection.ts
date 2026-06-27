@@ -339,3 +339,163 @@ export async function detectRejectionSpikes(
   }
   return { emitted, notified };
 }
+
+// ─────────────────────────────────────────────────────────────
+// PS-4 — Stale traffic + unknown ISA detectors
+// ─────────────────────────────────────────────────────────────
+
+const DEFAULT_GLOBAL_STALE_HOURS = 6;
+
+function maxSlaMinutes(slaWindows: unknown): number {
+  const slas = readSlaWindows(slaWindows);
+  if (slas.length === 0) return 0;
+  return Math.max(...slas.map((s) => s.withinMinutes));
+}
+
+/** F2 tier 1 — no ingest from any partner in the global stale window. */
+export async function detectGlobalStaleTraffic(
+  prisma: PrismaClient,
+  now: Date = new Date(),
+  options: DetectionOptions & { staleWindowHours?: number } = {},
+): Promise<DetectionResult> {
+  const hours = options.staleWindowHours ?? DEFAULT_GLOBAL_STALE_HOURS;
+  const cutoff = new Date(now.getTime() - hours * 60 * 60 * 1000);
+  const latest = await prisma.rawFile.findFirst({
+    orderBy: { ingestedAt: 'desc' },
+    select: { ingestedAt: true },
+  });
+  let emitted = 0;
+  if (!latest || latest.ingestedAt < cutoff) {
+    const dedupeKey = `STALE_TRAFFIC::global::${now.toISOString().slice(0, 10)}`;
+    await createAlert(prisma, {
+      partnerId: null,
+      type: 'STALE_TRAFFIC',
+      severity: 'critical',
+      title: 'No EDI traffic from any partner',
+      body: `No file ingested in the last ${hours} hour(s). Last ingest: ${
+        latest ? latest.ingestedAt.toISOString() : 'never'
+      }.`,
+      dedupeKey,
+      sourceRef: { scope: 'global', staleWindowHours: hours, lastIngestAt: latest?.ingestedAt.toISOString() ?? null },
+      now,
+      suppressUntil: options.suppressionMinutes
+        ? new Date(now.getTime() + options.suppressionMinutes * 60 * 1000)
+        : null,
+    });
+    emitted += 1;
+  }
+  return { emitted, notified: 0 };
+}
+
+/** F2 tier 2 — per-partner stale when partner has SLA windows (2× longest SLA). */
+export async function detectPartnerStaleTraffic(
+  prisma: PrismaClient,
+  now: Date = new Date(),
+  options: DetectionOptions = {},
+): Promise<DetectionResult> {
+  const partners = (await prisma.tradingPartner.findMany({
+    where: { status: 'active' },
+  })) as unknown as PartnerRow[];
+
+  let emitted = 0;
+  for (const partner of partners) {
+    const maxSla = maxSlaMinutes(partner.slaWindows);
+    if (maxSla <= 0) continue;
+    const windowMs = maxSla * 2 * 60 * 1000;
+    const cutoff = new Date(now.getTime() - windowMs);
+    const isaIds = [...(partner.isaSenderIds ?? []), ...(partner.isaReceiverIds ?? [])];
+    if (isaIds.length === 0) continue;
+
+    const latest = await prisma.rawFile.findFirst({
+      where: {
+        interchange: {
+          OR: [
+            { senderId: { in: isaIds } },
+            { receiverId: { in: isaIds } },
+          ],
+        },
+      },
+      orderBy: { ingestedAt: 'desc' },
+      select: { ingestedAt: true },
+    });
+
+    if (latest && latest.ingestedAt >= cutoff) continue;
+
+    const dedupeKey = `STALE_TRAFFIC::partner::${partner.id}::${now.toISOString().slice(0, 10)}`;
+    await createAlert(prisma, {
+      partnerId: partner.id,
+      type: 'STALE_TRAFFIC',
+      severity: 'warning',
+      title: `${partner.displayName}: no recent EDI traffic`,
+      body: `No ingest in ${maxSla * 2} minutes (2× longest SLA). Last: ${
+        latest ? latest.ingestedAt.toISOString() : 'never'
+      }.`,
+      dedupeKey,
+      sourceRef: {
+        scope: 'partner',
+        partnerId: partner.id,
+        windowMinutes: maxSla * 2,
+        lastIngestAt: latest?.ingestedAt.toISOString() ?? null,
+      },
+      now,
+      suppressUntil: options.suppressionMinutes
+        ? new Date(now.getTime() + options.suppressionMinutes * 60 * 1000)
+        : null,
+    });
+    emitted += 1;
+  }
+  return { emitted, notified: 0 };
+}
+
+/** F49 — unknown ISA sender/receiver after recent ingest. */
+export async function detectUnknownIsaSenders(
+  prisma: PrismaClient,
+  now: Date = new Date(),
+  options: DetectionOptions = {},
+): Promise<DetectionResult> {
+  const horizon = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+  const partners = (await prisma.tradingPartner.findMany({
+    where: { status: 'active' },
+    select: { isaSenderIds: true, isaReceiverIds: true },
+  })) as Array<{ isaSenderIds: string[]; isaReceiverIds: string[] }>;
+
+  const knownIsa = new Set<string>();
+  for (const p of partners) {
+    for (const id of [...p.isaSenderIds, ...p.isaReceiverIds]) knownIsa.add(id);
+  }
+
+  const recent = await prisma.interchange.findMany({
+    where: { rawFile: { ingestedAt: { gte: horizon } } },
+    select: { senderId: true, receiverId: true, rawFileId: true },
+    distinct: ['senderId', 'receiverId'],
+  });
+
+  let emitted = 0;
+  for (const ic of recent) {
+    const unknownSender = !knownIsa.has(ic.senderId);
+    const unknownReceiver = !knownIsa.has(ic.receiverId);
+    if (!unknownSender && !unknownReceiver) continue;
+
+    const dedupeKey = `STALE_TRAFFIC::unknown_isa::${ic.senderId}::${ic.receiverId}`;
+    await createAlert(prisma, {
+      partnerId: null,
+      type: 'STALE_TRAFFIC',
+      severity: 'warning',
+      title: `Unknown ISA pair: ${ic.senderId} → ${ic.receiverId}`,
+      body: 'Interchange sender/receiver IDs match no configured trading partner.',
+      dedupeKey,
+      sourceRef: {
+        scope: 'unknown_isa',
+        senderId: ic.senderId,
+        receiverId: ic.receiverId,
+        rawFileId: ic.rawFileId,
+      },
+      now,
+      suppressUntil: options.suppressionMinutes
+        ? new Date(now.getTime() + options.suppressionMinutes * 60 * 1000)
+        : null,
+    });
+    emitted += 1;
+  }
+  return { emitted, notified: 0 };
+}

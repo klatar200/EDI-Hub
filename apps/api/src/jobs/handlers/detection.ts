@@ -28,6 +28,9 @@ import type { JobHandler } from '../interface.js';
 import {
   detectMissingAcks,
   detectRejectionSpikes,
+  detectGlobalStaleTraffic,
+  detectPartnerStaleTraffic,
+  detectUnknownIsaSenders,
   type DetectionResult,
 } from '../../services/detection.js';
 import type { NotifierDeps } from '../../services/notifier.js';
@@ -62,6 +65,9 @@ export interface DetectionJobPayload {
 export interface DetectionPassResult {
   missing: DetectionResult;
   spike: DetectionResult;
+  globalStale: DetectionResult;
+  partnerStale: DetectionResult;
+  unknownIsa: DetectionResult;
 }
 
 /**
@@ -94,7 +100,10 @@ export async function runDetectionPass(
       { tenantId, asOf: now.toISOString(), emitted: spike.emitted, notified: spike.notified },
       'detection: REJECTION_RATE_SPIKE pass complete',
     );
-    return { missing, spike };
+    const globalStale = await detectGlobalStaleTraffic(deps.prisma, now, opts);
+    const partnerStale = await detectPartnerStaleTraffic(deps.prisma, now, opts);
+    const unknownIsa = await detectUnknownIsaSenders(deps.prisma, now, opts);
+    return { missing, spike, globalStale, partnerStale, unknownIsa };
   });
 }
 

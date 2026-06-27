@@ -604,13 +604,24 @@ export interface AlertFilters {
   status?: AlertStatus;
   type?: AlertType;
   partnerId?: string;
+  /** PS-4 — case-insensitive substring match on partner display name. */
+  partnerName?: string;
   from?: string;
   to?: string;
 }
 
-/** Payload for PATCH /alerts/:id/ack — `who` is the actor who acknowledged it. */
 export interface AlertAckInput {
   who: string;
+}
+
+export interface AlertBulkAckInput {
+  who: string;
+  partnerId?: string;
+  partnerName?: string;
+}
+
+export interface AlertBulkAckResponse {
+  acknowledged: number;
 }
 
 /** Phase 7 Sprint 2 — runtime delivery mode for the alert notifier. */

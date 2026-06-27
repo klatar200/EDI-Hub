@@ -11,13 +11,15 @@
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import type {
   AlertAckInput,
+  AlertBulkAckInput,
+  AlertBulkAckResponse,
   AlertListResponse,
   AlertRecord,
   ApiErrorResponse,
   AlertStatus,
   AlertType,
 } from '@edi/shared';
-import { getAlert, listAlerts, toRecord as alertToRecord } from '../services/alerts.js';
+import { getAlert, listAlerts, bulkAcknowledgeAlerts, toRecord as alertToRecord } from '../services/alerts.js';
 import { emitAudit } from '../services/audit.js';
 
 import { requiresRole } from '../plugins/rbac.js';
@@ -28,7 +30,7 @@ export async function alertsRoutes(
   app: FastifyInstance,
   _opts: FastifyPluginOptions,
 ): Promise<void> {
-  app.get<{ Querystring: { status?: string; type?: string; partnerId?: string; from?: string; to?: string } }>(
+  app.get<{ Querystring: { status?: string; type?: string; partnerId?: string; partnerName?: string; from?: string; to?: string } }>(
     '/alerts',
     requiresRole('viewer'),
     async (request, reply) => {
@@ -37,6 +39,7 @@ export async function alertsRoutes(
         status: q.status && STATUS_SET.has(q.status as AlertStatus) ? (q.status as AlertStatus) : undefined,
         type: q.type && TYPE_SET.has(q.type as AlertType) ? (q.type as AlertType) : undefined,
         partnerId: q.partnerId,
+        partnerName: q.partnerName,
         from: q.from,
         to: q.to,
       });
@@ -141,6 +144,31 @@ export async function alertsRoutes(
         return reply.code(404).send(body);
       }
       const body: AlertRecord = alertToRecord(result as never);
+      return reply.code(200).send(body);
+    },
+  );
+
+  app.post<{ Body: AlertBulkAckInput }>(
+    '/alerts/bulk-ack',
+    requiresRole('ops'),
+    async (request, reply) => {
+      const who = (request.body?.who ?? '').trim();
+      if (!who) {
+        const body: ApiErrorResponse = {
+          error: { code: 'INVALID_BODY', message: '`who` is required.' },
+        };
+        return reply.code(400).send(body);
+      }
+      const count = await bulkAcknowledgeAlerts(
+        app.prisma,
+        {
+          who,
+          partnerId: request.body.partnerId,
+          partnerName: request.body.partnerName,
+        },
+        app.config.alertSuppressionMinutes,
+      );
+      const body: AlertBulkAckResponse = { acknowledged: count };
       return reply.code(200).send(body);
     },
   );

@@ -178,6 +178,16 @@ function makePrisma(store: FakeStore): PrismaClient {
         return row;
       },
     },
+    rawFile: {
+      async findFirst() {
+        return { ingestedAt: new Date() };
+      },
+    },
+    interchange: {
+      async findMany() {
+        return [];
+      },
+    },
   } as unknown as PrismaClient;
 }
 

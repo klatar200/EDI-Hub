@@ -35,6 +35,7 @@ import { searchRoutes } from './routes/search.js';
 import { lifecycleRoutes } from './routes/lifecycle.js';
 import { metricsRoutes } from './routes/metrics.js';
 import { dashboardRoutes } from './routes/dashboard.js';
+import { opsRoutes } from './routes/ops.js';
 import { partnersConfigRoutes } from './routes/partners-config.js';
 import { setupRoutes } from './routes/setup.js';
 import { alertsRoutes } from './routes/alerts.js';
@@ -191,6 +192,7 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
       await apiScope.register(lifecycleRoutes);
       await apiScope.register(metricsRoutes);
       await apiScope.register(dashboardRoutes);
+      await apiScope.register(opsRoutes);
       await apiScope.register(partnersConfigRoutes);
       await apiScope.register(setupRoutes);
       await apiScope.register(alertsRoutes);

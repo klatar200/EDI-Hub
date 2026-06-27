@@ -241,7 +241,11 @@ function makePrisma(world: World): PrismaClient {
     },
   };
 
-  return { job, tenant, tradingPartner, transaction, alert } as unknown as PrismaClient;
+  return {
+    job, tenant, tradingPartner, transaction, alert,
+    rawFile: { async findFirst() { return { ingestedAt: new Date() }; } },
+    interchange: { async findMany() { return []; } },
+  } as unknown as PrismaClient;
 }
 
 // ─────────────────────────────────────────────────────────────
