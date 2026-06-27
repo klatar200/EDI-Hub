@@ -57,6 +57,14 @@
 
 ---
 
+## UI optional polish
+
+| Feature | Notes |
+|---|---|
+| **Theme toggle in settings** | Move light / system / dark out of the always-visible header `ThemeToggle` and into the user menu or a settings dropdown. Keep theme persistence (`edi-hub:theme` in localStorage); header stays uncluttered. Deferred from Sprint A3 gate B2. |
+
+---
+
 ## Desktop optional polish
 
 ### OPTIONAL-D1 — Boot log noise cleanup
