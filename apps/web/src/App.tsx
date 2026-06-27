@@ -38,6 +38,7 @@ import { SettingsPage } from './pages/SettingsPage.tsx';
 import { ChannelsPage } from './pages/ChannelsPage.tsx';
 import { AuditPage } from './pages/AuditPage.tsx';
 import { TransactionSetsHelpPage } from './pages/TransactionSetsHelpPage.tsx';
+import { HelpPage } from './pages/HelpPage.tsx';
 import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './lib/api.ts';
@@ -96,6 +97,7 @@ function SetupGate(): JSX.Element {
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/channels" element={<ChannelsPage />} />
+        <Route path="/help" element={<HelpPage />} />
         <Route path="/help/transaction-sets" element={<TransactionSetsHelpPage />} />
         <Route path="/admin/audit" element={<AuditPage />} />
         <Route path="/users" element={<UsersPage />} />

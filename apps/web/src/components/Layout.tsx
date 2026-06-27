@@ -74,7 +74,7 @@ export function Layout(): JSX.Element {
     { to: '/partners-config', label: 'Partners' },
     { to: '/channels', label: 'Channels' },
     { to: '/settings', label: 'Settings' },
-    { to: '/help/transaction-sets', label: 'Help' },
+    { to: '/help', label: 'Help' },
     { to: '/users', label: 'Users', adminOnly: true, testId: 'nav-users' },
     { to: '/admin/audit', label: 'Audit', adminOnly: true, testId: 'nav-audit' },
   ];

@@ -1,12 +1,7 @@
 /**
  * Desktop track D4 Sprint 3 — native application menu.
  *
- * Installs the Electron app's top-level menu (File / Edit / Help).
- * Standard `role:` items handle the Edit submenu so OS-level shortcuts
- * (Cmd/Ctrl-C, Cmd/Ctrl-V, etc.) work without any handler glue.
- *
- * "Check for Updates" downloads and installs immediately when you confirm.
- * Startup also checks before the database boots (OPTIONAL-D2).
+ * PS-12 F40/F62 — Help menu includes What's New + Copy LAN URL.
  */
 import { app, dialog, Menu, shell } from 'electron';
 import type { MenuItemConstructorOptions } from 'electron';
@@ -15,8 +10,11 @@ import { manualCheckForUpdates } from './auto-update.js';
 import { showEnterLicenseKeyMenu } from './license-window.js';
 import { updateLogFilePath } from './update-logger.js';
 
-export function installApplicationMenu(): void {
-  const template: MenuItemConstructorOptions[] = [
+/** Keep in sync with packages/shared/src/help-links.ts */
+const RELEASES_URL = 'https://github.com/klatar200/EDI-Hub/releases';
+
+export function buildApplicationMenuTemplate(): MenuItemConstructorOptions[] {
+  return [
     {
       label: 'File',
       submenu: [{ role: 'quit' }],
@@ -39,7 +37,7 @@ export function installApplicationMenu(): void {
         {
           label: "What's New",
           click: () => {
-            void shell.openExternal('https://github.com/klatar200/EDI-Hub/releases');
+            void shell.openExternal(RELEASES_URL);
           },
         },
         {
@@ -49,8 +47,8 @@ export function installApplicationMenu(): void {
               try {
                 const res = await fetch('/health');
                 const h = (await res.json()) as { server?: { redirectOrigins?: string[] } };
-                const lan = (h.server?.redirectOrigins ?? []).find((o) => !o.includes('localhost'));
-                const url = lan ?? h.server?.redirectOrigins?.[0] ?? 'http://127.0.0.1:3000';
+                const { preferredLanOrigin } = await import('@edi/shared');
+                const url = preferredLanOrigin(h.server?.redirectOrigins ?? []);
                 const { clipboard } = await import('electron');
                 clipboard.writeText(url);
                 await dialog.showMessageBox({
@@ -73,8 +71,6 @@ export function installApplicationMenu(): void {
         {
           label: 'About EDI Hub',
           click: () => {
-            // showMessageBox returns a promise; we don't await it because
-            // the menu click handler intentionally fires-and-forgets.
             void dialog.showMessageBox({
               type: 'info',
               title: 'About EDI Hub',
@@ -133,16 +129,15 @@ export function installApplicationMenu(): void {
         {
           label: 'Check for Updates',
           click: () => {
-            // Manual trigger — surfaces every state through a dialog
-            // (no update / downloading / error). The background
-            // checkForUpdates call in main.ts is the silent path.
             void manualCheckForUpdates();
           },
         },
       ],
     },
   ];
+}
 
-  const menu = Menu.buildFromTemplate(template);
+export function installApplicationMenu(): void {
+  const menu = Menu.buildFromTemplate(buildApplicationMenuTemplate());
   Menu.setApplicationMenu(menu);
 }

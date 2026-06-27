@@ -9,6 +9,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import type { HealthServerInfo, PartnerConfigInput } from '@edi/shared';
+import { CLERK_DASHBOARD_URL } from '@edi/shared';
 import { Card } from '../components/ui/Card.tsx';
 import { FormField, Input } from '../components/ui/forms.tsx';
 import { api } from '../lib/api.ts';
@@ -201,7 +202,7 @@ export function FirstRunWizardPage(): JSX.Element {
               ) : null}
               <p className="text-sm text-[var(--color-fg-muted)]">
                 <a
-                  href="https://dashboard.clerk.com"
+                  href={CLERK_DASHBOARD_URL}
                   target="_blank"
                   rel="noreferrer"
                   className="text-[var(--color-brand-600)] hover:underline"

@@ -821,3 +821,9 @@ export interface LifecycleBulkExportInput {
 /** PS-11 F19 — Z-segment label overrides on partner config. */
 export type SegmentLabelOverrides = Record<string, Record<string, string>>;
 
+export {
+  CLERK_DASHBOARD_URL,
+  LAN_INSTALL_DOCS_URL,
+  preferredLanOrigin,
+  RELEASES_URL,
+} from './help-links.js';

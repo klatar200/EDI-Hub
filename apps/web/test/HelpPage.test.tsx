@@ -2,7 +2,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
-import { FirstRunWizardPage } from '../src/pages/FirstRunWizardPage.tsx';
+import { HelpPage } from '../src/pages/HelpPage.tsx';
 
 interface FakeResponse { ok: boolean; status: number; json: () => Promise<unknown> }
 function jsonResponse(body: unknown): Promise<FakeResponse> {
@@ -22,23 +22,24 @@ function fakeFetch(input: unknown): Promise<FakeResponse> {
   }
   if (url.includes('/api/setup')) {
     return jsonResponse({
-      firstRunComplete: false,
-      dropFolderPath: null,
-      telemetryEnabled: null,
-      hasIngested: false,
-      clerkRedirectVerified: false,
+      firstRunComplete: true,
       desktopMode: true,
+      dropFolderPath: 'C:\\EDI',
+      hasIngested: true,
+      clerkRedirectVerified: true,
+      telemetryEnabled: false,
+      ourIsaIds: ['7085892400'],
     });
   }
   return jsonResponse({});
 }
 
-function renderWizard() {
+function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <FirstRunWizardPage />
+        <HelpPage />
       </MemoryRouter>
     </QueryClientProvider>,
   );
@@ -46,23 +47,27 @@ function renderWizard() {
 
 beforeEach(() => {
   vi.stubGlobal('fetch', vi.fn(fakeFetch));
-});
-afterEach(() => {
-  vi.unstubAllGlobals();
-});
-
-test('wizard step 1 shows welcome copy', () => {
-  renderWizard();
-  expect(screen.getByText(/Let's get your first file in/i)).toBeInTheDocument();
-  expect(screen.getByRole('button', { name: /Get started/i })).toBeInTheDocument();
-});
-
-test('wizard clerk step lists LAN redirect origins', async () => {
   Object.assign(navigator, {
     clipboard: { writeText: vi.fn(() => Promise.resolve()) },
   });
-  renderWizard();
-  fireEvent.click(screen.getByRole('button', { name: /Get started/i }));
-  expect(await screen.findByText('http://192.168.1.50:3000')).toBeInTheDocument();
-  expect(screen.getByText('Copy all LAN URLs')).toBeInTheDocument();
+});
+afterEach(() => vi.unstubAllGlobals());
+
+test('help hub links to glossary and releases', async () => {
+  renderPage();
+  expect(await screen.findByText('Help')).toBeInTheDocument();
+  expect(screen.getByText(/Open glossary/)).toHaveAttribute('href', '/help/transaction-sets');
+  expect(screen.getByTestId('help-releases-link')).toHaveAttribute(
+    'href',
+    'https://github.com/klatar200/EDI-Hub/releases',
+  );
+});
+
+test('desktop mode shows LAN URL and copy button', async () => {
+  renderPage();
+  const copyBtn = await screen.findByTestId('copy-lan-url');
+  expect(copyBtn).toBeInTheDocument();
+  expect(screen.getAllByText('http://192.168.1.50:3000').length).toBeGreaterThan(0);
+  fireEvent.click(copyBtn);
+  expect(navigator.clipboard.writeText).toHaveBeenCalledWith('http://192.168.1.50:3000');
 });

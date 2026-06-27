@@ -15,6 +15,7 @@
   "dependencies": {
     "@edi/api": "*",
     "@edi/db": "*",
+    "@edi/shared": "*",
     "archiver": "^7.0.1",
     "archiver-utils": "^5.0.2",
     "compress-commons": "^6.0.2",

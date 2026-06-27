@@ -117,7 +117,7 @@ Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRO
 | **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Verified |
 | **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Verified |
 | **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Verified |
-| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ⏳ Partial |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Verified |
 
 **PS-1 deliverables (reference):**
 
@@ -145,6 +145,13 @@ Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRO
 - **F51** — Email digest job registered at boot; daily schedule per tenant; preview/live audit trail
 - **F57** — Bulk export: CSV manifest + ZIP with txt/csv/pdf per selected PO
 - **F19** — Segment label override editor on `PartnersConfigPage`
+
+**PS-12 deliverables (verified 2026-06-25):**
+
+- **F39** — First-run wizard Clerk step lists LAN redirect origins + copy buttons
+- **F40** — Desktop Help → What&apos;s New opens GitHub Releases
+- **F61** — Web Help hub at `/help` (glossary, releases, LAN install docs)
+- **F62** — Copy LAN URL in desktop Help menu + web Help page (desktop mode)
 
 Approved features not yet grouped or deferred → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 
