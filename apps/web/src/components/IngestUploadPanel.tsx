@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IngestUploadResponse } from '@edi/shared';
 import { api, ApiCallError } from '../lib/api.ts';
@@ -128,13 +129,26 @@ export function IngestUploadPanel(): JSX.Element {
                         {r.response.status}
                       </StatusPill>
                     ) : null}
-                    {r.response?.id ? (
-                      <a
-                        href={`/ingestions?highlight=${r.response.id}`}
+                    {r.outcome !== 'duplicate' && r.response?.id ? (
+                      <Link
+                        to={`/ingestions?highlight=${r.response.id}`}
                         className="text-xs text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
                       >
                         View in list →
-                      </a>
+                      </Link>
+                    ) : null}
+                    {r.outcome === 'duplicate' && r.response?.duplicateOf ? (
+                      <p className="w-full text-xs text-[var(--color-fg-muted)]" data-testid="duplicate-explanation">
+                        Same ISA control number as file ingested{' '}
+                        {new Date(r.response.duplicateOf.ingestedAt).toLocaleString()} ({r.response.duplicateOf.source}
+                        ).{' '}
+                        <Link
+                          to={`/ingestions?highlight=${r.response.duplicateOf.id}`}
+                          className="text-[var(--color-brand-600)] hover:underline"
+                        >
+                          View original →
+                        </Link>
+                      </p>
                     ) : null}
                   </>
                 )}

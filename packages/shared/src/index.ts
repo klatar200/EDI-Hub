@@ -34,6 +34,14 @@ export const RAW_FILE_STATUSES = [
 export type RawFileStatus = (typeof RAW_FILE_STATUSES)[number];
 
 /** Successful (or duplicate) upload response. */
+export interface IngestDuplicateOf {
+  id: string;
+  ingestedAt: string;
+  source: SourceChannel;
+  status: RawFileStatus;
+}
+
+/** Successful (or duplicate) upload response. */
 export interface IngestUploadResponse {
   id: string;
   s3Key: string;
@@ -42,6 +50,8 @@ export interface IngestUploadResponse {
   isaControlNumber: string | null;
   /** True when this interchange was already ingested; no new S3 write happened. */
   duplicate: boolean;
+  /** PB-2 F53 — original file when duplicate is true. */
+  duplicateOf?: IngestDuplicateOf;
 }
 
 /** Structured error response returned by the API. */
@@ -373,6 +383,16 @@ export interface DashboardPartnerHealthRow {
   lastAckAt: string | null;
   rejectionRate30d: number;
   openAlertCount: number;
+  /** PB-3 F3 — open MISSING_ACK alerts for this partner. */
+  missingAckCount: number;
+}
+
+export interface DashboardRecentFailure {
+  id: string;
+  status: RawFileStatus;
+  errorMessage: string | null;
+  ingestedAt: string;
+  isaControlNumber: string | null;
 }
 
 export interface DashboardResponse {
@@ -381,6 +401,8 @@ export interface DashboardResponse {
   ingestHealth: DashboardIngestHealth;
   rejectionTrends: { windowDays: 7 | 30; trends: DashboardRejectionTrend[] };
   partnerHealth: DashboardPartnerHealthRow[];
+  /** PB-3 F1 — recent parse/failed ingestions for triage. */
+  recentFailures: DashboardRecentFailure[];
 }
 
 /** Phase 5 — rejection info attached to a non-997 transaction's detail

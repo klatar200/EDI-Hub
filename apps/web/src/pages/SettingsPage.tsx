@@ -93,7 +93,7 @@ export function SettingsPage(): JSX.Element {
           </Select>
         </FormField>
         <div className="grid gap-3 sm:grid-cols-2">
-          <FormField label="Quiet hours start (stub)">
+          <FormField label="Quiet hours start (UTC)">
             <Input
               placeholder="22:00"
               disabled={!canEdit}
@@ -101,7 +101,7 @@ export function SettingsPage(): JSX.Element {
               onChange={(e) => update({ quietHoursStart: e.target.value || null })}
             />
           </FormField>
-          <FormField label="Quiet hours end (stub)">
+          <FormField label="Quiet hours end (UTC)">
             <Input
               placeholder="06:00"
               disabled={!canEdit}

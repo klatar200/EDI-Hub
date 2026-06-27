@@ -73,8 +73,14 @@ export async function getDashboard(
 
   const activeAlerts = await prisma.alert.findMany({
     where: { status: 'active' },
-    select: { severity: true, partnerId: true },
+    select: { severity: true, partnerId: true, type: true },
   });
+  const missingAckByPartner = new Map<string, number>();
+  for (const a of activeAlerts) {
+    if (a.type === 'MISSING_ACK' && a.partnerId) {
+      missingAckByPartner.set(a.partnerId, (missingAckByPartner.get(a.partnerId) ?? 0) + 1);
+    }
+  }
   const bySeverity = { critical: 0, warning: 0, info: 0 };
   const alertsByPartner = new Map<string | null, number>();
   for (const a of activeAlerts) {
@@ -149,6 +155,7 @@ export async function getDashboard(
       lastAckAt: null as string | null,
       rejectionRate30d: rate30dMap.get(isaIds[0] ?? p.displayName) ?? 0,
       openAlertCount: alertsByPartner.get(p.id) ?? 0,
+      missingAckCount: missingAckByPartner.get(p.id) ?? 0,
     };
   });
 
@@ -178,6 +185,19 @@ export async function getDashboard(
     ph.rejectionRate30d = rate30dMap.get(partnerIsa) ?? ph.rejectionRate30d;
   }
 
+  const recentFailureRows = await prisma.rawFile.findMany({
+    where: { status: { in: ['PARSE_ERROR', 'FAILED', 'UNRECOGNIZED_FORMAT'] } },
+    orderBy: { ingestedAt: 'desc' },
+    take: 8,
+    select: {
+      id: true,
+      status: true,
+      errorMessage: true,
+      ingestedAt: true,
+      isaControlNumber: true,
+    },
+  });
+
   return {
     trafficSilence: {
       lastGlobalIngestAt: lastGlobal?.toISOString() ?? null,
@@ -204,5 +224,12 @@ export async function getDashboard(
     },
     rejectionTrends: { windowDays: rejectionWindowDays, trends },
     partnerHealth: partnerHealth.sort((a, b) => b.openAlertCount - a.openAlertCount),
+    recentFailures: recentFailureRows.map((r) => ({
+      id: r.id,
+      status: r.status,
+      errorMessage: r.errorMessage,
+      ingestedAt: r.ingestedAt.toISOString(),
+      isaControlNumber: r.isaControlNumber,
+    })),
   };
 }

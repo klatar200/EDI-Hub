@@ -176,11 +176,24 @@ export function IngestionsPage(): JSX.Element {
                     <button
                       type="button"
                       className="ml-2 text-xs text-[var(--color-brand-600)] hover:underline"
+                      data-testid={`copy-parse-context-${r.id}`}
                       onClick={() => void navigator.clipboard.writeText(
-                        `rawFileId: ${r.id}\nstatus: ${r.status}\nerror: ${r.errorMessage}`,
+                        [
+                          '# EDI Hub parse error report',
+                          `rawFileId: ${r.id}`,
+                          `isaControlNumber: ${r.isaControlNumber ?? 'n/a'}`,
+                          `source: ${r.source}`,
+                          `status: ${r.status}`,
+                          `ingestedAt: ${r.ingestedAt}`,
+                          '',
+                          'error:',
+                          r.errorMessage,
+                          '',
+                          'Tip: check Partners → segment label overrides for Z-segments.',
+                        ].join('\n'),
                       )}
                     >
-                      Copy context
+                      Copy report
                     </button>
                   ) : null}
                 </DataTable.Td>

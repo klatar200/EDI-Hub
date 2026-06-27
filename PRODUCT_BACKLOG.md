@@ -112,9 +112,9 @@ Today LAN installs require manual `CLERK_AUTHORIZED_PARTIES` editing (`LAN_INSTA
 
 ---
 
-## Round 3 — Pending your review
+## Round 3 — Approved (2026-06-25)
 
-Focused on monitoring, troubleshooting, and lifecycle-first UX — no MXC clones, no niche forced workflows.
+Focused on monitoring, troubleshooting, and lifecycle-first UX — no MXC clones, no niche forced workflows. Execution grouped into PB-1–PB-8 in `BUILD_PLAN.md` §6.
 
 ### Lifecycle homepage & search
 

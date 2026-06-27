@@ -114,11 +114,25 @@ function LifecycleRow({
   pinDisabled?: boolean;
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false);
+  const isOps = useHasRole('ops');
+  const qc = useQueryClient();
   const expandQ = useQuery({
     queryKey: ['lifecycle', row.po],
     queryFn: () => api.lifecycle('po', row.po),
     enabled: expanded,
   });
+  const reparseM = useMutation({
+    mutationFn: (id: string) => api.reparseRaw(id),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: ['lifecycle', row.po] });
+      void qc.invalidateQueries({ queryKey: ['lifecycles'] });
+    },
+  });
+  const parseErrorRawIds = [...new Set(
+    (expandQ.data?.events ?? [])
+      .map((e) => e.rawFileId)
+      .filter((id): id is string => typeof id === 'string' && id.length > 0),
+  )];
 
   const warningTitle = row.expectedWarnings.length > 0 ? row.expectedWarnings.join('; ') : undefined;
 
@@ -213,6 +227,28 @@ function LifecycleRow({
                       <li key={w}>{w}</li>
                     ))}
                   </ul>
+                ) : null}
+                {row.hasParseError && isOps ? (
+                  <div className="mb-3 flex flex-wrap items-center gap-2 text-sm" data-testid={`parse-retry-${row.po}`}>
+                    <span className="text-[var(--color-fg-muted)]">Parse errors on this PO:</span>
+                    {parseErrorRawIds.length > 0 ? (
+                      parseErrorRawIds.map((id) => (
+                        <button
+                          key={id}
+                          type="button"
+                          className="rounded border border-[var(--color-surface-border)] px-2 py-0.5 text-xs hover:bg-[var(--color-surface-muted)]"
+                          disabled={reparseM.isPending}
+                          onClick={() => reparseM.mutate(id)}
+                        >
+                          Retry parse ({id.slice(0, 8)}…)
+                        </button>
+                      ))
+                    ) : (
+                      <Link to="/ingestions?status=PARSE_ERROR" className="text-[var(--color-brand-600)] hover:underline">
+                        Open triage →
+                      </Link>
+                    )}
+                  </div>
                 ) : null}
                 <LifecycleTimeline
                   events={expandQ.data.events}

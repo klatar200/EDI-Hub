@@ -50,7 +50,7 @@ export interface IngestInput {
 
 export type IngestResult =
   | { outcome: 'stored'; id: string; s3Key: string; fileHash: string; isaControlNumber: string | null; status: RawFileStatus }
-  | { outcome: 'duplicate'; id: string; s3Key: string; fileHash: string; isaControlNumber: string; status: 'DUPLICATE' }
+  | { outcome: 'duplicate'; id: string; s3Key: string; fileHash: string; isaControlNumber: string; status: 'DUPLICATE'; duplicateOf: { id: string; ingestedAt: string; source: SourceChannel; status: RawFileStatus } }
   | { outcome: 'empty'; error: string }
   | { outcome: 'storage_error'; fileHash: string; isaControlNumber: string | null; error: string }
   | { outcome: 'db_unreachable'; fileHash: string; isaControlNumber: string | null; error: string }
@@ -135,7 +135,20 @@ export async function ingestRawFile(deps: IngestionDeps, input: IngestInput): Pr
           { ...baseLog, outcome: 'duplicate', existingId: existing.id, durationMs: Date.now() - startedAt },
           'Duplicate interchange; skipping storage',
         );
-        return { outcome: 'duplicate', id: existing.id, s3Key: existing.s3Key, fileHash, isaControlNumber, status: 'DUPLICATE' };
+        return {
+          outcome: 'duplicate',
+          id: existing.id,
+          s3Key: existing.s3Key,
+          fileHash,
+          isaControlNumber,
+          status: 'DUPLICATE',
+          duplicateOf: {
+            id: existing.id,
+            ingestedAt: existing.ingestedAt.toISOString(),
+            source: existing.source,
+            status: existing.status,
+          },
+        };
       }
     } else {
       await deps.prisma.rawFile.count();

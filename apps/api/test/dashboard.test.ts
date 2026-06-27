@@ -44,6 +44,15 @@ function fakePrisma(): PrismaClient {
         if (orderBy?.ingestedAt === 'desc') return { ingestedAt: recentIngest };
         return { ingestedAt: recentIngest };
       },
+      async findMany() {
+        return [{
+          id: 'rf-1',
+          status: 'PARSE_ERROR',
+          errorMessage: 'bad segment',
+          ingestedAt: recentIngest,
+          isaControlNumber: '000000001',
+        }];
+      },
       async groupBy() {
         return [
           { status: 'PARSED', _count: { _all: 10 } },
@@ -54,8 +63,8 @@ function fakePrisma(): PrismaClient {
     alert: {
       async findMany() {
         return [
-          { severity: 'warning', partnerId: 'p-1' },
-          { severity: 'critical', partnerId: null },
+          { severity: 'warning', partnerId: 'p-1', type: 'MISSING_ACK' },
+          { severity: 'critical', partnerId: null, type: 'STALE_TRAFFIC' },
         ];
       },
     },
@@ -75,6 +84,8 @@ test('getDashboard returns traffic, alerts, ingest health shape', async () => {
   assert.equal(d.ingestHealth.parseError, 2);
   assert.equal(d.trafficSilence.isGloballyStale, false);
   assert.ok(Array.isArray(d.partnerHealth));
+  assert.equal(d.partnerHealth[0]?.missingAckCount, 1);
+  assert.equal(d.recentFailures.length, 1);
 });
 
 test('GET /api/dashboard returns 200 with viewer access', async () => {

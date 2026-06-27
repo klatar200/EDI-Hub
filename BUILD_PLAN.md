@@ -117,7 +117,22 @@ Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRO
 | **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Verified |
 | **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Verified |
 | **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Verified |
-| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Verified |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Code complete |
+
+### Backlog completion sprints (PB-1–PB-8)
+
+Finish partial features and unscheduled items. Status matrix: [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md).
+
+| Sprint | Focus | Backlog IDs | Status |
+|--------|--------|-------------|--------|
+| **PB-1** | Alerts + detection UI | F8, F50, F49 | ✅ Done |
+| **PB-2** | Ingest triage polish | F53, F54, F60 | ✅ Done |
+| **PB-3** | Dashboard completeness | F1, F3, F45 | ✅ Done |
+| **PB-4** | Settings + SLA behavior | F13, F33 | 🔜 F13 done; F33 next |
+| **PB-5** | Lifecycle detail richness | F7, F31, F44 | ⏳ Planned |
+| **PB-6** | Export + admin polish | F58, F22, F56 | ⏳ Planned |
+| **PB-7** | Extended sets productization | F21, F31 | ⏳ Planned |
+| **PB-8** | Later / scoped (optional) | F27, F37, F38 | ⏳ Optional |
 
 **PS-1 deliverables (reference):**
 

@@ -18,6 +18,7 @@
  * detection pass re-emits. Sprint 3 can add backoff if needed.
  */
 import type { PrismaClient } from '@prisma/client';
+import { tenantContext } from '@edi/db';
 import type {
   AlertRecord,
   AlertType,
@@ -25,6 +26,8 @@ import type {
   PreviewTrailEntry,
 } from '@edi/shared';
 import type { NotifierConfig } from '../config.js';
+import { readTenantSettings } from './tenant-settings.js';
+import { isInQuietHours } from './quiet-hours.js';
 
 export interface NotifierDeps {
   prisma: PrismaClient;
@@ -136,6 +139,16 @@ export async function notify(
   const mode = deps.config.mode;
   if (mode === 'disabled') return { recipients: [], delivered: false };
 
+  const now = (deps.now ?? (() => new Date()))();
+  try {
+    const settings = await readTenantSettings(deps.prisma, tenantContext.requireTenantId());
+    if (isInQuietHours(now, settings.quietHoursStart, settings.quietHoursEnd)) {
+      return { recipients: [], delivered: false };
+    }
+  } catch {
+    // No tenant context (some tests) — skip quiet-hours gate.
+  }
+
   const contacts = partner ? eligibleContacts(partner.contacts, alert.type) : [];
   const emailTargets = contacts.map((c) => c.email).filter((e) => e.length > 0);
   const slackTargets = contacts.map((c) => c.slackWebhook).filter((u): u is string => !!u);
@@ -150,7 +163,6 @@ export async function notify(
 
   if (mode === 'preview') {
     if (recipients.length === 0) return { recipients, delivered: false };
-    const now = (deps.now ?? (() => new Date()))();
     const trail: PreviewTrailEntry[] = recipients.map((r) => ({
       channel: r.channel,
       recipient: r.recipient,

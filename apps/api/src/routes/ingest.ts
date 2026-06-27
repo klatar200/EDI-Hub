@@ -71,6 +71,7 @@ export async function ingestRoutes(
           fileHash: result.fileHash,
           isaControlNumber: result.isaControlNumber,
           duplicate: result.outcome === 'duplicate',
+          duplicateOf: result.outcome === 'duplicate' ? result.duplicateOf : undefined,
         };
         return reply.code(200).send(body);
       }

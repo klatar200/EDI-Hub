@@ -96,6 +96,13 @@ export function DashboardPage(): JSX.Element {
                     All quiet since {formatWhen(d.trafficSilence.lastGlobalIngestAt)}
                   </p>
                 )}
+                <ul className="mt-2 max-h-24 space-y-0.5 overflow-y-auto text-xs text-[var(--color-fg-muted)]" data-testid="traffic-by-partner">
+                  {d.trafficSilence.partners.slice(0, 5).map((p) => (
+                    <li key={p.partnerId}>
+                      {p.displayName}: {formatWhen(p.lastIngestAt)}
+                    </li>
+                  ))}
+                </ul>
                 <Link to="/" className="mt-2 inline-block text-xs text-[var(--color-brand-600)] hover:underline">
                   View lifecycles →
                 </Link>
@@ -155,6 +162,35 @@ export function DashboardPage(): JSX.Element {
             </Card>
           </div>
 
+          {d.recentFailures.length > 0 ? (
+            <section data-testid="recent-failures">
+              <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Recent ingest failures</h2>
+              <DataTable>
+                <DataTable.Thead>
+                  <DataTable.Tr>
+                    <DataTable.Th>ISA</DataTable.Th>
+                    <DataTable.Th>Status</DataTable.Th>
+                    <DataTable.Th>Error</DataTable.Th>
+                    <DataTable.Th>When</DataTable.Th>
+                  </DataTable.Tr>
+                </DataTable.Thead>
+                <DataTable.Tbody>
+                  {d.recentFailures.map((f) => (
+                    <DataTable.Tr key={f.id}>
+                      <DataTable.Td mono>{f.isaControlNumber ?? '—'}</DataTable.Td>
+                      <DataTable.Td><StatusPill tone="error" size="sm">{f.status}</StatusPill></DataTable.Td>
+                      <DataTable.Td muted className="max-w-md truncate">{f.errorMessage ?? '—'}</DataTable.Td>
+                      <DataTable.Td muted>{formatWhen(f.ingestedAt)}</DataTable.Td>
+                    </DataTable.Tr>
+                  ))}
+                </DataTable.Tbody>
+              </DataTable>
+              <Link to="/ingestions?status=PARSE_ERROR" className="mt-2 inline-block text-xs text-[var(--color-brand-600)] hover:underline">
+                Open triage →
+              </Link>
+            </section>
+          ) : null}
+
           <section>
             <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Partner health</h2>
             <DataTable>
@@ -164,6 +200,7 @@ export function DashboardPage(): JSX.Element {
                   <DataTable.Th>Last ingest</DataTable.Th>
                   <DataTable.Th>Last ack</DataTable.Th>
                   <DataTable.Th>Rejection % (30d)</DataTable.Th>
+                  <DataTable.Th>Missing acks</DataTable.Th>
                   <DataTable.Th>Open alerts</DataTable.Th>
                 </DataTable.Tr>
               </DataTable.Thead>
@@ -181,6 +218,15 @@ export function DashboardPage(): JSX.Element {
                     <DataTable.Td muted>{formatWhen(row.lastIngestAt)}</DataTable.Td>
                     <DataTable.Td muted>{formatWhen(row.lastAckAt)}</DataTable.Td>
                     <DataTable.Td mono numeric>{(row.rejectionRate30d * 100).toFixed(1)}%</DataTable.Td>
+                    <DataTable.Td>
+                      {row.missingAckCount > 0 ? (
+                        <Link to="/alerts?type=MISSING_ACK">
+                          <StatusPill tone="warn" size="sm">{row.missingAckCount}</StatusPill>
+                        </Link>
+                      ) : (
+                        <span className="text-[var(--color-fg-subtle)]">—</span>
+                      )}
+                    </DataTable.Td>
                     <DataTable.Td>
                       {row.openAlertCount > 0 ? (
                         <Link to={`/?hasAlerts=true&partnerId=${row.partnerId}`}>

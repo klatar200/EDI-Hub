@@ -22,7 +22,11 @@ const DASHBOARD = {
   partnerHealth: [{
     partnerId: 'p-1', displayName: 'Acme',
     lastIngestAt: '2026-06-20T11:00:00.000Z', lastAckAt: null,
-    rejectionRate30d: 0.05, openAlertCount: 2,
+    rejectionRate30d: 0.05, openAlertCount: 2, missingAckCount: 1,
+  }],
+  recentFailures: [{
+    id: 'rf-1', status: 'PARSE_ERROR', errorMessage: 'Bad segment',
+    ingestedAt: '2026-06-20T10:00:00.000Z', isaControlNumber: '000000001',
   }],
 };
 
@@ -44,4 +48,6 @@ test('renders dashboard cards and partner health table', async () => {
   expect(await screen.findByTestId('open-alerts-total')).toHaveTextContent('3');
   expect(screen.getByTestId('ingest-health')).toHaveTextContent('12 parsed');
   expect(screen.getByText('Acme')).toBeInTheDocument();
+  expect(screen.getByTestId('recent-failures')).toBeInTheDocument();
+  expect(screen.getByTestId('traffic-by-partner')).toBeInTheDocument();
 });

@@ -26,6 +26,35 @@ import {
   Select,
 } from '../components/ui';
 import { useToast } from '../lib/useToast.tsx';
+import { useHasRole } from '../lib/useRole.tsx';
+
+function alertTypeLabel(alert: AlertRecord): string {
+  if (alert.sourceRef.scope === 'unknown_isa') return 'Unknown ISA sender';
+  return TYPE_LABEL[alert.type];
+}
+
+/** Higher score = more overdue vs SLA (for sort). */
+function slaOverdueScore(alert: AlertRecord): number {
+  const ref = alert.sourceRef;
+  const within = typeof ref.withinMinutes === 'number' ? ref.withinMinutes : null;
+  const overdue = typeof ref.overdueMinutes === 'number' ? ref.overdueMinutes : null;
+  if (within !== null && overdue !== null) return overdue - within;
+  if (alert.type === 'REJECTION_RATE_SPIKE') {
+    const current = typeof ref.currentRate === 'number' ? ref.currentRate : 0;
+    const baseline = typeof ref.baselineRate === 'number' ? ref.baselineRate : 0;
+    return current - baseline;
+  }
+  return 0;
+}
+
+function sortAlerts(items: AlertRecord[], sortBy: 'sla' | 'recent'): AlertRecord[] {
+  if (sortBy === 'recent') return items;
+  return [...items].sort((a, b) => {
+    const diff = slaOverdueScore(b) - slaOverdueScore(a);
+    if (diff !== 0) return diff;
+    return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+  });
+}
 
 const SNOOZE_OPTIONS: Array<{ minutes: number; label: string }> = [
   { minutes: 60, label: '1 hour' },
@@ -116,11 +145,25 @@ const SEVERITY_BAR: Record<AlertSeverity, string> = {
 export function AlertsPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
+  const isOps = useHasRole('ops');
   const [status, setStatus] = useState<AlertStatus | ''>('active');
   const [type, setType] = useState<AlertType | ''>('');
+  const [partnerId, setPartnerId] = useState('');
+  const [sortBy, setSortBy] = useState<'sla' | 'recent'>('sla');
+
+  const partnersQ = useQuery({
+    queryKey: ['partners-config'],
+    queryFn: () => api.partnersConfig.list(),
+    staleTime: 60_000,
+  });
+
   const alertsQ = useQuery({
-    queryKey: ['alerts', status, type],
-    queryFn: () => api.alerts.list({ status: status || undefined, type: type || undefined }),
+    queryKey: ['alerts', status, type, partnerId],
+    queryFn: () => api.alerts.list({
+      status: status || undefined,
+      type: type || undefined,
+      partnerId: partnerId || undefined,
+    }),
   });
 
   // Phase UI Sprint 4 — write-path feedback via toasts. Replaces the
@@ -147,7 +190,30 @@ export function AlertsPage(): JSX.Element {
     },
   });
 
-  const items = alertsQ.data?.items ?? [];
+  const detectM = useMutation({
+    mutationFn: () => api.runDetection(),
+    onSuccess: () => {
+      toast.success('Detection pass complete');
+      void qc.invalidateQueries({ queryKey: ['alerts'] });
+    },
+    onError: (err) => {
+      toast.error('Detection failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
+    },
+  });
+
+  const bulkAckM = useMutation({
+    mutationFn: () => api.alerts.bulkAck({ who: 'ops', partnerId: partnerId || undefined }),
+    onSuccess: (data) => {
+      toast.success(`Acknowledged ${data.acknowledged} alert(s)`);
+      void qc.invalidateQueries({ queryKey: ['alerts'] });
+    },
+    onError: (err) => {
+      toast.error('Bulk ack failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
+    },
+  });
+
+  const items = sortAlerts(alertsQ.data?.items ?? [], sortBy);
+  const partners = partnersQ.data?.items ?? [];
 
   return (
     <div>
@@ -155,7 +221,43 @@ export function AlertsPage(): JSX.Element {
         title="Alerts"
         subtitle="Missing acknowledgments + rejection-rate spikes against your configured partners."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-end gap-2">
+            {isOps ? (
+              <button
+                type="button"
+                className="rounded border border-[var(--color-surface-border)] px-3 py-1.5 text-sm hover:bg-[var(--color-surface-muted)] disabled:opacity-50"
+                data-testid="run-detection-btn"
+                disabled={detectM.isPending}
+                onClick={() => detectM.mutate()}
+              >
+                {detectM.isPending ? 'Running…' : 'Run detection'}
+              </button>
+            ) : null}
+            {isOps && status === 'active' && items.length > 0 ? (
+              <button
+                type="button"
+                className="rounded border border-[var(--color-surface-border)] px-3 py-1.5 text-sm hover:bg-[var(--color-surface-muted)] disabled:opacity-50"
+                data-testid="bulk-ack-btn"
+                disabled={bulkAckM.isPending}
+                onClick={() => bulkAckM.mutate()}
+              >
+                Ack all visible
+              </button>
+            ) : null}
+            <FormField label="Partner">
+              <Select size="sm" value={partnerId} onChange={(e) => setPartnerId(e.target.value)} data-testid="alert-partner-filter">
+                <option value="">All partners</option>
+                {partners.map((p) => (
+                  <option key={p.id} value={p.id}>{p.displayName}</option>
+                ))}
+              </Select>
+            </FormField>
+            <FormField label="Sort">
+              <Select size="sm" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'sla' | 'recent')}>
+                <option value="sla">SLA breach first</option>
+                <option value="recent">Most recent</option>
+              </Select>
+            </FormField>
             <FormField label="Status">
               <Select size="sm" value={status} onChange={(e) => setStatus(e.target.value as AlertStatus | '')}>
                 {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -182,10 +284,22 @@ export function AlertsPage(): JSX.Element {
         <EmptyState
           title="No alerts match these filters"
           description={
-            <>
-              Run <code className="rounded bg-[var(--color-surface-muted)] px-1 py-0.5 text-xs">npm run detect</code>{' '}
-              to invoke the detector against your current data.
-            </>
+            isOps
+              ? 'Run detection to evaluate missing acks, rejection spikes, and stale traffic against current data.'
+              : 'No alerts are visible with the current filters.'
+          }
+          action={
+            isOps ? (
+              <button
+                type="button"
+                className="btn"
+                data-testid="run-detection-empty"
+                disabled={detectM.isPending}
+                onClick={() => detectM.mutate()}
+              >
+                Run detection
+              </button>
+            ) : undefined
           }
         />
       ) : (
@@ -194,6 +308,7 @@ export function AlertsPage(): JSX.Element {
             <AlertRow
               key={a.id}
               alert={a}
+              typeLabel={alertTypeLabel(a)}
               onAck={() => ackM.mutate(a.id)}
               onSnooze={(minutes) => snoozeM.mutate({ id: a.id, minutes })}
               pending={ackM.isPending || snoozeM.isPending}
@@ -207,11 +322,13 @@ export function AlertsPage(): JSX.Element {
 
 function AlertRow({
   alert,
+  typeLabel,
   onAck,
   onSnooze,
   pending,
 }: {
   alert: AlertRecord;
+  typeLabel: string;
   onAck: () => void;
   onSnooze: (minutes: number) => void;
   pending: boolean;
@@ -248,7 +365,7 @@ function AlertRow({
                 data-testid="alert-type-label"
                 className="inline-flex items-center rounded-full bg-[var(--color-brand-50)] px-2 py-0.5 text-[11px] font-medium text-[var(--color-brand-700)]"
               >
-                {TYPE_LABEL[alert.type]}
+                {typeLabel}
               </span>
               <span data-testid={ageMeta.testId}>
                 <StatusPill tone={ageMeta.tone} size="sm">{ageMeta.label}</StatusPill>
