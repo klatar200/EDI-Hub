@@ -103,28 +103,53 @@ Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.m
 
 Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 
+**Verification audit (2026-06-25):** Sprints PS-0 through PS-8 verified stable (`npm run test:ci` green, code + tests present). **PS-9 is the first sprint with backlog features not yet implemented** — see gaps below. PS-10–PS-12 are partially delivered (API or desktop-only pieces exist; web UI or job wiring incomplete).
+
 | Sprint | Focus | Backlog IDs | Status |
 |--------|--------|-------------|--------|
-| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ Done |
-| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ Done |
-| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ Done |
-| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ Done |
-| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ Done |
-| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ Done |
-| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Done |
-| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Done |
-| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Done |
-| **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Done |
-| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Done |
-| **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Done |
-| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Done |
+| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ Verified |
+| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ Verified |
+| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ Verified |
+| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ Verified |
+| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ Verified |
+| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ Verified |
+| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Verified |
+| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Verified |
+| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Verified |
+| **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ⏳ Partial — **next sprint** |
+| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ⏳ Partial |
+| **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ⏳ Partial |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ⏳ Partial |
+
+### Verified sprint notes (PS-0–PS-8)
+
+| Sprint | Proof |
+|--------|--------|
+| PS-0 | `release.yml` → `write-clerk-runtime.mjs` → `clerk-runtime.ts`; `apps/desktop/test/clerk-runtime.test.ts` |
+| PS-1 | `GET /api/lifecycles`, `/` → `LifecyclesPage`; `lifecycles.test.ts`, `LifecyclesPage.test.tsx` |
+| PS-2 | Expand panel + `LifecycleTimeline` + URL filters + `expectedWarnings` + raw download; web + API tests |
+| PS-3 | `DashboardPage` + `GET /dashboard` (F45–F48 cards, partner health); `dashboard.test.ts` |
+| PS-4 | Detectors in `detection.ts`; `AlertsPage` run-detect + partner filter + bulk ack; `POST /ops/detect` |
+| PS-5 | `IngestionsPage` triage filters; `POST /raw-files/:id/reparse`; startup `reconcileStuckReceived` in `index.ts` |
+| PS-6 | `SettingsPage` hub (theme, SLA countdown, stale window, quiet hours stub); `GET/PATCH /settings` |
+| PS-7 | `ChannelsPage` + `GET /channels`; alert polish in `AlertsPage.test.tsx` |
+| PS-8 | 855/856 typed headers in `edi-parser`; `TransactionSetsHelpPage`; “Copy context” on `IngestionsPage` |
+
+### Open gaps (PS-9 onward — not verified complete)
+
+| Sprint | Done | Missing |
+|--------|------|---------|
+| **PS-9** | F56 ops notes (API + expand panel); duplicate badges; `GET /raw-files/:id/export` API | **F15** side-by-side duplicate compare UI; **F34** TXT/PDF/CSV export not wired in UI; F37 multi-PO invoice view scoped/later |
+| **PS-10** | F42 lifecycle-first search (`SearchPage`) | **F16** saved views UI (API only: `GET/PATCH /preferences`); **F43** pinned POs UI |
+| **PS-11** | F22 audit viewer (`AuditPage` + tests) | **F51** email digest handler not registered in job bootstrap; **F19** segment-label override form; **F57** bulk export is CSV-only (not ZIP of TXT/PDF/CSV) |
+| **PS-12** | F39 first-run wizard; F40/F62 desktop Help menu | **F61** web Help lacks release-notes link (glossary only) |
 
 **PS-1 deliverables (reference):**
 
 - `GET /api/lifecycles` — paginated `LifecycleSummary[]` (default sort: `startedAt` desc)
 - `/` → `LifecyclesPage`; `/transactions` → secondary drill-down
 - Row summary: partner, flow, status counts, alert badge, parse-error badge (F32)
-- Expand stub loads `GET /lifecycle?po=` on row expand (full UX in PS-2)
+- Expand loads `GET /lifecycle?po=` on row expand (PS-2)
 
 Approved features not yet grouped or deferred → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 

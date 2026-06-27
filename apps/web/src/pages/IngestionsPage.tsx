@@ -30,7 +30,6 @@ import {
   FilterChip,
   FilterChipRow,
 } from '../components/ui';
-import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 
 const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
 const SOURCES = ['upload', 'sftp', 'as2'] as const;

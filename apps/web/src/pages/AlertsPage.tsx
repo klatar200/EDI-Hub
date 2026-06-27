@@ -24,7 +24,9 @@ import {
   Card,
   FormField,
   Select,
+  Input,
 } from '../components/ui';
+import { RequireRole } from '../lib/useRole.tsx';
 import { useToast } from '../lib/useToast.tsx';
 
 const SNOOZE_OPTIONS: Array<{ minutes: number; label: string }> = [
@@ -118,9 +120,14 @@ export function AlertsPage(): JSX.Element {
   const toast = useToast();
   const [status, setStatus] = useState<AlertStatus | ''>('active');
   const [type, setType] = useState<AlertType | ''>('');
+  const [partnerName, setPartnerName] = useState('');
   const alertsQ = useQuery({
-    queryKey: ['alerts', status, type],
-    queryFn: () => api.alerts.list({ status: status || undefined, type: type || undefined }),
+    queryKey: ['alerts', status, type, partnerName],
+    queryFn: () => api.alerts.list({
+      status: status || undefined,
+      type: type || undefined,
+      partnerName: partnerName.trim() || undefined,
+    }),
   });
 
   // Phase UI Sprint 4 — write-path feedback via toasts. Replaces the
@@ -146,8 +153,32 @@ export function AlertsPage(): JSX.Element {
       toast.error('Could not snooze', { description: err instanceof Error ? err.message : 'Server returned an error.' });
     },
   });
+  const detectM = useMutation({
+    mutationFn: () => api.runDetection(),
+    onSuccess: () => {
+      toast.success('Detection pass complete');
+      void qc.invalidateQueries({ queryKey: ['alerts'] });
+    },
+    onError: (err) => {
+      toast.error('Detection failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
+    },
+  });
+  const bulkAckM = useMutation({
+    mutationFn: () => api.alerts.bulkAck({
+      who: 'ops',
+      partnerName: partnerName.trim() || undefined,
+    }),
+    onSuccess: (res) => {
+      toast.success(`Acknowledged ${res.acknowledged} alert${res.acknowledged === 1 ? '' : 's'}`);
+      void qc.invalidateQueries({ queryKey: ['alerts'] });
+    },
+    onError: (err) => {
+      toast.error('Bulk acknowledge failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
+    },
+  });
 
   const items = alertsQ.data?.items ?? [];
+  const activeCount = items.filter((a) => a.status === 'active').length;
 
   return (
     <div>
@@ -155,7 +186,16 @@ export function AlertsPage(): JSX.Element {
         title="Alerts"
         subtitle="Missing acknowledgments + rejection-rate spikes against your configured partners."
         actions={
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-end gap-2">
+            <FormField label="Partner">
+              <Input
+                size="sm"
+                placeholder="Filter by name…"
+                value={partnerName}
+                onChange={(e) => setPartnerName(e.target.value)}
+                data-testid="partner-filter"
+              />
+            </FormField>
             <FormField label="Status">
               <Select size="sm" value={status} onChange={(e) => setStatus(e.target.value as AlertStatus | '')}>
                 {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -166,6 +206,28 @@ export function AlertsPage(): JSX.Element {
                 {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
               </Select>
             </FormField>
+            <RequireRole role="ops">
+              <button
+                type="button"
+                className="btn"
+                data-testid="run-detection"
+                disabled={detectM.isPending}
+                onClick={() => detectM.mutate()}
+              >
+                {detectM.isPending ? 'Running…' : 'Run detection'}
+              </button>
+              {activeCount > 0 && status === 'active' ? (
+                <button
+                  type="button"
+                  className="btn-primary"
+                  data-testid="bulk-ack"
+                  disabled={bulkAckM.isPending}
+                  onClick={() => bulkAckM.mutate()}
+                >
+                  {bulkAckM.isPending ? 'Working…' : `Ack all (${activeCount})`}
+                </button>
+              ) : null}
+            </RequireRole>
           </div>
         }
       />
@@ -181,12 +243,7 @@ export function AlertsPage(): JSX.Element {
       ) : items.length === 0 ? (
         <EmptyState
           title="No alerts match these filters"
-          description={
-            <>
-              Run <code className="rounded bg-[var(--color-surface-muted)] px-1 py-0.5 text-xs">npm run detect</code>{' '}
-              to invoke the detector against your current data.
-            </>
-          }
+          description="Use Run detection above to scan for missing acks, rejection spikes, and stale traffic."
         />
       ) : (
         <ol className="space-y-2">
