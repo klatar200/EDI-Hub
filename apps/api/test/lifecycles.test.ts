@@ -210,6 +210,11 @@ test('listLifecycles returns paginated summaries sorted by startedAt desc', asyn
   assert.equal(result.items[1]!.po, 'PO-100');
   assert.equal(result.items[1]!.openAlertCount, 1);
   assert.ok(result.items[1]!.received >= 1);
+  // PS-2 — expected-document warnings derived from gap rows in the timeline.
+  const po100 = result.items.find((i) => i.po === 'PO-100');
+  assert.ok(po100);
+  assert.ok(Array.isArray(po100!.expectedWarnings));
+  assert.ok(po100!.expectedWarnings.length > 0, 'missing-doc gaps should surface as expectedWarnings');
 });
 
 test('listLifecycles filters hasAlerts=true', async () => {

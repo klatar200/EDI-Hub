@@ -1,4 +1,4 @@
-import { render, screen, within, fireEvent } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
@@ -65,11 +65,11 @@ function fakeFetch(input: unknown): Promise<FakeResponse> {
   return jsonResponse({});
 }
 
-function renderPage() {
+function renderPage(initialPath = '/') {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MemoryRouter>
+      <MemoryRouter initialEntries={[initialPath]}>
         <LifecyclesPage />
       </MemoryRouter>
     </QueryClientProvider>,
@@ -105,4 +105,47 @@ test('expand loads timeline without route change', async () => {
   const panel = await screen.findByTestId('expand-panel-PO-100');
   expect(panel.textContent).toContain('850');
   expect(panel.textContent).toContain('Expected — not received');
+  expect(within(panel).getByTestId('download-raw')).toBeInTheDocument();
+});
+
+test('shows expected-doc warning badge on list row', async () => {
+  vi.stubGlobal('fetch', vi.fn((input: unknown) => {
+    const url = String(input);
+    if (url.includes('/lifecycles')) {
+      return jsonResponse({
+        items: [{ ...LIST_ROW, hasParseError: false }],
+        page: 1,
+        pageSize: 25,
+        total: 1,
+      });
+    }
+    return fakeFetch(input);
+  }));
+  renderPage();
+  await screen.findByTestId('expected-warning-PO-100');
+});
+
+test('filters refetch with URL-reflected hasAlerts param', async () => {
+  const fetchMock = vi.fn(fakeFetch);
+  vi.stubGlobal('fetch', fetchMock);
+  renderPage('/?hasAlerts=true');
+  await screen.findByTestId('lifecycle-row-PO-100');
+  await waitFor(() => {
+    const lifecyclesCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/lifecycles'));
+    expect(lifecyclesCall).toBeDefined();
+    expect(String(lifecyclesCall![0])).toMatch(/hasAlerts=true/);
+  });
+});
+
+test('changing parse-error filter updates fetch query', async () => {
+  const fetchMock = vi.fn(fakeFetch);
+  vi.stubGlobal('fetch', fetchMock);
+  renderPage();
+  await screen.findByTestId('lifecycle-row-PO-100');
+  const parseSelect = screen.getAllByRole('combobox').at(-1)!;
+  fireEvent.change(parseSelect, { target: { value: 'true' } });
+  await waitFor(() => {
+    const calls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/lifecycles'));
+    expect(calls.some((c) => String(c[0]).includes('hasParseError=true'))).toBe(true);
+  });
 });
