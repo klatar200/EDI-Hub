@@ -57,6 +57,11 @@ export async function listLifecycles(
     params.push(new Date(filters.to));
     paramIdx += 1;
   }
+  if (filters.pos && filters.pos.length > 0) {
+    conditions.push(`t.po_number = ANY($${paramIdx}::text[])`);
+    params.push(filters.pos);
+    paramIdx += 1;
+  }
 
   const whereSql = conditions.join(' AND ');
 

@@ -62,7 +62,24 @@ function fakeFetch(input: unknown): Promise<FakeResponse> {
     return jsonResponse({ settings: { slaCountdownEnabled: false, staleTrafficWindowHours: 6 }, canEdit: false });
   }
   if (url.includes('/partners-config')) return jsonResponse({ items: [] });
+  if (url.includes('/preferences')) {
+    return jsonResponse({ preferences: { savedViews: [], pinnedPos: [] } });
+  }
   return jsonResponse({});
+}
+
+let preferencesState = { savedViews: [] as Array<{ id: string; name: string; query: string }>, pinnedPos: [] as string[] };
+
+function fakeFetchWithPrefs(input: unknown, init?: RequestInit): Promise<FakeResponse> {
+  const url = String(input);
+  if (url.includes('/preferences') && init?.method === 'PATCH') {
+    preferencesState = JSON.parse(String(init.body)) as typeof preferencesState;
+    return jsonResponse({ preferences: preferencesState });
+  }
+  if (url.includes('/preferences')) {
+    return jsonResponse({ preferences: preferencesState });
+  }
+  return fakeFetch(input);
 }
 
 function renderPage(initialPath = '/') {
@@ -77,7 +94,8 @@ function renderPage(initialPath = '/') {
 }
 
 beforeEach(() => {
-  vi.stubGlobal('fetch', vi.fn(fakeFetch));
+  preferencesState = { savedViews: [], pinnedPos: [] };
+  vi.stubGlobal('fetch', vi.fn(fakeFetchWithPrefs));
 });
 afterEach(() => {
   vi.unstubAllGlobals();
@@ -139,14 +157,60 @@ test('filters refetch with URL-reflected hasAlerts param', async () => {
 });
 
 test('changing parse-error filter updates fetch query', async () => {
-  const fetchMock = vi.fn(fakeFetch);
+  const fetchMock = vi.fn(fakeFetchWithPrefs);
   vi.stubGlobal('fetch', fetchMock);
   renderPage();
   await screen.findByTestId('lifecycle-row-PO-100');
-  const parseSelect = screen.getAllByRole('combobox').at(-1)!;
+  const parseSelect = screen.getAllByRole('combobox').find((el) =>
+    Array.from(el.querySelectorAll('option')).some((o) => o.textContent === 'Parse errors only'),
+  )!;
   fireEvent.change(parseSelect, { target: { value: 'true' } });
   await waitFor(() => {
     const calls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/lifecycles'));
     expect(calls.some((c) => String(c[0]).includes('hasParseError=true'))).toBe(true);
+  });
+});
+
+test('pin button updates preferences', async () => {
+  renderPage();
+  await screen.findByTestId('lifecycle-row-PO-100');
+  fireEvent.click(screen.getByTestId('pin-PO-100'));
+  await waitFor(() => {
+    expect(preferencesState.pinnedPos).toContain('PO-100');
+  });
+});
+
+test('pinned only filter requests pos query param', async () => {
+  preferencesState.pinnedPos = ['PO-100'];
+  const fetchMock = vi.fn(fakeFetchWithPrefs);
+  vi.stubGlobal('fetch', fetchMock);
+  renderPage('/?pinnedOnly=true');
+  await screen.findByTestId('lifecycle-row-PO-100');
+  await waitFor(() => {
+    const call = fetchMock.mock.calls.find((c) => String(c[0]).includes('/lifecycles') && String(c[0]).includes('pos=PO-100'));
+    expect(call).toBeDefined();
+  });
+});
+
+test('save view persists current filters', async () => {
+  renderPage('/?hasAlerts=true');
+  await screen.findByTestId('lifecycle-row-PO-100');
+  fireEvent.change(screen.getByTestId('save-view-name'), { target: { value: 'Open alerts' } });
+  fireEvent.click(screen.getByTestId('save-view-btn'));
+  await waitFor(() => {
+    expect(preferencesState.savedViews.some((v) => v.name === 'Open alerts' && v.query.includes('hasAlerts=true'))).toBe(true);
+  });
+});
+
+test('load saved view refetches with stored query', async () => {
+  preferencesState.savedViews = [{ id: 'v1', name: 'Alerts', query: 'hasAlerts=true' }];
+  const fetchMock = vi.fn(fakeFetchWithPrefs);
+  vi.stubGlobal('fetch', fetchMock);
+  renderPage();
+  await screen.findByTestId('saved-view-select');
+  fireEvent.change(screen.getByTestId('saved-view-select'), { target: { value: 'v1' } });
+  await waitFor(() => {
+    const call = fetchMock.mock.calls.find((c) => String(c[0]).includes('/lifecycles') && String(c[0]).includes('hasAlerts=true'));
+    expect(call).toBeDefined();
   });
 });

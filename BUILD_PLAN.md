@@ -115,7 +115,7 @@ Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRO
 | **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Done |
 | **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Done |
 | **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Verified |
-| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ⏳ Partial |
+| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Verified |
 | **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ⏳ Partial |
 | **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ⏳ Partial |
 
@@ -132,6 +132,12 @@ Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRO
 - **F56** — Ops notes on lifecycle expand panel (`GET/POST /lifecycles/:po/notes`)
 - **F34** — `GET /lifecycles/:po/export?format=txt|csv|pdf` + `LifecycleExportMenu` on detail + expand
 - **F37** — Invoice/shipment entry via `?invoice=` / search (scoped; no dedicated 810 multi-PO view)
+
+**PS-10 deliverables (verified 2026-06-25):**
+
+- **F42** — Search returns lifecycle conversations first (`SearchPage`)
+- **F16** — Saved views: save/load/delete filter presets on `LifecyclesPage` via `GET/PATCH /preferences`
+- **F43** — Pin POs (★), sort pinned to top, “Pinned only” filter with `pos` list API param
 
 Approved features not yet grouped or deferred → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 

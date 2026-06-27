@@ -34,6 +34,9 @@ function parseLifecycleListQuery(q: Record<string, string | undefined>): Lifecyc
       q.setDirection === 'inbound' || q.setDirection === 'outbound' || q.setDirection === 'unknown'
         ? q.setDirection
         : undefined,
+    pos: q.pos
+      ? q.pos.split(',').map((p) => p.trim()).filter((p) => p.length > 0)
+      : undefined,
   };
 }
 export async function lifecycleRoutes(

@@ -271,6 +271,8 @@ export interface LifecycleListFilters {
   /** PS-2 — filter to POs containing this set (optionally with direction). */
   setId?: string;
   setDirection?: LifecycleDirection;
+  /** PS-10 F43 — restrict list to these PO numbers (comma-separated in query). */
+  pos?: string[];
 }
 
 // ─────────────────────────────────────────────────────────────

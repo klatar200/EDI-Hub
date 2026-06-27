@@ -9,6 +9,13 @@ import type { LifecycleFlow, LifecycleSummary } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
 import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
+import {
+  PinButton,
+  SavedViewsBar,
+  filtersToViewQuery,
+  sortWithPinnedPos,
+  usePinToggle,
+} from '../components/LifecyclePreferencesBar.tsx';
 import { useHasRole } from '../lib/useRole.tsx';
 import {
   PageHeader,
@@ -94,11 +101,17 @@ function LifecycleRow({
   slaCountdownEnabled,
   selected,
   onToggleSelect,
+  pinned,
+  onTogglePin,
+  pinDisabled,
 }: {
   row: LifecycleSummary;
   slaCountdownEnabled: boolean;
   selected: boolean;
   onToggleSelect: (po: string, checked: boolean) => void;
+  pinned: boolean;
+  onTogglePin: () => void;
+  pinDisabled?: boolean;
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const expandQ = useQuery({
@@ -113,6 +126,7 @@ function LifecycleRow({
     <>
       <DataTable.Tr data-testid={`lifecycle-row-${row.po}`}>
         <DataTable.Td>
+          <PinButton po={row.po} pinned={pinned} onToggle={onTogglePin} disabled={pinDisabled} />
           <input
             type="checkbox"
             aria-label={`Select ${row.po}`}
@@ -224,9 +238,13 @@ export function LifecyclesPage(): JSX.Element {
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const partnersConfigQ = useQuery({ queryKey: ['partners-config'], queryFn: () => api.partnersConfig.list() });
   const settingsQ = useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
+  const preferencesQ = useQuery({ queryKey: ['preferences'], queryFn: () => api.preferences.get() });
   const slaCountdownEnabled = settingsQ.data?.settings?.slaCountdownEnabled ?? false;
+  const pinnedPos = preferencesQ.data?.preferences.pinnedPos ?? [];
+  const { togglePin, isPending: pinPending } = usePinToggle(preferencesQ.data?.preferences);
 
   const page = Math.max(1, Number.parseInt(sp.get('page') ?? '1', 10) || 1);
+  const pinnedOnly = sp.get('pinnedOnly') === 'true';
   const filters = {
     page,
     pageSize: PAGE_SIZE,
@@ -238,6 +256,7 @@ export function LifecyclesPage(): JSX.Element {
     flow: (sp.get('flow') as LifecycleFlow | null) ?? undefined,
     setId: sp.get('setId') ?? undefined,
     setDirection: sp.get('setDirection') as 'inbound' | 'outbound' | undefined,
+    pos: pinnedOnly && pinnedPos.length > 0 ? pinnedPos : undefined,
   };
 
   const listQ = useQuery({
@@ -264,11 +283,22 @@ export function LifecyclesPage(): JSX.Element {
     setSp(next);
   }
 
-  const items = listQ.data?.items ?? [];
+  function applySavedView(query: string): void {
+    setSp(new URLSearchParams(query));
+  }
+
+  function setPinnedOnlyFilter(enabled: boolean): void {
+    setFilter('pinnedOnly', enabled ? 'true' : undefined);
+  }
+
+  const rawItems = listQ.data?.items ?? [];
+  const items = sortWithPinnedPos(rawItems, pinnedPos);
   const total = listQ.data?.total ?? 0;
+  const viewQuery = filtersToViewQuery(sp);
   const hasAnyFilter = Boolean(
     filters.partnerId || filters.from || filters.to || filters.hasAlerts
-    || filters.hasParseError || filters.flow || filters.setId || filters.setDirection,
+    || filters.hasParseError || filters.flow || filters.setId || filters.setDirection
+    || pinnedOnly,
   );
   const partners = partnersConfigQ.data?.items ?? [];
 
@@ -359,6 +389,15 @@ export function LifecyclesPage(): JSX.Element {
             </Select>
           </FormField>
         </div>
+        {preferencesQ.data ? (
+          <SavedViewsBar
+            preferences={preferencesQ.data.preferences}
+            currentQuery={viewQuery}
+            pinnedOnly={pinnedOnly}
+            onApplyView={applySavedView}
+            onTogglePinnedOnly={setPinnedOnlyFilter}
+          />
+        ) : null}
       </Card>
 
       <FilterChipRow onClearAll={hasAnyFilter ? clearAll : undefined}>
@@ -377,6 +416,7 @@ export function LifecyclesPage(): JSX.Element {
         {filters.to ? <FilterChip key="to" label="To" value={filters.to} onRemove={() => setFilter('to', undefined)} /> : null}
         {filters.hasAlerts ? <FilterChip key="hasAlerts" label="Alerts" value="Open" onRemove={() => setFilter('hasAlerts', undefined)} /> : null}
         {filters.hasParseError ? <FilterChip key="hasParseError" label="Parse" value="Errors" onRemove={() => setFilter('hasParseError', undefined)} /> : null}
+        {pinnedOnly ? <FilterChip key="pinnedOnly" label="Pinned" value="Only" onRemove={() => setFilter('pinnedOnly', undefined)} /> : null}
       </FilterChipRow>
 
       {listQ.isLoading ? (
@@ -419,6 +459,9 @@ export function LifecyclesPage(): JSX.Element {
                   row={row}
                   slaCountdownEnabled={slaCountdownEnabled}
                   selected={selected.has(row.po)}
+                  pinned={pinnedPos.includes(row.po)}
+                  onTogglePin={() => togglePin(row.po)}
+                  pinDisabled={pinPending}
                   onToggleSelect={(po, checked) => {
                     setSelected((prev) => {
                       const next = new Set(prev);
