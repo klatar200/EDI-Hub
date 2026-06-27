@@ -60,6 +60,19 @@ test('assertProductionAuthConfig is a no-op outside production', () => {
   );
 });
 
+test('assertProductionAuthConfig is a no-op for desktop hub mode in production', () => {
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
+  try {
+    assert.doesNotThrow(() =>
+      assertProductionAuthConfig(prodConfig({ clerk: { secretKey: '', webhookSecret: '', publishableKey: '' } })),
+    );
+  } finally {
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+    else delete process.env.EDI_HUB_USER_DATA_DIR;
+  }
+});
+
 test('resolveAuthMode reports clerk vs dev-fallback', () => {
   assert.equal(resolveAuthMode(prodConfig()), 'clerk');
   assert.equal(resolveAuthMode(prodConfig({ clerk: { secretKey: '', webhookSecret: '' } })), 'dev-fallback');
@@ -95,4 +108,28 @@ test('production + dev-fallback returns 500 AUTH_MISCONFIGURED on authenticated 
   assert.equal(res.statusCode, 500);
   assert.equal(res.json().error.code, 'AUTH_MISCONFIGURED');
   await app.close();
+});
+
+test('production desktop hub + dev-fallback does not return AUTH_MISCONFIGURED', async () => {
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
+  try {
+    const verifyAuth = async (): Promise<AuthOutcome> => ({ kind: 'dev-fallback' });
+    const app = await buildServer({
+      config: prodConfig({
+        clerk: { secretKey: '', webhookSecret: '' },
+        storage: { backend: 'local', localDataDir: '/tmp/edi-raw' },
+      }),
+      s3: okS3,
+      prisma: okPrisma,
+      verifyAuth,
+    });
+
+    const res = await app.inject({ method: 'GET', url: '/api/partners-config' });
+    assert.notEqual(res.json()?.error?.code, 'AUTH_MISCONFIGURED');
+    await app.close();
+  } finally {
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+    else delete process.env.EDI_HUB_USER_DATA_DIR;
+  }
 });

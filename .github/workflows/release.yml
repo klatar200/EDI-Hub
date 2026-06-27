@@ -99,10 +99,16 @@ jobs:
           # treats absence as a hard error (we don't want to ship
           # release builds that bake an empty key).
           VITE_CLERK_PUBLISHABLE_KEY: ${{ secrets.VITE_CLERK_PUBLISHABLE_KEY }}
+          CLERK_SECRET_KEY: ${{ secrets.CLERK_SECRET_KEY }}
+          CLERK_WEBHOOK_SECRET: ${{ secrets.CLERK_WEBHOOK_SECRET }}
         run: |
           if [ -z "${VITE_CLERK_PUBLISHABLE_KEY:-}" ]; then
             echo "::error::VITE_CLERK_PUBLISHABLE_KEY repo secret is not set; refusing to build a release with a missing Clerk key."
             exit 1
+          fi
+          node scripts/write-clerk-runtime.mjs
+          if [ -z "${CLERK_SECRET_KEY:-}" ]; then
+            echo "::warning::CLERK_SECRET_KEY secret is not set; API will use desktop hub dev-fallback auth."
           fi
           # Stale artifacts in dist-installer/ caused v0.0.10-alpha to ship
           # a 0.0.6-alpha binary while the tag said 0.0.10. Always start clean.

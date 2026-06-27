@@ -94,6 +94,8 @@ files:
 extraResources:
   - from: ../web/dist
     to: web/dist
+  - from: resources/clerk-runtime.json
+    to: clerk-runtime.json
   - from: ../../packages/db/prisma/schema.prisma
     to: prisma/schema.prisma
   - from: ../../packages/db/prisma/migrations

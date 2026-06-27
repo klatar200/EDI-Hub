@@ -23,6 +23,7 @@ import type { FastifyInstance, FastifyPluginOptions, FastifyRequest } from 'fast
 import fp from 'fastify-plugin';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { verifyBearerToken, type AuthOutcome } from '../services/auth.js';
+import { isDesktopHubMode } from '../services/hub-config.js';
 
 // Phase 10 Sprint 1.3 — `/readiness` + `/internal/metrics` join the
 // allowlist. They run before the API has fully booted (readiness probes
@@ -75,7 +76,7 @@ async function tenantPluginImpl(
     );
 
     if (outcome.kind === 'dev-fallback') {
-      if (app.config.nodeEnv === 'production') {
+      if (app.config.nodeEnv === 'production' && !isDesktopHubMode()) {
         return reply.code(500).send({
           error: {
             code: 'AUTH_MISCONFIGURED',

@@ -7,6 +7,8 @@
  * `envalid` and add a richer health check; the contract here stays the same.)
  */
 
+import { isDesktopHubMode } from './services/hub-config.js';
+
 function required(name: string): string {
   const value = process.env[name];
   if (value === undefined || value.trim() === '') {
@@ -274,9 +276,15 @@ export function loadConfig(): AppConfig {
 }
 
 /** W1.1 — refuse production boot without Clerk. Call after `loadConfig` and
- *  `applySecretsFromManager` so Secrets Manager overlays are included. */
+ *  `applySecretsFromManager` so Secrets Manager overlays are included.
+ *
+ *  Desktop hub mode (`EDI_HUB_USER_DATA_DIR`) is exempt: the LAN-server SKU
+ *  boots with Clerk keys from `clerk-runtime.json` when present, or
+ *  dev-fallback when not — see tenant plugin for the matching request-path
+ *  exemption. */
 export function assertProductionAuthConfig(config: AppConfig): void {
   if (config.nodeEnv !== 'production') return;
+  if (isDesktopHubMode()) return;
 
   const missing: string[] = [];
   if (!config.clerk.secretKey.trim()) missing.push('CLERK_SECRET_KEY');

@@ -42,6 +42,7 @@ import { registerDesktopRuntime, clearDesktopRuntime } from './desktop-runtime.j
 import { registerFolderPickerIpc } from './folder-picker.js';
 import { installFileLogger } from './file-logger.js';
 import { installUpdateLogger, logBootPhase } from './update-logger.js';
+import { loadClerkRuntimeEnv } from './clerk-runtime.js';
 
 // Electron resolves `app.getPath('userData')` from `app.getName()`, which
 // defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
@@ -463,6 +464,7 @@ async function boot(): Promise<void> {
     // D8 Sprint 2 — API reads/writes first-run wizard config alongside Electron.
     EDI_HUB_USER_DATA_DIR: userData,
   };
+  Object.assign(apiEnv, loadClerkRuntimeEnv(procRes));
   if (process.env.CORS_ALLOWED_ORIGINS) {
     apiEnv.CORS_ALLOWED_ORIGINS = process.env.CORS_ALLOWED_ORIGINS;
   }
