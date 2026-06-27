@@ -17,6 +17,25 @@ A single Fastify process on port **3000**, bound to `0.0.0.0`, serving:
 Internal users on the LAN reach the hub at `http://<server-ip>:3000`
 in any browser.
 
+## Clerk authentication (release builds)
+
+GitHub Actions release builds (`v*` tags) bundle Clerk credentials automatically:
+
+1. **Web UI** — `VITE_CLERK_PUBLISHABLE_KEY` is baked into `apps/web/dist` at build time.
+2. **API child** — `scripts/write-clerk-runtime.mjs` writes `clerk-runtime.json` into the installer at `resources/clerk-runtime.json`. The Electron main process forwards these keys to the API on boot.
+
+**Required GitHub repo secrets for production desktop auth:**
+
+| Secret | Purpose |
+|---|---|
+| `VITE_CLERK_PUBLISHABLE_KEY` | Clerk sign-in UI (required — build fails without it) |
+| `CLERK_SECRET_KEY` | API JWT verification (required for real installs) |
+| `CLERK_WEBHOOK_SECRET` | `/webhooks/clerk` endpoint |
+
+If `CLERK_SECRET_KEY` is missing at build time, the installer still runs but the API uses **desktop hub dev-fallback** (no JWT verification). Use only for internal testing.
+
+**LAN authorized parties** (`CLERK_AUTHORIZED_PARTIES`) default to `http://localhost:3000` in the bundled file. Per-install LAN URLs are configured in the first-run wizard (PS-12) or manually — see below.
+
 ## One-time Clerk dashboard step (per install)
 
 EDI Hub uses Clerk for authentication, sharing one Clerk application
@@ -42,10 +61,9 @@ If users on the LAN see a Clerk error page complaining about an
 "unauthorized party," missing or stale `CLERK_AUTHORIZED_PARTIES` is
 the cause 90% of the time.
 
-## Required env vars
+## Manual env override (development / pre-wizard)
 
-Copy `.env.desktop.example` from the repo root to `.env.desktop` in
-the install directory, then fill in:
+If not using a GitHub-built installer with bundled `clerk-runtime.json`, copy `.env.desktop.example` from the repo root to `.env.desktop` in the install directory, then fill in:
 
 - `CLERK_PUBLISHABLE_KEY` — `pk_live_…` from the Clerk dashboard
 - `CLERK_SECRET_KEY` — `sk_live_…` from the Clerk dashboard

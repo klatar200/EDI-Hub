@@ -63,7 +63,8 @@ export function Layout(): JSX.Element {
     setupQ.data.dropFolderPath;
 
   const primaryNav: NavItem[] = [
-    { to: '/', label: 'Transactions', end: true },
+    { to: '/', label: 'Lifecycles', end: true },
+    { to: '/transactions', label: 'Transactions' },
     { to: '/ingestions', label: 'Ingestions' },
     { to: '/metrics', label: 'Metrics' },
     { to: '/alerts', label: 'Alerts', badge: unread },

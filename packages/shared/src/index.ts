@@ -218,6 +218,43 @@ export interface LifecycleResponse {
   flow: LifecycleFlow;
   /** Chronologically ordered events, with gaps inserted at their expected slot. */
   events: LifecycleEvent[];
+  /** Resolved trading partner for this conversation, when identifiable. */
+  partner: { id: string; displayName: string } | null;
+}
+
+/** PS-1 — paginated lifecycle list row (conversation summary). */
+export interface LifecycleSummary {
+  po: string;
+  partnerId: string | null;
+  partnerDisplayName: string | null;
+  flow: LifecycleFlow;
+  startedAt: string;
+  lastActivityAt: string;
+  received: number;
+  missing: number;
+  rejected: number;
+  openAlertCount: number;
+  hasParseError: boolean;
+  hasDuplicates: boolean;
+  additionalDocumentCount: number;
+}
+
+export interface LifecycleListResponse {
+  items: LifecycleSummary[];
+  page: number;
+  pageSize: number;
+  total: number;
+}
+
+export interface LifecycleListFilters {
+  page?: number;
+  pageSize?: number;
+  partnerId?: string;
+  from?: string;
+  to?: string;
+  hasAlerts?: boolean;
+  hasParseError?: boolean;
+  flow?: LifecycleFlow;
 }
 
 // ─────────────────────────────────────────────────────────────

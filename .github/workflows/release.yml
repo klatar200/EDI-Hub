@@ -7,6 +7,9 @@
 #
 # Secrets the workflow expects:
 #
+#   VITE_CLERK_PUBLISHABLE_KEY — baked into apps/web at build time (required).
+#   CLERK_SECRET_KEY           — written to clerk-runtime.json for API JWT verify.
+#   CLERK_WEBHOOK_SECRET       — written to clerk-runtime.json for /webhooks/clerk.
 #   CSC_LINK_B64        — base64-encoded contents of the EV cert .pfx.
 #                         electron-builder accepts a base64 string in
 #                         CSC_LINK directly; we decode here to keep the

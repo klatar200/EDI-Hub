@@ -10,6 +10,8 @@ import type {
   AlertRecord,
   IngestListResponse,
   IngestUploadResponse,
+  LifecycleListFilters,
+  LifecycleListResponse,
   LifecycleResponse,
   OutboundStage,
   PartnerConfigInput,
@@ -60,7 +62,7 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
-function qs(params: Record<string, string | number | undefined>): string {
+function qs(params: Record<string, string | number | boolean | undefined>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v !== undefined && v !== '') sp.set(k, String(v));
@@ -197,6 +199,9 @@ export const api = {
   /** GET /lifecycle?po=|invoice=|shipment= — returns null on 404 (no PO matched). */
   lifecycle: (key: LifecycleKey, value: string) =>
     getOrNull<LifecycleResponse>(`/lifecycle${qs({ [key]: value })}`),
+  /** PS-1 — paginated PO/conversation list for the lifecycle-first homepage. */
+  lifecycles: (f: LifecycleListFilters = {}) =>
+    get<LifecycleListResponse>(`/lifecycles${qs(f as Record<string, string | number | boolean | undefined>)}`),
   /** GET /metrics/rejection-rate — defaults to a rolling 30-day window. */
   rejectionRate: (params: { from?: string; to?: string; partner?: string } = {}) =>
     get<RejectionRateResponse>(`/metrics/rejection-rate${qs(params)}`),

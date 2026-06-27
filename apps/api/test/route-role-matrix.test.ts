@@ -66,6 +66,7 @@ const EXPECTED: Record<string, Role> = {
   'GET /api/raw-files/:id/content': 'viewer',
   'GET /api/search': 'viewer',
   'GET /api/lifecycle': 'viewer',
+  'GET /api/lifecycles': 'viewer',
   'GET /api/metrics/rejection-rate': 'viewer',
   'GET /api/alerts': 'viewer',
   'GET /api/alerts/:id': 'viewer',

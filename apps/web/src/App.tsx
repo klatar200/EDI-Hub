@@ -24,6 +24,7 @@ import { Layout } from './components/Layout.tsx';
 import { AuthBridge } from './components/AuthBridge.tsx';
 import { MeProvider } from './lib/useRole.tsx';
 import { UsersPage } from './pages/UsersPage.tsx';
+import { LifecyclesPage } from './pages/LifecyclesPage.tsx';
 import { TransactionsPage } from './pages/TransactionsPage.tsx';
 import { TransactionDetailPage } from './pages/TransactionDetailPage.tsx';
 import { IngestionsPage } from './pages/IngestionsPage.tsx';
@@ -78,7 +79,8 @@ function SetupGate(): JSX.Element {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<TransactionsPage />} />
+        <Route path="/" element={<LifecyclesPage />} />
+        <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/transactions/:id" element={<TransactionDetailPage />} />
         <Route path="/ingestions" element={<IngestionsPage />} />
         <Route path="/search" element={<SearchPage />} />

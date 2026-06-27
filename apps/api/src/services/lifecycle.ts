@@ -590,5 +590,43 @@ export async function getLifecycle(
     }
   }
 
-  return { po: spine.po, enteredBy: spine.enteredBy, flow, events };
+  return { po: spine.po, enteredBy: spine.enteredBy, flow, events, partner: partnerSummary(partner) };
+}
+
+function partnerSummary(partner: TradingPartnerRecord | null): LifecycleResponse['partner'] {
+  if (!partner) return null;
+  return { id: partner.id, displayName: partner.displayName };
+}
+
+/** Derive list-row counts from a stitched lifecycle timeline. */
+export function summarizeLifecycleEvents(events: LifecycleEvent[]): {
+  received: number;
+  missing: number;
+  rejected: number;
+  hasDuplicates: boolean;
+  additionalDocumentCount: number;
+} {
+  let received = 0;
+  let missing = 0;
+  let rejected = 0;
+  const dupKeys = new Map<string, number>();
+  for (const e of events) {
+    if (e.kind === 'gap') {
+      missing += 1;
+      continue;
+    }
+    if (e.status === 'rejected') rejected += 1;
+    else received += 1;
+    const k = `${e.transactionSetId}::${e.direction}`;
+    dupKeys.set(k, (dupKeys.get(k) ?? 0) + 1);
+  }
+  let additionalDocumentCount = 0;
+  let hasDuplicates = false;
+  for (const n of dupKeys.values()) {
+    if (n > 1) {
+      hasDuplicates = true;
+      additionalDocumentCount += n - 1;
+    }
+  }
+  return { received, missing, rejected, hasDuplicates, additionalDocumentCount };
 }

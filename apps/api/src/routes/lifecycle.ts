@@ -10,11 +10,27 @@
  * `services/lifecycle.ts` for the stitching logic.
  */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import type { ApiErrorResponse, LifecycleResponse } from '@edi/shared';
+import type { ApiErrorResponse, LifecycleListFilters, LifecycleListResponse, LifecycleResponse } from '@edi/shared';
 import { tenantContext } from '@edi/db';
 import { getLifecycle } from '../services/lifecycle.js';
+import { listLifecycles } from '../services/lifecycles.js';
 
 import { requiresRole } from '../plugins/rbac.js';
+
+function parseLifecycleListQuery(q: Record<string, string | undefined>): LifecycleListFilters {
+  const page = q.page ? Number.parseInt(q.page, 10) : undefined;
+  const pageSize = q.pageSize ? Number.parseInt(q.pageSize, 10) : undefined;
+  return {
+    page: Number.isFinite(page) ? page : undefined,
+    pageSize: Number.isFinite(pageSize) ? pageSize : undefined,
+    partnerId: q.partnerId || undefined,
+    from: q.from || undefined,
+    to: q.to || undefined,
+    hasAlerts: q.hasAlerts === 'true' ? true : q.hasAlerts === 'false' ? false : undefined,
+    hasParseError: q.hasParseError === 'true' ? true : q.hasParseError === 'false' ? false : undefined,
+    flow: q.flow === 'standard' || q.flow === 'grocery' || q.flow === 'unknown' ? q.flow : undefined,
+  };
+}
 export async function lifecycleRoutes(
   app: FastifyInstance,
   _opts: FastifyPluginOptions,
@@ -55,6 +71,21 @@ export async function lifecycleRoutes(
       }
 
       const body: LifecycleResponse = result;
+      return reply.code(200).send(body);
+    },
+  );
+
+  app.get<{ Querystring: Record<string, string | undefined> }>(
+    '/lifecycles',
+    requiresRole('viewer'),
+    async (request, reply) => {
+      const tenantId = tenantContext.requireTenantId();
+      const tenant = await app.prisma.tenant.findUnique({ where: { id: tenantId } });
+      const filters = parseLifecycleListQuery(request.query);
+      const result = await listLifecycles(app.prisma, filters, {
+        ourIsaIds: tenant?.ourIsaIds ?? [],
+      });
+      const body: LifecycleListResponse = result;
       return reply.code(200).send(body);
     },
   );
