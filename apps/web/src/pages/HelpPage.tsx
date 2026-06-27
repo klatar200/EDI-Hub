@@ -46,7 +46,7 @@ export function HelpPage(): JSX.Element {
         <Card className="p-4 space-y-2">
           <h2 className="text-sm font-semibold">Transaction sets</h2>
           <p className="text-sm text-[var(--color-fg-muted)]">
-            Plain-English guide to 850, 855, 856, 810, and 997 in the order-to-cash loop.
+            Plain-English guide to 850–997 and Tier B sets (860, 875, 880) in the order-to-cash loop.
           </p>
           <Link to="/help/transaction-sets" className="text-sm text-[var(--color-brand-600)] hover:underline">
             Open glossary →

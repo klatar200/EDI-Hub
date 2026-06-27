@@ -112,7 +112,7 @@ export function FirstRunWizardPage(): JSX.Element {
         displayName: name,
         isaSenderIds: [isa],
         isaReceiverIds: [],
-        supportedSets: ['850', '855', '856', '810', '997'],
+        supportedSets: ['850', '855', '856', '860', '875', '880', '810', '997'],
       });
       return true;
     } catch (err) {

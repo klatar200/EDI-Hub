@@ -9,6 +9,9 @@ const SETS = [
   { id: '856', name: 'Ship Notice / ASN', desc: 'Shipment notification with carton/pallet hierarchy and ship date.' },
   { id: '810', name: 'Invoice', desc: 'Supplier invoice referencing the PO with amounts and line detail.' },
   { id: '997', name: 'Functional Acknowledgment', desc: 'Technical ack that a functional group was received — includes AK3/AK4 errors.' },
+  { id: '860', name: 'PO Change', desc: 'Buyer revises an existing PO — references the original PO number (BCH).' },
+  { id: '875', name: 'Grocery PO', desc: 'Grocery-industry purchase order (BPO) — anchors the 875→880 grocery flow.' },
+  { id: '880', name: 'Grocery Invoice', desc: 'Grocery supplier invoice (BIG) referencing the grocery PO.' },
 ];
 
 const TIERS = [
@@ -21,8 +24,8 @@ const TIERS = [
   {
     tier: 'Tier B — Extended grocery / PO change',
     sets: '860, 875, 880',
-    scope: 'Generic parse + lifecycle participation; grocery flow (875→880) and PO change (860) without bespoke UI per set.',
-    status: 'Partial — parser + lifecycle; detail headers follow Tier A pattern as sets mature.',
+    scope: 'Parse, lifecycle participation, and typed headers on expand. Grocery flow (875→880) and PO change (860).',
+    status: 'Shipped',
   },
   {
     tier: 'Tier C — Future / partner-specific',

@@ -227,7 +227,7 @@ export interface LifecycleEvent {
   /** 1-based index among events sharing the same (transactionSetId, direction).
    *  Null on gaps and when only one document of that type exists. */
   instanceIndex: number | null;
-  /** PB-5 F7 — one-line typed header for 855/856 (ship date, qty, carrier, ack type). */
+  /** PB-5 F7 / PB-7 F21 — one-line typed header (855/856 Tier A; 860/875/880 Tier B). */
   headerSummary: string | null;
 }
 

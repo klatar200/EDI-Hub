@@ -742,3 +742,61 @@ test('orphan stitch: 855/810 with null po_number but matching BAK/BIG still appe
   assert.equal(r!.events.filter((e) => e.kind === 'gap' && e.transactionSetId === '855').length, 0);
   assert.equal(r!.events.filter((e) => e.kind === 'gap' && e.transactionSetId === '810').length, 0);
 });
+
+test('Tier B headerSummary: 860, 875, 880 surface typed one-liners on lifecycle timeline', async () => {
+  const g875: FakeTxnWithSegments = {
+    ...tx({
+      id: 't-875', transactionSetId: '875', controlNumber: 'G1', groupControl: '101',
+      poNumber: 'PO-G', direction: 'inbound', ingestedAt: '2026-06-10T10:00:00Z',
+    }),
+    segments: [
+      { tag: 'BPO', position: 1, elements: [{ index: 1, value: '00' }, { index: 2, value: 'PO-G' }, { index: 3, value: '20260105' }] },
+    ],
+  };
+  const g860: FakeTxnWithSegments = {
+    ...tx({
+      id: 't-860', transactionSetId: '860', controlNumber: 'G3', groupControl: '103',
+      poNumber: 'PO-G', direction: 'inbound', ingestedAt: '2026-06-11T10:00:00Z',
+    }),
+    segments: [
+      {
+        tag: 'BCH', position: 1,
+        elements: [
+          { index: 1, value: '04' }, { index: 2, value: 'SA' }, { index: 3, value: 'PO-G' },
+          { index: 5, value: '20260120' }, { index: 7, value: 'PO-OLD' },
+        ],
+      },
+    ],
+  };
+  const g880: FakeTxnWithSegments = {
+    ...tx({
+      id: 't-880', transactionSetId: '880', controlNumber: 'G2', groupControl: '102',
+      poNumber: 'PO-G', invoiceNumber: 'GINV-1', direction: 'outbound',
+      ingestedAt: '2026-06-12T10:00:00Z',
+    }),
+    segments: [
+      {
+        tag: 'BIG', position: 1,
+        elements: [
+          { index: 1, value: '20260210' }, { index: 2, value: 'GINV-1' },
+          { index: 3, value: '20260105' }, { index: 4, value: 'PO-G' },
+        ],
+      },
+      { tag: 'TDS', position: 2, elements: [{ index: 1, value: '123450' }] },
+    ],
+  };
+
+  const prisma = makePrismaWithSegments([g875, g860, g880]);
+  const r = await getLifecycle(prisma, { po: 'PO-G' });
+  assert.ok(r);
+  assert.equal(r!.flow, 'grocery');
+
+  const bySet = new Map(
+    r!.events
+      .filter((e) => e.kind === 'transaction')
+      .map((e) => [e.transactionSetId, e]),
+  );
+  assert.equal(bySet.get('875')!.headerSummary, 'PO PO-G · Date 20260105 · Purpose 00');
+  assert.equal(bySet.get('860')!.headerSummary, 'Change 04 · was PO-OLD · Date 20260120');
+  assert.equal(bySet.get('880')!.headerSummary, 'Inv GINV-1 · PO PO-G · Total 123450');
+});

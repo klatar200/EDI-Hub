@@ -1,6 +1,6 @@
 # Feature status matrix (F1–F62)
 
-**Last updated:** 2026-06-25  
+**Last updated:** 2026-06-25 (PB-7)  
 **Legend:** ✅ Done · ⚠️ Partial · ❌ Missing · ⛔ Declined · 🔜 PB sprint
 
 | ID | Feature | Status | PB sprint |
@@ -11,7 +11,7 @@
 | F4′ | Lifecycle-first homepage | ✅ | — |
 | F5 | Ingestion failure triage | ✅ | — |
 | F6 | Startup reconcile | ✅ | — |
-| F7 | Typed 855/856 headers | ✅ | PB-5 |
+| F7 | Typed 855/856 headers on lifecycle | ✅ | PB-5 |
 | F8 | Alert partner filter + bulk ack | ✅ | PB-1 |
 | F9 | Expected-document warnings | ✅ | — |
 | F10 | Channel health page | ✅ | — |
@@ -22,7 +22,7 @@
 | F16 | Saved views | ✅ | — |
 | F19 | Dictionary override UI | ✅ | — |
 | F20 | Theme toggle in settings | ✅ | — |
-| F21 | Extended transaction sets | ⚠️ | PB-7 |
+| F21 | Extended transaction sets (860/875/880) | ✅ | PB-7 |
 | F22 | Audit log viewer | ✅ | PB-6 |
 | F25 | Expand-in-place lifecycle | ✅ | — |
 | F26 | Lifecycle list filters | ✅ | — |

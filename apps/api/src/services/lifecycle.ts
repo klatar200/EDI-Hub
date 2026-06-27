@@ -332,7 +332,9 @@ function rawFileMeta(t: TxnRow): { isaControlNumber: string | null; source: Sour
 }
 
 function headerSummaryForTransaction(row: TxnRowWithSegments | TxnRow | undefined): string | null {
-  if (!row || (row.transactionSetId !== '855' && row.transactionSetId !== '856')) return null;
+  if (!row) return null;
+  const headerSets = new Set(['855', '856', '860', '875', '880']);
+  if (!headerSets.has(row.transactionSetId)) return null;
   if (!('segments' in row) || !Array.isArray(row.segments)) return null;
   const interp = interpretTransaction(toDecomposed(row as TxnRowWithSegments));
   if (interp.type === '855') {
@@ -347,6 +349,29 @@ function headerSummaryForTransaction(row: TxnRowWithSegments | TxnRow | undefine
     if (interp.shipDate) parts.push(`Date ${interp.shipDate}`);
     if (interp.carrierRef) parts.push(interp.carrierRef);
     if (interp.totalQty) parts.push(`${interp.totalQty} units`);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  if (interp.type === '860') {
+    const parts: string[] = [];
+    if (interp.purpose) parts.push(`Change ${interp.purpose}`);
+    if (interp.originalPoNumber && interp.originalPoNumber !== interp.poNumber) {
+      parts.push(`was ${interp.originalPoNumber}`);
+    }
+    if (interp.poDate) parts.push(`Date ${interp.poDate}`);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  if (interp.type === '875') {
+    const parts: string[] = [];
+    if (interp.poNumber) parts.push(`PO ${interp.poNumber}`);
+    if (interp.poDate) parts.push(`Date ${interp.poDate}`);
+    if (interp.purpose) parts.push(`Purpose ${interp.purpose}`);
+    return parts.length > 0 ? parts.join(' · ') : null;
+  }
+  if (interp.type === '880') {
+    const parts: string[] = [];
+    if (interp.invoiceNumber) parts.push(`Inv ${interp.invoiceNumber}`);
+    if (interp.poNumber) parts.push(`PO ${interp.poNumber}`);
+    if (interp.totalAmount) parts.push(`Total ${interp.totalAmount}`);
     return parts.length > 0 ? parts.join(' · ') : null;
   }
   return null;
