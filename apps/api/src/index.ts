@@ -10,7 +10,7 @@
 import { buildServer } from './server.js';
 import { ensureBucket } from './storage/s3.js';
 import { startConfiguredChannels } from './channels/registry.js';
-import { disconnectPrisma } from '@edi/db';
+import { disconnectPrisma, tenantContext } from '@edi/db';
 import { loadConfig, assertProductionAuthConfig, resolveAuthMode } from './config.js';
 import { applySecretsFromManager } from './services/secrets.js';
 import { readHubConfig, isDesktopHubMode } from './services/hub-config.js';
@@ -19,6 +19,7 @@ import {
   createDetectionHandler,
   DETECTION_JOB_NAME,
 } from './jobs/handlers/detection.js';
+import { reconcileStuckReceived } from './services/parsing.js';
 
 async function main(): Promise<void> {
   // Phase 9 Sprint 4 — load env config first, then overlay secrets from
@@ -68,6 +69,22 @@ async function main(): Promise<void> {
   );
   jobs.start();
   app.decorate('jobs', jobs);
+
+  // PS-5 — startup reconcile for RECEIVED rows stuck after a crash.
+  void tenantContext.bypass(async () => {
+    const tenants = await app.prisma.tenant.findMany({ where: { deletedAt: null }, select: { id: true } });
+    const deps = { s3: app.s3, storage: app.storage, prisma: app.prisma, config: app.config, logger: app.log };
+    for (const tenant of tenants) {
+      await tenantContext.run({ tenantId: tenant.id }, async () => {
+        const count = await reconcileStuckReceived(deps);
+        if (count > 0) {
+          app.log.info({ tenantId: tenant.id, count }, 'Startup reconcile: re-parsed stuck RECEIVED raw files');
+        }
+      });
+    }
+  }).catch((err) => {
+    app.log.warn({ err }, 'Startup reconcile failed (non-fatal)');
+  });
 
   const close = async (signal: string): Promise<void> => {
     app.log.info({ signal }, 'Shutting down');

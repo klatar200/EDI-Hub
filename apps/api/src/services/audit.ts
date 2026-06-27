@@ -39,9 +39,10 @@ export type AuditAction =
   | 'tenant.config-update'
   // Phase 10 Sprint 4 — rate-limit breach (best-effort audit so abuse
   // patterns show up in the audit log without blocking the 429 response).
-  | 'rate.exceeded';
+  | 'rate.exceeded'
+  | 'rawFile.reparse';
 
-export type AuditTargetType = 'tradingPartner' | 'alert' | 'user' | 'tenant' | 'system';
+export type AuditTargetType = 'tradingPartner' | 'alert' | 'user' | 'tenant' | 'system' | 'rawFile';
 
 export interface AuditDiff {
   before?: unknown;

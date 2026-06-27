@@ -404,3 +404,27 @@ export async function parseAndStore(
   }
   return { outcome: 'parsed', interchangeId: created.id, ...counts, warnings, issues, status: finalStatus };
 }
+
+/** PS-5 — re-read raw from storage and re-run parse pipeline. */
+export async function reparseRawFile(deps: ParsingDeps, rawFileId: string): Promise<ParseOutcome> {
+  return parseAndStore(deps, { rawFileId });
+}
+
+const DEFAULT_RECONCILE_MINUTES = 15;
+
+/** PS-5 — on API boot, re-parse RECEIVED rows stuck past N minutes. */
+export async function reconcileStuckReceived(
+  deps: ParsingDeps,
+  options: { olderThanMinutes?: number } = {},
+): Promise<number> {
+  const minutes = options.olderThanMinutes ?? DEFAULT_RECONCILE_MINUTES;
+  const cutoff = new Date(Date.now() - minutes * 60 * 1000);
+  const stuck = await deps.prisma.rawFile.findMany({
+    where: { status: 'RECEIVED', ingestedAt: { lt: cutoff } },
+    select: { id: true },
+  });
+  for (const row of stuck) {
+    await parseAndStore(deps, { rawFileId: row.id });
+  }
+  return stuck.length;
+}

@@ -8,12 +8,13 @@
  *
  * Ops users can import files via the upload panel; viewers see the list only.
  */
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import type { RawFileRecord } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { IngestUploadPanel } from '../components/IngestUploadPanel.tsx';
-import { RequireRole } from '../lib/useRole.tsx';
+import { RequireRole, useHasRole } from '../lib/useRole.tsx';
+import { useToast } from '../lib/useToast.tsx';
 import {
   PageHeader,
   DataTable,
@@ -29,12 +30,16 @@ import {
   FilterChip,
   FilterChipRow,
 } from '../components/ui';
+import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 
 const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
 const SOURCES = ['upload', 'sftp', 'as2'] as const;
 
 export function IngestionsPage(): JSX.Element {
   const [sp, setSp] = useSearchParams();
+  const qc = useQueryClient();
+  const toast = useToast();
+  const isOps = useHasRole('ops');
   const filters = {
     source: sp.get('source') ?? undefined,
     status: sp.get('status') ?? undefined,
@@ -43,6 +48,16 @@ export function IngestionsPage(): JSX.Element {
     limit: 50,
   };
   const q = useQuery({ queryKey: ['ingest', filters], queryFn: () => api.ingest(filters) });
+  const reparseM = useMutation({
+    mutationFn: (id: string) => api.reparseRaw(id),
+    onSuccess: () => {
+      toast.success('Re-parse queued');
+      void qc.invalidateQueries({ queryKey: ['ingest'] });
+    },
+    onError: (err) => {
+      toast.error('Re-parse failed', { description: err instanceof Error ? err.message : undefined });
+    },
+  });
   const items = q.data?.items ?? [];
 
   function setFilter(key: string, value: string | undefined): void {
@@ -75,6 +90,18 @@ export function IngestionsPage(): JSX.Element {
 
       <Card className="mb-3">
         <div className="flex flex-wrap items-end gap-3 p-3">
+          <div className="flex flex-wrap gap-2 pb-1">
+            {(['PARSE_ERROR', 'FAILED', 'DUPLICATE'] as const).map((s) => (
+              <button
+                key={s}
+                type="button"
+                className="btn text-xs"
+                onClick={() => setFilter('status', filters.status === s ? undefined : s)}
+              >
+                {s}
+              </button>
+            ))}
+          </div>
           <FormField label="Source">
             <Select size="sm" value={filters.source ?? ''} onChange={(e) => setFilter('source', e.target.value || undefined)}>
               <option value="">All</option>
@@ -128,7 +155,9 @@ export function IngestionsPage(): JSX.Element {
               <DataTable.Th>ISA control #</DataTable.Th>
               <DataTable.Th>Source</DataTable.Th>
               <DataTable.Th>Status</DataTable.Th>
+              <DataTable.Th>Error</DataTable.Th>
               <DataTable.Th>Ingested</DataTable.Th>
+              <DataTable.Th>Actions</DataTable.Th>
             </DataTable.Tr>
           </DataTable.Thead>
           <DataTable.Tbody>
@@ -141,7 +170,33 @@ export function IngestionsPage(): JSX.Element {
                 <DataTable.Td>
                   <StatusPill tone={rawFileTone(r.status)} withDot>{r.status}</StatusPill>
                 </DataTable.Td>
+                <DataTable.Td muted className="max-w-xs truncate" title={r.errorMessage ?? undefined}>
+                  {r.errorMessage ?? '—'}
+                </DataTable.Td>
                 <DataTable.Td muted>{new Date(r.ingestedAt).toLocaleString()}</DataTable.Td>
+                <DataTable.Td>
+                  <button
+                    type="button"
+                    className="text-sm text-[var(--color-brand-600)] hover:underline"
+                    onClick={() => void api.rawContent(r.id).then((t) => {
+                      const blob = new Blob([t], { type: 'text/plain' });
+                      const url = URL.createObjectURL(blob);
+                      window.open(url, '_blank');
+                    })}
+                  >
+                    Raw
+                  </button>
+                  {isOps && (r.status === 'PARSE_ERROR' || r.status === 'FAILED' || r.status === 'RECEIVED') ? (
+                    <button
+                      type="button"
+                      className="ml-2 text-sm text-[var(--color-brand-600)] hover:underline"
+                      data-testid={`reparse-${r.id}`}
+                      onClick={() => reparseM.mutate(r.id)}
+                    >
+                      Retry parse
+                    </button>
+                  ) : null}
+                </DataTable.Td>
               </DataTable.Tr>
             ))}
           </DataTable.Tbody>

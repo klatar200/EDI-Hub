@@ -99,6 +99,7 @@ const EXPECTED: Record<string, Role> = {
 
   // Ops-only mutating action — file upload is operational, not admin.
   'POST /api/ingest/upload': 'ops',
+  'POST /api/raw-files/:id/reparse': 'ops',
 };
 
 interface CapturedRoute {

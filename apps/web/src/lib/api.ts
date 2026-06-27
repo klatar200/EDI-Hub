@@ -265,6 +265,9 @@ export const api = {
     a.remove();
     URL.revokeObjectURL(url);
   },
+  /** PS-5 — re-run parse pipeline for a raw file. */
+  reparseRaw: (id: string) =>
+    send<{ rawFile: import('@edi/shared').RawFileRecord; parse: unknown }>('POST', `/raw-files/${id}/reparse`, {}),
 };
 
 export type { TransactionSummary };
