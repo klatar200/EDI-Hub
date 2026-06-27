@@ -34,10 +34,10 @@
 | **SaaS phases 0–10** | ✅ Code-complete |
 | **Desktop track (D1–D9)** | ✅ Code-complete |
 | **Path A-core remediation** | ✅ W1.1, W1.2, W2.1–W2.3, W3.3, W3.4 done |
-| **Tests** | **378** — 46 db · 46 parser · 227 api · 38 web · 21 desktop |
+| **Tests** | **382** — 46 db · 46 parser · 228 api · 41 web · 21 desktop |
 | **CI** | typecheck · lint (0 warnings) · `test:ci` green |
 | **Production** | ⏳ Not deployed — [§10](#10-pre-production-operator-checklist) |
-| **Next focus** | UI overhaul gates → architecture ADRs → staging deploy |
+| **Next focus** | UI overhaul (Sprint A3) → architecture ADRs → staging deploy |
 
 **M5 in code ≠ M5 in production.** Operator drills (restore, k6 baseline, runbook cold-read) must pass before M5 is declared in a live environment.
 
@@ -58,10 +58,10 @@
 | # | Workstream | Status |
 |---|---|---|
 | 1 | Path A-core remediation | ✅ Done |
-| 2 | **UI overhaul** — resolve gates A/B/C, implement | ⏳ **Next** → [§7](#7-ui-overhaul-sprint-a3) |
-| 3 | Queue + CORS architecture ADRs | ⏳ → [§8](#8-open-remediation--architecture-decisions) |
-| 4 | Manual import UI | ⏳ → [§6](#6-active-product-backlog) |
-| 5 | Lifecycle duplicates UI | ⏳ → [§6](#6-active-product-backlog) |
+| 2 | Manual import UI | ✅ Done (Ingestions upload panel) |
+| 3 | Lifecycle duplicates UI | ✅ Done (instance labels + inline raw) |
+| 4 | **UI overhaul** — resolve gates A/B/C, implement | ⏳ **Next** → [§7](#7-ui-overhaul-sprint-a3) |
+| 5 | Queue + CORS architecture ADRs | ⏳ → [§8](#8-open-remediation--architecture-decisions) |
 | 6 | Staging deploy (Sprint A1) | ⏳ Needs AWS → [§9](#9-deploy-track--staging--m5-proof) |
 | 7 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
 | 8 | Phase 11 commercialization | ⏳ → [§13](#13-phase-11--12--go-to-market) |
