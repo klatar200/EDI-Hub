@@ -2,7 +2,7 @@
 
 **Owner:** Keagan  
 **Last updated:** 2026-06-25  
-**Status:** Phases **0–10** and **desktop track** code-complete. **Production deploy** and **first external customer** not done.
+**Status:** Phases **0–10** and **desktop track** code-complete. **Product backlog (PS + PB sprints) complete.** Production deploy and first external customer not done.
 
 > **Active planning lives here.** Shipped capabilities are listed in [`README.md`](README.md#features). Optional and deferred ideas are in [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md). Operational runbooks stay in `ops/RUNBOOKS.md`.
 
@@ -15,7 +15,7 @@
 3. [Roadmap — what's next](#3-roadmap--whats-next)
 4. [Phase & milestone map](#4-phase--milestone-map)
 5. [Tech stack](#5-tech-stack)
-6. [Active product backlog](#6-active-product-backlog)
+6. [Completed product sprints (reference)](#6-completed-product-sprints-reference)
 7. [UI overhaul (Sprint A3)](#7-ui-overhaul-sprint-a3)
 8. [Open remediation & architecture decisions](#8-open-remediation--architecture-decisions)
 9. [Deploy track — staging & M5 proof](#9-deploy-track--staging--m5-proof)
@@ -34,10 +34,11 @@
 | **SaaS phases 0–10** | ✅ Code-complete |
 | **Desktop track (D1–D9)** | ✅ Code-complete |
 | **Path A-core remediation** | ✅ W1.1, W1.2, W2.1–W2.3, W3.3, W3.4 done |
-| **Tests** | **383** — 46 db · 46 parser · 228 api · 42 web · 21 desktop |
+| **Tests** | **436** — 46 db · 48 parser · 256 api · 61 web · 25 desktop |
 | **CI** | typecheck · lint (0 warnings) · `test:ci` green |
+| **Product backlog** | ✅ PS-0–PS-12 + PB-1–PB-8 complete — [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) |
 | **Production** | ⏳ Not deployed — [§10](#10-pre-production-operator-checklist) |
-| **Next focus** | Architecture ADRs (W3.1/W3.2) → staging deploy |
+| **Next focus** | Architecture ADRs (W3.1/W3.2) → staging deploy → M5 operational proof |
 
 **M5 in code ≠ M5 in production.** Operator drills (restore, k6 baseline, runbook cold-read) must pass before M5 is declared in a live environment.
 
@@ -55,17 +56,20 @@
 
 ## 3. Roadmap — what's next
 
+**Product features:** All approved backlog items are shipped (see [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md)). Remaining work is infrastructure, deploy proof, and go-to-market.
+
 | # | Workstream | Status |
 |---|---|---|
 | 1 | Path A-core remediation | ✅ Done |
-| 2 | Manual import UI | ✅ Done (Ingestions upload panel) |
-| 3 | Lifecycle duplicates UI | ✅ Done (instance labels + inline raw) |
-| 4 | **UI overhaul** — Sprint A3 (A1/B2/C1) | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
-| 5 | Queue + CORS architecture ADRs | ⏳ **Next** → [§8](#8-open-remediation--architecture-decisions) |
-| 6 | Staging deploy (Sprint A1) | ⏳ Needs AWS → [§9](#9-deploy-track--staging--m5-proof) |
-| 7 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
-| 8 | Phase 11 commercialization | ⏳ → [§13](#13-phase-11--12--go-to-market) |
-| 9 | Phase 12 external pilot (M6) | ⏳ → [§13](#13-phase-11--12--go-to-market) |
+| 2 | Manual import UI | ✅ Done |
+| 3 | Lifecycle duplicates UI | ✅ Done |
+| 4 | UI overhaul — Sprint A3 | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
+| 5 | Product sprints PS-0–PS-12 + PB-1–PB-8 | ✅ Done → [§6](#6-completed-product-sprints-reference) |
+| 6 | Queue + CORS architecture ADRs | ⏳ **Next** → [§8](#8-open-remediation--architecture-decisions) |
+| 7 | Staging deploy (Sprint A1) | ⏳ Needs AWS → [§9](#9-deploy-track--staging--m5-proof) |
+| 8 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
+| 9 | Phase 11 commercialization | ⏳ → [§13](#13-phase-11--12--go-to-market) |
+| 10 | Phase 12 external pilot (M6) | ⏳ → [§13](#13-phase-11--12--go-to-market) |
 
 Low-priority polish (W4.x, desktop OPTIONAL-D1/D2, deferred product ideas) → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
 
@@ -99,78 +103,51 @@ Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.m
 
 ---
 
-## 6. Product sprints (lifecycle-first)
+## 6. Completed product sprints (reference)
 
-Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
+Historical execution plan for the lifecycle-first product roadmap. **All sprints below are complete.** Feature IDs map to [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md). Live status → [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md).
 
-**Verification audit (2026-06-25):** PS-0–PS-12 code complete on `cursor/pb-backlog-6b3b`. PB sprints finish partial backlog items — see [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md).
+### Product sprints (PS-0–PS-12)
 
 | Sprint | Focus | Backlog IDs | Status |
 |--------|--------|-------------|--------|
-| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ Verified |
-| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ Verified |
-| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ Verified |
-| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ Verified |
-| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ Verified |
-| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ Verified |
-| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Verified |
-| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Verified |
-| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Verified |
-| **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Verified |
-| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Verified |
-| **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Verified |
-| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Verified |
+| **PS-0** | Desktop Clerk secrets in release pipeline | F14 | ✅ |
+| **PS-1** | `GET /lifecycles` + homepage at `/` | F4′, F41, F44, F28, F32 | ✅ |
+| **PS-2** | Expand-in-place timeline, filters, warnings, raw download | F25, F26, F9, F11, F55 | ✅ |
+| **PS-3** | Ops dashboard at `/dashboard` | F1, F45–F48, F3 | ✅ |
+| **PS-4** | Detection completion + run-detect UI | F2, F49, F50, F8 | ✅ |
+| **PS-5** | Ingest triage + retry parse + startup reconcile | F5, F54, F6 | ✅ |
+| **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ |
+| **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ |
+| **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ |
+| **PS-9** | Ops notes, duplicate compare, lifecycle export | F15, F56, F34, F37 | ✅ |
+| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ |
+| **PS-11** | Audit viewer, email digest, dictionary UI, bulk export | F22, F51, F57, F19 | ✅ |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ |
 
 ### Backlog completion sprints (PB-1–PB-8)
 
-Finish partial features and unscheduled items. Status matrix: [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md).
-
 | Sprint | Focus | Backlog IDs | Status |
 |--------|--------|-------------|--------|
-| **PB-1** | Alerts + detection UI | F8, F50, F49 | ✅ Done |
-| **PB-2** | Ingest triage polish | F53, F54, F60 | ✅ Done |
-| **PB-3** | Dashboard completeness | F1, F3, F45 | ✅ Done |
-| **PB-4** | Settings + SLA behavior | F13, F33 | ✅ Done |
-| **PB-5** | Lifecycle detail richness | F7, F31, F44 | ✅ Done |
-| **PB-6** | Export + admin polish | F58, F22, F56 | ✅ Done |
-| **PB-7** | Extended sets productization | F21, F31 | ✅ Done |
-| **PB-8** | Later / scoped (optional) | F27, F37, F38 | ✅ Done |
+| **PB-1** | Alerts + detection UI | F8, F50, F49 | ✅ |
+| **PB-2** | Ingest triage polish | F53, F54, F60 | ✅ |
+| **PB-3** | Dashboard completeness | F1, F3, F45 | ✅ |
+| **PB-4** | Settings + SLA behavior | F13, F33 | ✅ |
+| **PB-5** | Lifecycle detail richness | F7, F31, F44 | ✅ |
+| **PB-6** | Export + admin polish | F58, F22, F56 | ✅ |
+| **PB-7** | Extended sets productization | F21, F31 | ✅ |
+| **PB-8** | Due dates, multi-PO invoice, shipment search | F27, F37, F38 | ✅ |
 
-**PS-1 deliverables (reference):**
+**Key deliverables (summary):**
 
-- `GET /api/lifecycles` — paginated `LifecycleSummary[]` (default sort: `startedAt` desc)
-- `/` → `LifecyclesPage`; `/transactions` → secondary drill-down
-- Row summary: partner, flow, status counts, alert badge, parse-error badge (F32)
-- Expand loads `GET /lifecycle?po=` on row expand (PS-2)
+- Homepage = paginated lifecycle list with expand-in-place timeline, filters, saved views, pins, SLA countdown, due dates
+- Ops dashboard, alerts (filter, bulk ack, run detection), channel health, settings hub
+- Search → lifecycle first; invoice/shipment entry points; multi-PO invoice linking on 810/880
+- Export (txt/csv/pdf, bulk ZIP, optional raw EDI); audit viewer; email digest; ops notes
+- Tier A + Tier B transaction sets (850–997 + 860/875/880) parsed and productized
+- Desktop: LAN wizard, Help hub, Clerk in releases, auto-update
 
-**PS-9 deliverables (verified 2026-06-25):**
-
-- **F15** — `DuplicateComparePanel`: side-by-side raw EDI when multiple copies share set + direction
-- **F56** — Ops notes on lifecycle expand panel (`GET/POST /lifecycles/:po/notes`)
-- **F34** — `GET /lifecycles/:po/export?format=txt|csv|pdf` + `LifecycleExportMenu` on detail + expand
-- **F37** — Invoice/shipment entry via `?invoice=` / search (scoped; no dedicated 810 multi-PO view)
-
-**PS-10 deliverables (verified 2026-06-25):**
-
-- **F42** — Search returns lifecycle conversations first (`SearchPage`)
-- **F16** — Saved views: save/load/delete filter presets on `LifecyclesPage` via `GET/PATCH /preferences`
-- **F43** — Pin POs (★), sort pinned to top, “Pinned only” filter with `pos` list API param
-
-**PS-11 deliverables (verified 2026-06-25):**
-
-- **F22** — Admin audit log viewer at `/admin/audit` (`AuditPage` + API tests)
-- **F51** — Email digest job registered at boot; daily schedule per tenant; preview/live audit trail
-- **F57** — Bulk export: CSV manifest + ZIP with txt/csv/pdf per selected PO
-- **F19** — Segment label override editor on `PartnersConfigPage`
-
-**PS-12 deliverables (verified 2026-06-25):**
-
-- **F39** — First-run wizard Clerk step lists LAN redirect origins + copy buttons
-- **F40** — Desktop Help → What&apos;s New opens GitHub Releases
-- **F61** — Web Help hub at `/help` (glossary, releases, LAN install docs)
-- **F62** — Copy LAN URL in desktop Help menu + web Help page (desktop mode)
-
-Approved features not yet grouped or deferred → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
+Deferred or optional ideas → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
 
 ---
 

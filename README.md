@@ -9,7 +9,7 @@ the 850, 855, 856, 810, and all 997s in one chronological view.
 
 **Planning:** Active roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Approved backlog → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) · Optional/deferred → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) · Agent conventions → [`CLAUDE.md`](CLAUDE.md) · Parser deviations → [`docs/EDI_DEVIATIONS.md`](docs/EDI_DEVIATIONS.md)
 
-**Tests:** 383 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
+**Tests:** 436 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
 
 ---
 
@@ -26,18 +26,18 @@ What is **shipped in the repo today** (Phases 0–10 + desktop track).
 ### Parsing & data model
 
 - **X12 decomposition:** ISA → GS → ST/SE → segments → elements in PostgreSQL
-- **Typed interpreters:** 850 (PO), 810 (invoice) with semantic labels and business keys (PO/invoice numbers)
-- **Lifecycle linking:** 850/855/856/810 stitched by PO; 997 acks linked to referenced transactions
+- **Typed interpreters:** 850, 855, 856, 810, 860, 875, 880, 997/999 with semantic labels and business keys
+- **Lifecycle linking:** Standard (850-based) and grocery (875→880) flows; 997 acks linked to referenced transactions
 - **Robustness:** Z-segments, 5010, CRLF, repeated segments; per-transaction `PARSE_ERROR` without losing siblings; idempotent re-parse + backfill
-- **Additional sets parsed (generic tree):** 855, 856, 997/999; extended sets 860/875/880 in parser (see `FUTURE_FEATURES.md`)
 
 ### Data Hub UI (web)
 
 - Filterable, paginated transaction list with URL-reflected filters
 - Transaction detail: typed header, line items, labeled element tree
 - **Raw vs parsed** side-by-side view with highlight sync
-- Global search (PO / invoice / ISA control number)
-- **Lifecycle page:** vertical timeline with missing-document gaps, duplicate badges, expandable 997 AK detail, inline raw
+- Global search (PO / invoice / shipment ID / ISA control number)
+- **Lifecycles homepage:** paginated PO list, expand-in-place timeline, due dates, filters, pins, saved views, bulk export
+- **Lifecycle detail page:** vertical timeline with gaps, duplicate compare, expandable 997 AK detail, inline raw, export
 - **Alerts page:** partner + type + age-vs-SLA chips, lifecycle deep links, ack/snooze
 - Partners config, ingestions list (with upload panel), outbound stage badges
 - Clerk authentication; role-aware UI
