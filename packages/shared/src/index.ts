@@ -121,6 +121,12 @@ export interface LifecycleSearchHit {
   partnerDisplayName: string | null;
   lastActivityAt: string;
   openAlertCount: number;
+  /** PB-8 F38 — how this hit was resolved (defaults to direct PO match). */
+  entryKind?: 'po' | 'invoice' | 'shipment';
+  /** PB-8 F38 — the search value that resolved to this PO (when not a direct PO). */
+  entryValue?: string;
+  /** PB-8 F37 — other PO lifecycles linked to the same invoice. */
+  linkedPos?: string[];
 }
 
 /** Result of a global search by PO / invoice / ISA control number. */
@@ -248,6 +254,10 @@ export interface LifecycleResponse {
     slaCountdownEnabled: boolean;
     slaWindows: PartnerSlaWindow[];
   } | null;
+  /** PB-8 F27 — requested delivery date from the 850 (YYYYMMDD), when present. */
+  dueDate: string | null;
+  /** PB-8 F37 — other PO numbers on the same invoice (excludes spine `po`). */
+  linkedPos: string[];
 }
 
 /** PS-1 — paginated lifecycle list row (conversation summary). */
@@ -269,6 +279,8 @@ export interface LifecycleSummary {
   expectedWarnings: string[];
   /** PB-4 F33 — worst-case SLA countdown for this row; null when disabled or no open SLA. */
   slaSummary: { label: string; breached: boolean } | null;
+  /** PB-8 F27 — requested delivery date from the 850 (YYYYMMDD), when present. */
+  dueDate: string | null;
 }
 
 export interface LifecycleListResponse {

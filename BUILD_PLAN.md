@@ -134,7 +134,7 @@ Finish partial features and unscheduled items. Status matrix: [`docs/FEATURE_STA
 | **PB-5** | Lifecycle detail richness | F7, F31, F44 | ✅ Done |
 | **PB-6** | Export + admin polish | F58, F22, F56 | ✅ Done |
 | **PB-7** | Extended sets productization | F21, F31 | ✅ Done |
-| **PB-8** | Later / scoped (optional) | F27, F37, F38 | ⏳ Optional |
+| **PB-8** | Later / scoped (optional) | F27, F37, F38 | ✅ Done |
 
 **PS-1 deliverables (reference):**
 

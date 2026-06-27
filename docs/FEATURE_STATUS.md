@@ -1,6 +1,6 @@
 # Feature status matrix (F1–F62)
 
-**Last updated:** 2026-06-25 (PB-7)  
+**Last updated:** 2026-06-25 (PB-8)  
 **Legend:** ✅ Done · ⚠️ Partial · ❌ Missing · ⛔ Declined · 🔜 PB sprint
 
 | ID | Feature | Status | PB sprint |
@@ -26,7 +26,7 @@
 | F22 | Audit log viewer | ✅ | PB-6 |
 | F25 | Expand-in-place lifecycle | ✅ | — |
 | F26 | Lifecycle list filters | ✅ | — |
-| F27 | Conversation due dates | ❌ | PB-8 (optional) |
+| F27 | Conversation due dates | ✅ | PB-8 |
 | F28 | Additional documents indicator | ✅ | — |
 | F29 | Global traffic silence widget | ✅ | F45 in dashboard |
 | F31 | Phased transaction-set roadmap | ✅ | PB-5 |
@@ -34,8 +34,8 @@
 | F33 | SLA countdown on row | ✅ | PB-4 |
 | F34 | Export lifecycle | ✅ | — |
 | F35 | Re-parse from triage | ✅ | F54 |
-| F37 | Multi-PO invoice linking | ⚠️ | PB-8 (optional) |
-| F38 | Shipment ID entry | ⚠️ | Search only; PB-8 optional |
+| F37 | Multi-PO invoice linking | ✅ | PB-8 |
+| F38 | Shipment ID entry | ✅ | PB-8 |
 | F39 | First-run LAN URL helper | ✅ | — |
 | F40 | What's new after update | ✅ | — |
 | F41 | Lifecycle row status summary | ✅ | — |

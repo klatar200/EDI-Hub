@@ -800,3 +800,42 @@ test('Tier B headerSummary: 860, 875, 880 surface typed one-liners on lifecycle 
   assert.equal(bySet.get('860')!.headerSummary, 'Change 04 · was PO-OLD · Date 20260120');
   assert.equal(bySet.get('880')!.headerSummary, 'Inv GINV-1 · PO PO-G · Total 123450');
 });
+
+test('conversation dueDate comes from 850 DTM delivery date', async () => {
+  const t850: FakeTxnWithSegments = {
+    ...orig850,
+    segments: [
+      { tag: 'BEG', position: 1, elements: [{ index: 3, value: 'PO-100' }] },
+      { tag: 'DTM', position: 2, elements: [{ index: 1, value: '002' }, { index: 2, value: '20260408' }] },
+    ],
+  };
+  const prisma = makePrismaWithSegments([t850]);
+  const r = await getLifecycle(prisma, { po: 'PO-100' });
+  assert.ok(r);
+  assert.equal(r!.dueDate, '20260408');
+});
+
+test('invoice entry exposes linkedPos from multi-PO 810', async () => {
+  const multi810: FakeTxnWithSegments = {
+    ...tx({
+      id: 't-810m', transactionSetId: '810', controlNumber: 'T9', groupControl: '9',
+      poNumber: 'PO-100', invoiceNumber: 'INV-MULTI', direction: 'outbound',
+      ingestedAt: '2026-06-05T10:00:00Z',
+    }),
+    segments: [
+      {
+        tag: 'BIG', position: 1,
+        elements: [
+          { index: 1, value: '20260201' }, { index: 2, value: 'INV-MULTI' },
+          { index: 4, value: 'PO-100' },
+        ],
+      },
+      { tag: 'REF', position: 2, elements: [{ index: 1, value: 'PO' }, { index: 2, value: 'PO-200' }] },
+    ],
+  };
+  const prisma = makePrismaWithSegments([orig850, multi810]);
+  const r = await getLifecycle(prisma, { invoice: 'INV-MULTI' });
+  assert.ok(r);
+  assert.equal(r!.po, 'PO-100');
+  assert.deepEqual(r!.linkedPos, ['PO-200']);
+});

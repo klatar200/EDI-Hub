@@ -7,7 +7,7 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { RawFileRecord, TransactionSummary } from '@edi/shared';
+import type { RawFileRecord, TransactionSummary, LifecycleSearchHit } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import {
   PageHeader,
@@ -19,6 +19,23 @@ import {
   EmptyState,
   Skeleton,
 } from '../components/ui';
+
+function lifecycleHref(lc: LifecycleSearchHit): string {
+  const po = encodeURIComponent(lc.po);
+  if (lc.entryKind === 'invoice' && lc.entryValue) {
+    return `/lifecycle/${po}?invoice=${encodeURIComponent(lc.entryValue)}`;
+  }
+  if (lc.entryKind === 'shipment' && lc.entryValue) {
+    return `/lifecycle/${po}?shipment=${encodeURIComponent(lc.entryValue)}`;
+  }
+  return `/lifecycle/${po}`;
+}
+
+function entryHint(lc: LifecycleSearchHit): string | null {
+  if (lc.entryKind === 'invoice' && lc.entryValue) return `via invoice ${lc.entryValue}`;
+  if (lc.entryKind === 'shipment' && lc.entryValue) return `via shipment ${lc.entryValue}`;
+  return null;
+}
 
 export function SearchPage(): JSX.Element {
   const [sp] = useSearchParams();
@@ -51,7 +68,7 @@ export function SearchPage(): JSX.Element {
       ) : nothing ? (
         <EmptyState
           title="No matches"
-          description={`No transactions or raw files match “${q}”. Try a PO number, invoice number, or ISA control number.`}
+          description={`No transactions or raw files match “${q}”. Try a PO number, invoice number, shipment ID, or ISA control number.`}
         />
       ) : (
         <>
@@ -65,13 +82,21 @@ export function SearchPage(): JSX.Element {
                   {lifecycles.map((lc) => (
                     <li key={lc.po} className="flex flex-wrap items-center gap-2">
                       <Link
-                        to={`/?po=${encodeURIComponent(lc.po)}`}
+                        to={lifecycleHref(lc)}
                         className="font-mono font-medium text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
                       >
                         {lc.po}
                       </Link>
+                      {entryHint(lc) ? (
+                        <span className="text-xs text-[var(--color-fg-muted)]">({entryHint(lc)})</span>
+                      ) : null}
                       {lc.partnerDisplayName ? (
                         <span className="text-[var(--color-fg-muted)]">{lc.partnerDisplayName}</span>
+                      ) : null}
+                      {lc.linkedPos && lc.linkedPos.length > 0 ? (
+                        <span className="text-xs text-[var(--color-fg-muted)]">
+                          also: {lc.linkedPos.join(', ')}
+                        </span>
                       ) : null}
                       {lc.openAlertCount > 0 ? (
                         <StatusPill tone="error" size="sm">{lc.openAlertCount} alert(s)</StatusPill>

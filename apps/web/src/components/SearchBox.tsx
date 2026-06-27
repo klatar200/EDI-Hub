@@ -15,7 +15,7 @@ export function SearchBox(): JSX.Element {
     >
       <input
         className="input w-64"
-        placeholder="Search PO / invoice / ISA #"
+        placeholder="Search PO / invoice / shipment / ISA #"
         value={q}
         onChange={(e) => setQ(e.target.value)}
         aria-label="Search"

@@ -51,6 +51,17 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
+function formatDueDate(raw: string | null): string {
+  if (!raw) return '—';
+  if (/^\d{8}$/.test(raw)) {
+    const y = raw.slice(0, 4);
+    const m = raw.slice(4, 6);
+    const d = raw.slice(6, 8);
+    return new Date(`${y}-${m}-${d}T12:00:00Z`).toLocaleDateString();
+  }
+  return raw;
+}
+
 function LifecycleNotes({ po }: { po: string }): JSX.Element {
   const qc = useQueryClient();
   const isOps = useHasRole('ops');
@@ -185,6 +196,7 @@ function LifecycleRow({
           <StatusPill tone="neutral" size="sm">{FLOW_LABEL[row.flow]}</StatusPill>
         </DataTable.Td>
         <DataTable.Td muted>{formatDate(row.startedAt)}</DataTable.Td>
+        <DataTable.Td muted data-testid={`due-date-${row.po}`}>{formatDueDate(row.dueDate)}</DataTable.Td>
         <DataTable.Td muted>{formatDate(row.lastActivityAt)}</DataTable.Td>
         {showSlaColumn ? (
           <DataTable.Td muted className="text-xs">
@@ -237,7 +249,7 @@ function LifecycleRow({
       </DataTable.Tr>
       {expanded ? (
         <DataTable.Tr>
-          <DataTable.Td colSpan={showSlaColumn ? 9 : 8} className="bg-[var(--color-surface-muted)]/40">
+          <DataTable.Td colSpan={showSlaColumn ? 10 : 9} className="bg-[var(--color-surface-muted)]/40">
             {expandQ.isLoading ? (
               <p className="py-3 text-sm text-[var(--color-fg-muted)]">Loading timeline…</p>
             ) : expandQ.isError || !expandQ.data ? (
@@ -540,6 +552,7 @@ export function LifecyclesPage(): JSX.Element {
                 <DataTable.Th>Partner</DataTable.Th>
                 <DataTable.Th>Flow</DataTable.Th>
                 <DataTable.Th>Started</DataTable.Th>
+                <DataTable.Th>Due</DataTable.Th>
                 <DataTable.Th>Last activity</DataTable.Th>
                 {showSlaColumn ? <DataTable.Th>SLA</DataTable.Th> : null}
                 <DataTable.Th>Documents</DataTable.Th>

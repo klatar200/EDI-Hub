@@ -20,6 +20,8 @@ const SAMPLE: LifecycleResponse = {
   enteredBy: { kind: 'po', value: 'PO-100' },
   flow: 'standard',
   partner: { id: 'p-1', displayName: 'Acme', slaCountdownEnabled: false, slaWindows: [] },
+  dueDate: null,
+  linkedPos: [],
   events: [
     {
       kind: 'transaction',

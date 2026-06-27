@@ -126,7 +126,28 @@ export function LifecyclePage(): JSX.Element {
           }
         />
       ) : (
-        <LifecycleTimeline events={q.data.events} po={q.data.po} showDownloadRaw />
+        <>
+          {q.data.linkedPos.length > 0 ? (
+            <div
+              className="rounded-md border border-[var(--color-brand-500)]/30 bg-[var(--color-brand-50)]/50 px-4 py-3 text-sm text-[var(--color-fg)]"
+              data-testid="linked-pos-banner"
+            >
+              Invoice <span className="font-mono">{q.data.enteredBy.value}</span> also references:{' '}
+              {q.data.linkedPos.map((linkedPo, i) => (
+                <span key={linkedPo}>
+                  {i > 0 ? ', ' : ''}
+                  <Link
+                    to={`/lifecycle/${encodeURIComponent(linkedPo)}?invoice=${encodeURIComponent(q.data!.enteredBy.value)}`}
+                    className="font-mono text-[var(--color-brand-600)] hover:underline"
+                  >
+                    {linkedPo}
+                  </Link>
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <LifecycleTimeline events={q.data.events} po={q.data.po} showDownloadRaw />
+        </>
       )}
     </div>
   );

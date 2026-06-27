@@ -12,7 +12,7 @@ import type {
   TransactionSummary,
 } from '@edi/shared';
 import { requiresRole } from '../plugins/rbac.js';
-import { getLifecycle } from '../services/lifecycle.js';
+import { getLifecycle, linkedPosForInvoice } from '../services/lifecycle.js';
 
 interface InterchangeRow { senderId: string; receiverId: string; rawFile?: { status: RawFileStatus; ingestedAt: Date } | null }
 interface TransactionRow {
@@ -65,7 +65,10 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
 
     const lifecycles: LifecycleSearchHit[] = [];
 
-    async function tryLifecycleHit(po: string): Promise<void> {
+    async function pushLifecycleHit(
+      po: string,
+      meta: { entryKind?: LifecycleSearchHit['entryKind']; entryValue?: string; linkedPos?: string[] } = {},
+    ): Promise<void> {
       if (lifecycles.some((l) => l.po === po)) return;
       try {
         const lc = await getLifecycle(app.prisma, { po }, { ourIsaIds });
@@ -88,9 +91,11 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
           partnerDisplayName: lc.partner?.displayName ?? null,
           lastActivityAt: last,
           openAlertCount,
+          entryKind: meta.entryKind ?? 'po',
+          entryValue: meta.entryValue,
+          linkedPos: meta.linkedPos,
         });
       } catch {
-        // Fallback when lifecycle resolution needs a fuller Prisma graph (e.g. unit fakes).
         const txns = await app.prisma.transaction.findMany({
           where: { poNumber: po },
           include: INCLUDE,
@@ -104,11 +109,14 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
           lastActivityAt: first.functionalGroup?.interchange?.rawFile?.ingestedAt?.toISOString()
             ?? new Date().toISOString(),
           openAlertCount: 0,
+          entryKind: meta.entryKind ?? 'po',
+          entryValue: meta.entryValue,
+          linkedPos: meta.linkedPos,
         });
       }
     }
 
-    await tryLifecycleHit(query);
+    await pushLifecycleHit(query, { entryKind: 'po' });
 
     const [byPo, byInvoice, byShipment, rawByIsa] = await Promise.all([
       app.prisma.transaction.findMany({ where: { poNumber: query }, include: INCLUDE, take: 50 }) as Promise<TransactionRow[]>,
@@ -135,19 +143,27 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
       const shipmentLc = await getLifecycle(app.prisma, { shipment: query }, { ourIsaIds });
       if (shipmentLc && !seenPo.has(shipmentLc.po)) {
         seenPo.add(shipmentLc.po);
-        lifecycles.push({
-          po: shipmentLc.po,
-          partnerDisplayName: shipmentLc.partner?.displayName ?? null,
-          lastActivityAt: new Date().toISOString(),
-          openAlertCount: 0,
+        await pushLifecycleHit(shipmentLc.po, {
+          entryKind: 'shipment',
+          entryValue: query,
         });
       }
     } catch {
       // shipment resolution optional
     }
-    for (const row of [...byPo, ...byInvoice]) {
+    for (const row of byInvoice) {
       if (!row.poNumber || seenPo.has(row.poNumber)) continue;
-      await tryLifecycleHit(row.poNumber);
+      const linked = await linkedPosForInvoice(app.prisma, query, row.poNumber);
+      await pushLifecycleHit(row.poNumber, {
+        entryKind: 'invoice',
+        entryValue: query,
+        linkedPos: linked.length > 0 ? linked : undefined,
+      });
+      seenPo.add(row.poNumber);
+    }
+    for (const row of byPo) {
+      if (!row.poNumber || seenPo.has(row.poNumber)) continue;
+      await pushLifecycleHit(row.poNumber, { entryKind: 'po' });
       seenPo.add(row.poNumber);
     }
 

@@ -25,6 +25,7 @@ const LIST_ROW = {
   additionalDocumentCount: 0,
   expectedWarnings: ['856 (outbound) expected — not yet received'],
   slaSummary: null,
+  dueDate: null,
 };
 
 const TIMELINE = {
@@ -32,6 +33,8 @@ const TIMELINE = {
   enteredBy: { kind: 'po' as const, value: 'PO-100' },
   flow: 'standard' as const,
   partner: { id: 'p-1', displayName: 'Acme Foods', slaCountdownEnabled: false, slaWindows: [] },
+  dueDate: null,
+  linkedPos: [],
   events: [
     {
       kind: 'transaction', transactionSetId: '850', direction: 'inbound', status: 'received',

@@ -173,6 +173,7 @@ export async function listLifecycles(
       additionalDocumentCount: counts.additionalDocumentCount,
       expectedWarnings,
       slaSummary,
+      dueDate: lc.dueDate,
     });
   }
 

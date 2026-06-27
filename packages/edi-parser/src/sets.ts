@@ -112,13 +112,41 @@ export interface LineItem {
   productId: string;
 }
 
-export interface Interpreted850 { type: '850'; purpose: string; poNumber: string; poDate: string; lineItems: LineItem[] }
+/** DTM qualifiers treated as requested delivery / due date on 850 (4010). */
+const DUE_DATE_DTM_QUALIFIERS = ['002', '010', '038', '063'] as const;
+
+export interface Interpreted850 {
+  type: '850';
+  purpose: string;
+  poNumber: string;
+  poDate: string;
+  /** PB-8 F27 — first matching DTM delivery date (YYYYMMDD), or empty. */
+  requestedDeliveryDate: string;
+  lineItems: LineItem[];
+}
 export interface Interpreted855 { type: '855'; purpose: string; ackType: string; poNumber: string; lineItems: LineItem[]; totalQty: string }
 export interface Interpreted856 { type: '856'; shipmentId: string; poNumber: string; shipDate: string; carrierRef: string; totalQty: string }
-export interface Interpreted810 { type: '810'; invoiceNumber: string; invoiceDate: string; poNumber: string; totalAmount: string; lineItems: LineItem[] }
+export interface Interpreted810 {
+  type: '810';
+  invoiceNumber: string;
+  invoiceDate: string;
+  poNumber: string;
+  /** PB-8 F37 — all PO references (BIG04 + REF*PO*). */
+  poReferences: string[];
+  totalAmount: string;
+  lineItems: LineItem[];
+}
 export interface Interpreted860 { type: '860'; purpose: string; poNumber: string; originalPoNumber: string; poDate: string; lineItems: LineItem[] }
 export interface Interpreted875 { type: '875'; purpose: string; poNumber: string; poDate: string }
-export interface Interpreted880 { type: '880'; invoiceNumber: string; invoiceDate: string; poNumber: string; totalAmount: string }
+export interface Interpreted880 {
+  type: '880';
+  invoiceNumber: string;
+  invoiceDate: string;
+  poNumber: string;
+  /** PB-8 F37 — all PO references (BIG04 + REF*PO*). */
+  poReferences: string[];
+  totalAmount: string;
+}
 
 /** Phase 5 — one element-level error from an AK4 segment under an AK3. */
 export interface AckElementError {
@@ -206,11 +234,41 @@ function lineItemsFrom(txn: DecomposedTransaction, tag: string): LineItem[] {
     }));
 }
 
+function requestedDeliveryDateFrom850(txn: DecomposedTransaction): string {
+  const dtms = txn.segments.filter((s) => s.tag === 'DTM');
+  for (const qual of DUE_DATE_DTM_QUALIFIERS) {
+    const hit = dtms.find((s) => ev(s, 1) === qual);
+    const date = ev(hit, 2);
+    if (date) return date;
+  }
+  return '';
+}
+
+/** Collect distinct PO numbers from BIG and REF*PO* segments. */
+function poReferencesFromInvoice(txn: DecomposedTransaction, bigPo: string): string[] {
+  const refs = new Set<string>();
+  if (bigPo) refs.add(bigPo);
+  for (const seg of txn.segments) {
+    if (seg.tag === 'REF' && ev(seg, 1) === 'PO') {
+      const po = ev(seg, 2);
+      if (po) refs.add(po);
+    }
+  }
+  return [...refs];
+}
+
 export function interpretTransaction(txn: DecomposedTransaction): InterpretedTransaction {
   switch (txn.transactionSetId) {
     case '850': {
       const beg = firstSegment(txn, 'BEG');
-      return { type: '850', purpose: ev(beg, 1), poNumber: ev(beg, 3), poDate: ev(beg, 5), lineItems: lineItemsFrom(txn, 'PO1') };
+      return {
+        type: '850',
+        purpose: ev(beg, 1),
+        poNumber: ev(beg, 3),
+        poDate: ev(beg, 5),
+        requestedDeliveryDate: requestedDeliveryDateFrom850(txn),
+        lineItems: lineItemsFrom(txn, 'PO1'),
+      };
     }
     case '855': {
       const bak = firstSegment(txn, 'BAK');
@@ -242,7 +300,16 @@ export function interpretTransaction(txn: DecomposedTransaction): InterpretedTra
     }
     case '810': {
       const big = firstSegment(txn, 'BIG');
-      return { type: '810', invoiceDate: ev(big, 1), invoiceNumber: ev(big, 2), poNumber: ev(big, 4), totalAmount: ev(firstSegment(txn, 'TDS'), 1), lineItems: lineItemsFrom(txn, 'IT1') };
+      const poNumber = ev(big, 4);
+      return {
+        type: '810',
+        invoiceDate: ev(big, 1),
+        invoiceNumber: ev(big, 2),
+        poNumber,
+        poReferences: poReferencesFromInvoice(txn, poNumber),
+        totalAmount: ev(firstSegment(txn, 'TDS'), 1),
+        lineItems: lineItemsFrom(txn, 'IT1'),
+      };
     }
     case '860': {
       const bch = firstSegment(txn, 'BCH');
@@ -261,11 +328,13 @@ export function interpretTransaction(txn: DecomposedTransaction): InterpretedTra
     }
     case '880': {
       const big = firstSegment(txn, 'BIG');
+      const poNumber = ev(big, 4);
       return {
         type: '880',
         invoiceDate: ev(big, 1),
         invoiceNumber: ev(big, 2),
-        poNumber: ev(big, 4),
+        poNumber,
+        poReferences: poReferencesFromInvoice(txn, poNumber),
         totalAmount: ev(firstSegment(txn, 'TDS'), 1),
       };
     }

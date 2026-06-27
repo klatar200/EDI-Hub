@@ -149,6 +149,8 @@ interface TxnRow {
   id: string;
   transactionSetId: string;
   controlNumber: string;
+  poNumber: string | null;
+  invoiceNumber: string | null;
   direction: LifecycleDirection;
   ackedGroupControl: string | null;
   ackedTxnControls: unknown;
@@ -329,6 +331,43 @@ function resolveEventDirection(
 function rawFileMeta(t: TxnRow): { isaControlNumber: string | null; source: SourceChannel } {
   const rf = t.functionalGroup.interchange.rawFile;
   return { isaControlNumber: rf.isaControlNumber, source: rf.source };
+}
+
+/** PB-8 F27 — requested delivery date from the first 850 on the spine. */
+function conversationDueDateFromTransactions(poTxns: TxnRowWithSegments[]): string | null {
+  const t850 = poTxns.find((t) => t.transactionSetId === '850' && Array.isArray(t.segments));
+  if (!t850) return null;
+  const interp = interpretTransaction(toDecomposed(t850));
+  if (interp.type !== '850') return null;
+  return interp.requestedDeliveryDate.length > 0 ? interp.requestedDeliveryDate : null;
+}
+
+/** PB-8 F37 — PO numbers on the same invoice besides the spine PO. */
+export async function linkedPosForInvoice(
+  prisma: PrismaClient,
+  invoice: string,
+  primaryPo: string,
+): Promise<string[]> {
+  const txns = (await prisma.transaction.findMany({
+    where: { invoiceNumber: invoice, transactionSetId: { in: ['810', '880'] } },
+    include: INCLUDE_WITH_SEGMENTS,
+  })) as unknown as TxnRowWithSegments[];
+
+  const pos = new Set<string>();
+  for (const row of txns) {
+    if (Array.isArray(row.segments) && row.segments.length > 0) {
+      const interp = interpretTransaction(toDecomposed(row));
+      if (interp.type === '810' || interp.type === '880') {
+        for (const p of interp.poReferences) {
+          if (p) pos.add(p);
+        }
+      }
+    } else if (row.poNumber) {
+      pos.add(row.poNumber);
+    }
+  }
+  pos.delete(primaryPo);
+  return [...pos].sort();
 }
 
 function headerSummaryForTransaction(row: TxnRowWithSegments | TxnRow | undefined): string | null {
@@ -642,7 +681,17 @@ export async function getLifecycle(
     }
   }
 
-  return { po: spine.po, enteredBy: spine.enteredBy, flow, events, partner: partnerSummary(partner) };
+  return {
+    po: spine.po,
+    enteredBy: spine.enteredBy,
+    flow,
+    events,
+    partner: partnerSummary(partner),
+    dueDate: conversationDueDateFromTransactions(poTxns),
+    linkedPos: spine.enteredBy.kind === 'invoice'
+      ? await linkedPosForInvoice(prisma, spine.enteredBy.value, spine.po)
+      : [],
+  };
 }
 
 function partnerSummary(partner: TradingPartnerRecord | null): LifecycleResponse['partner'] {

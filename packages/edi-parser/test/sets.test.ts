@@ -86,6 +86,29 @@ test('unknown transaction set is interpreted as unknown', () => {
   assert.deepEqual(extractBusinessKeys(firstTxn(raw)), { poNumber: null, invoiceNumber: null, shipmentId: null, purpose: null });
 });
 
+test('interprets an 850 with DTM delivery date as requestedDeliveryDate', () => {
+  const raw = isa('000000851') + 'GS*PO*SENDER*RECEIVER*20260101*1200*1*X*004010~' +
+    ['ST*850*0001', 'BEG*00*SA*PO-12345**20260115', 'DTM*002*20260408',
+     'PO1*1*10*EA*25.00**VP*VENDPART1', 'SE*5*0001'].join('~') + '~GE*1*1~IEA*1*000000851~';
+  const interp = interpretTransaction(firstTxn(raw));
+  assert.equal(interp.type, '850');
+  if (interp.type === '850') {
+    assert.equal(interp.requestedDeliveryDate, '20260408');
+  }
+});
+
+test('interprets an 810 with multiple REF*PO* segments', () => {
+  const raw = isa('000000811') + 'GS*IN*SENDER*RECEIVER*20260101*1200*1*X*004010~' +
+    ['ST*810*0001', 'BIG*20260201*INV-MULTI*20260115*PO-PRIMARY',
+     'REF*PO*PO-SECOND', 'REF*PO*PO-THIRD', 'TDS*25000', 'SE*6*0001'].join('~') +
+    '~GE*1*1~IEA*1*000000811~';
+  const interp = interpretTransaction(firstTxn(raw));
+  assert.equal(interp.type, '810');
+  if (interp.type === '810') {
+    assert.deepEqual(interp.poReferences.sort(), ['PO-PRIMARY', 'PO-SECOND', 'PO-THIRD']);
+  }
+});
+
 test('interprets an 855 PO acknowledgment and its PO number', () => {
   const raw = isa('000000855') + 'GS*PR*SENDER*RECEIVER*20260101*1200*1*X*004010~' +
     ['ST*855*0001', 'BAK*00*AC*PO-12345*20260102', 'PO1*1*10*EA*25.00**VP*VENDPART1', 'SE*4*0001'].join('~') + '~GE*1*1~IEA*1*000000855~';

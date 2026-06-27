@@ -27,6 +27,8 @@ const HAPPY_PATH = {
   po: 'PO-100',
   enteredBy: { kind: 'po' as const, value: 'PO-100' },
   flow: 'standard' as const,
+  dueDate: null,
+  linkedPos: [],
   events: [
     {
       ...EVENT_DEFAULTS,
@@ -118,6 +120,8 @@ test('rejected event shows the inline rejection summary line', async () => {
     po: 'PO-REJ',
     enteredBy: { kind: 'po' as const, value: 'PO-REJ' },
     flow: 'standard' as const,
+    dueDate: null,
+    linkedPos: [],
     events: [
       {
         ...EVENT_DEFAULTS,
@@ -159,6 +163,8 @@ test('outbound row renders a "via AS2" chip when the partner has connectivity', 
     po: 'PO-CH',
     enteredBy: { kind: 'po' as const, value: 'PO-CH' },
     flow: 'standard' as const,
+    dueDate: null,
+    linkedPos: [],
     events: [
       {
         ...EVENT_DEFAULTS,
@@ -193,6 +199,8 @@ test('outbound row renders no channel chip when partnerChannel is null', async (
     po: 'PO-NOCX',
     enteredBy: { kind: 'po' as const, value: 'PO-NOCX' },
     flow: 'standard' as const,
+    dueDate: null,
+    linkedPos: [],
     events: [
       {
         ...EVENT_DEFAULTS,
@@ -224,6 +232,8 @@ test('duplicate badge renders when two events share set and direction', async ()
     po: 'PO-DUP',
     enteredBy: { kind: 'po' as const, value: 'PO-DUP' },
     flow: 'standard' as const,
+    dueDate: null,
+    linkedPos: [],
     events: [
       {
         ...EVENT_DEFAULTS,

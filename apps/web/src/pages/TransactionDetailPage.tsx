@@ -22,6 +22,14 @@ export function TransactionDetailPage(): JSX.Element {
   const t = q.data;
   const header = headerFields(t.interpreted);
   const lineItems = 'lineItems' in t.interpreted ? t.interpreted.lineItems : [];
+  const invoicePoRefs =
+    t.interpreted.type === '810' || t.interpreted.type === '880'
+      ? t.interpreted.poReferences
+      : [];
+  const invoiceNumber =
+    t.interpreted.type === '810' || t.interpreted.type === '880'
+      ? t.interpreted.invoiceNumber
+      : t.invoiceNumber ?? '';
 
   return (
     <div className="space-y-6">
@@ -71,6 +79,30 @@ export function TransactionDetailPage(): JSX.Element {
         transmittedAt={t.transmittedAt}
         confirmedAt={t.confirmedAt}
       />
+
+      {invoicePoRefs.length > 1 ? (
+        <section
+          className="rounded-lg border border-[var(--color-brand-500)]/30 bg-[var(--color-brand-50)]/50 p-4 text-sm"
+          data-testid="multi-po-invoice"
+        >
+          <h2 className="mb-2 font-semibold text-[var(--color-fg)]">Linked purchase orders</h2>
+          <p className="mb-2 text-[var(--color-fg-muted)]">
+            This invoice references multiple PO numbers. Each link opens that PO&apos;s lifecycle.
+          </p>
+          <ul className="flex flex-wrap gap-2">
+            {invoicePoRefs.map((po) => (
+              <li key={po}>
+                <Link
+                  to={`/lifecycle/${encodeURIComponent(po)}?invoice=${encodeURIComponent(invoiceNumber)}`}
+                  className="rounded border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] px-2 py-1 font-mono text-[var(--color-brand-600)] hover:underline"
+                >
+                  {po}
+                </Link>
+              </li>
+            ))}
+          </ul>
+        </section>
+      ) : null}
 
       <section className="rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4 shadow-xs">
         <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Header</h2>
@@ -203,6 +235,7 @@ function headerFields(interp: InterpretedTransaction): Array<[string, string]> {
       return [
         ['PO number', interp.poNumber],
         ['PO date', interp.poDate],
+        ['Requested delivery', interp.requestedDeliveryDate],
         ['Purpose', interp.purpose],
       ];
     case '855':
