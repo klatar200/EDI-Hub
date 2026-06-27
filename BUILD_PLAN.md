@@ -218,8 +218,22 @@ npm run dev:api && npm run dev:web
 
 #### Toolchain (one-time)
 
-**Windows:** `winget install HashiCorp.Terraform Amazon.AWSCLI`  
-**DB password:** `$env:TF_VAR_db_master_password = '...'` (PowerShell) or `export TF_VAR_...` (bash)
+**Windows (PowerShell):** full walkthrough → [`infra/WINDOWS.md`](infra/WINDOWS.md)
+
+```powershell
+winget install HashiCorp.Terraform Amazon.AWSCLI
+# Close and reopen PowerShell, then:
+terraform version
+aws configure
+```
+
+**DB password (PowerShell — not `export`):**
+
+```powershell
+$env:TF_VAR_db_master_password = 'YourStrongPasswordHere'
+```
+
+**DB password (bash):** `export TF_VAR_db_master_password='...'`
 
 #### Terraform (from `infra/`)
 

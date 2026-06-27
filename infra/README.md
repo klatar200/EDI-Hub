@@ -24,8 +24,12 @@ This folder holds the **real-AWS** definitions, applied per environment.
 ## Prerequisites
 
 Install **Terraform** (>= 1.5) and the **AWS CLI**, then configure AWS creds
-(`aws configure`). On Windows use PowerShell — see `ops/PATH_A_SPRINT_PLAN.md`
-§ A1.0 for `winget` install and `$env:TF_VAR_*` syntax (not `export`).
+(`aws configure`).
+
+**Windows (PowerShell):** see **[`WINDOWS.md`](WINDOWS.md)** — `winget install`, `$env:TF_VAR_*`
+syntax (not `export`), and full staging steps.
+
+**macOS/Linux (bash):** `export TF_VAR_db_master_password='...'` before apply.
 
 ## Apply order
 
