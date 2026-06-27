@@ -163,5 +163,11 @@ boot path only.
 
 ## Required repo secrets
 
-- `VITE_CLERK_PUBLISHABLE_KEY` — required (build fails without it)
-- `CSC_LINK_B64` / `CSC_KEY_PASSWORD` — optional (unsigned if missing)
+| Secret | Required | Notes |
+|--------|----------|-------|
+| `VITE_CLERK_PUBLISHABLE_KEY` | **Yes** | Baked into `apps/web/dist` at build time; release build **fails** if missing |
+| `CLERK_SECRET_KEY` | Recommended | Written to `clerk-runtime.json` for API JWT verification; build **warns** if missing (desktop dev-fallback) |
+| `CLERK_WEBHOOK_SECRET` | Recommended | Written to `clerk-runtime.json` for `/webhooks/clerk` |
+| `CSC_LINK_B64` / `CSC_KEY_PASSWORD` | Optional | Unsigned installer if missing |
+
+See `apps/desktop/LAN_INSTALL.md` for per-install LAN setup (`CLERK_AUTHORIZED_PARTIES`).
