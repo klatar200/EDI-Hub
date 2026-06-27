@@ -22,8 +22,13 @@ export function ChannelsPage(): JSX.Element {
         title="Channels"
         subtitle="SFTP, AS2, and upload ingestion health."
       />
-      {q.isLoading ? <Skeleton className="h-32" /> : null}
-      {q.isError ? <ErrorState message="Could not load channel health." onRetry={() => void q.refetch()} /> : null}
+      {q.isLoading ? <Skeleton.Table rows={3} columnWidths={['40%', '30%', '30%']} /> : null}
+      {q.isError ? (
+        <ErrorState
+          title="Could not load channel health"
+          action={<button type="button" className="btn" onClick={() => void q.refetch()}>Retry</button>}
+        />
+      ) : null}
       {q.data?.channels.length === 0 ? (
         <EmptyState title="No channels" description="No ingestion channels are registered on this hub." />
       ) : null}

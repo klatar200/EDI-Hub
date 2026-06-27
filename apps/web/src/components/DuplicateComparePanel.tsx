@@ -1,25 +1,21 @@
 /**
  * PS-9 F15 — side-by-side duplicate document compare on the same PO.
  */
-import { useQueries } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import type { LifecycleEvent } from '@edi/shared';
 import { api } from '../lib/api.ts';
 
 const DIRECTION_LABEL = { inbound: 'Inbound', outbound: 'Outbound', unknown: 'Unknown' } as const;
 
 function CompareColumn({ event }: { event: LifecycleEvent }): JSX.Element {
-  const rawQ = useQueries({
-    queries: event.rawFileId
-      ? [{
-          queryKey: ['raw', event.rawFileId],
-          queryFn: () => api.rawContent(event.rawFileId!),
-          staleTime: 60_000,
-        }]
-      : [],
+  const rawQ = useQuery({
+    queryKey: ['raw', event.rawFileId],
+    queryFn: () => api.rawContent(event.rawFileId!),
+    staleTime: 60_000,
+    enabled: Boolean(event.rawFileId),
   });
-  const raw = rawQ[0];
-  const text = raw?.data ?? '';
-  const lines = text.split(/~|\r?\n/).map((l) => l.trim()).filter((l) => l.length > 0);
+  const text = rawQ.data ?? '';
+  const lines = text.split(/~|\r?\n/).map((l: string) => l.trim()).filter((l: string) => l.length > 0);
 
   return (
     <div
@@ -37,14 +33,14 @@ function CompareColumn({ event }: { event: LifecycleEvent }): JSX.Element {
         </div>
       </div>
       <div className="max-h-64 overflow-auto p-2 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
-        {raw?.isLoading ? (
+        {rawQ.isLoading ? (
           <span className="text-[var(--color-fg-muted)]">Loading…</span>
-        ) : raw?.isError ? (
+        ) : rawQ.isError ? (
           <span className="text-[var(--color-error-700)]">Could not load raw file.</span>
         ) : lines.length === 0 ? (
           <span className="text-[var(--color-fg-muted)]">Empty file</span>
         ) : (
-          lines.map((line, i) => (
+          lines.map((line: string, i: number) => (
             <div key={i} className="whitespace-pre-wrap break-all">
               {line}
               {i < lines.length - 1 ? '~' : ''}

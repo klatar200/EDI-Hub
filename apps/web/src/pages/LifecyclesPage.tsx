@@ -5,7 +5,7 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
-import type { LifecycleFlow, LifecycleSummary } from '@edi/shared';
+import type { LifecycleListFilters, LifecycleFlow, LifecycleSummary } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
 import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
@@ -287,7 +287,8 @@ export function LifecyclesPage(): JSX.Element {
 
   const page = Math.max(1, Number.parseInt(sp.get('page') ?? '1', 10) || 1);
   const pinnedOnly = sp.get('pinnedOnly') === 'true';
-  const sort = sp.get('sort') === 'startedAt:asc' ? 'startedAt:asc' : 'startedAt:desc';
+  const sort: LifecycleListFilters['sort'] =
+    sp.get('sort') === 'startedAt:asc' ? 'startedAt:asc' : 'startedAt:desc';
   const filters = {
     page,
     pageSize: PAGE_SIZE,

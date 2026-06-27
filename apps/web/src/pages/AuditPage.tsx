@@ -29,8 +29,13 @@ export function AuditPage(): JSX.Element {
           />
         </FormField>
       </Card>
-      {q.isLoading ? <Skeleton className="h-48" /> : null}
-      {q.isError ? <ErrorState message="Could not load audit log." onRetry={() => void q.refetch()} /> : null}
+      {q.isLoading ? <Skeleton.Table rows={6} columnWidths={['25%', '25%', '25%', '25%']} /> : null}
+      {q.isError ? (
+        <ErrorState
+          title="Could not load audit log"
+          action={<button type="button" className="btn" onClick={() => void q.refetch()}>Retry</button>}
+        />
+      ) : null}
       {q.data ? (
         <>
           <DataTable>
