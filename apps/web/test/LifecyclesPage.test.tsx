@@ -51,10 +51,17 @@ const TIMELINE = {
 
 function fakeFetch(input: unknown): Promise<FakeResponse> {
   const url = String(input);
+  if (url.includes('/lifecycles/') && url.includes('/notes')) {
+    return jsonResponse({ items: [] });
+  }
   if (url.includes('/lifecycles')) {
     return jsonResponse({ items: [LIST_ROW], page: 1, pageSize: 25, total: 1 });
   }
   if (url.includes('/lifecycle?po=PO-100')) return jsonResponse(TIMELINE);
+  if (url.includes('/settings')) {
+    return jsonResponse({ settings: { slaCountdownEnabled: false, staleTrafficWindowHours: 6 }, canEdit: false });
+  }
+  if (url.includes('/partners-config')) return jsonResponse({ items: [] });
   return jsonResponse({});
 }
 

@@ -99,6 +99,9 @@ function readInput(body: unknown): PartnerConfigInput {
     ackCodeOverrides: isObject(body.ackCodeOverrides)
       ? (body.ackCodeOverrides as Record<string, unknown>)
       : undefined,
+    segmentLabelOverrides: isObject(body.segmentLabelOverrides)
+      ? (body.segmentLabelOverrides as import('@edi/shared').SegmentLabelOverrides)
+      : undefined,
     slaWindows: Array.isArray(body.slaWindows)
       ? (body.slaWindows as unknown[]).filter(isObject).map((w) => ({
           setId: String(w.setId ?? ''),
@@ -198,6 +201,7 @@ export async function partnersConfigRoutes(
           supportedSets: input.supportedSets ?? [],
           lifecycleFlows: (input.lifecycleFlows ?? []) as never,
           ackCodeOverrides: (input.ackCodeOverrides ?? {}) as never,
+          segmentLabelOverrides: (input.segmentLabelOverrides ?? {}) as never,
           slaWindows: (input.slaWindows ?? []) as never,
           // Phase 8 Sprint 3 — empty `{}` default for an unconfigured partner,
           // matching the schema default and the readConnectivity sentinel.
@@ -258,6 +262,7 @@ export async function partnersConfigRoutes(
           supportedSets: input.supportedSets ?? [],
           lifecycleFlows: (input.lifecycleFlows ?? []) as never,
           ackCodeOverrides: (input.ackCodeOverrides ?? {}) as never,
+          segmentLabelOverrides: (input.segmentLabelOverrides ?? {}) as never,
           slaWindows: (input.slaWindows ?? []) as never,
           connectivity:
             input.connectivity === undefined

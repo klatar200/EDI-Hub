@@ -199,6 +199,18 @@ function makePrisma(world: World): PrismaClient {
       if (where.deletedAt === null) rows = rows.filter((r) => r.deletedAt === null);
       return rows;
     },
+    async findUnique() {
+      return {
+        settings: {
+          staleTrafficWindowHours: 6,
+          slaCountdownEnabled: false,
+          quietHoursStart: null,
+          quietHoursEnd: null,
+          emailDigestEnabled: false,
+          emailDigestHourUtc: 8,
+        },
+      };
+    },
   };
 
   const transaction = {

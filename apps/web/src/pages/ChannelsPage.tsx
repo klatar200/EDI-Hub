@@ -1,0 +1,57 @@
+/**
+ * PS-7 — Channel health page (F10).
+ */
+import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import type { ChannelHealthRecord } from '@edi/shared';
+import { api } from '../lib/api.ts';
+import { PageHeader, Card, StatusPill, ErrorState, Skeleton, EmptyState } from '../components/ui';
+
+function statusTone(status: ChannelHealthRecord['status']): 'success' | 'neutral' | 'error' {
+  if (status === 'running') return 'success';
+  if (status === 'error') return 'error';
+  return 'neutral';
+}
+
+export function ChannelsPage(): JSX.Element {
+  const q = useQuery({ queryKey: ['channels'], queryFn: () => api.channels.list(), refetchInterval: 30_000 });
+
+  return (
+    <div className="space-y-6">
+      <PageHeader
+        title="Channels"
+        subtitle="SFTP, AS2, and upload ingestion health."
+      />
+      {q.isLoading ? <Skeleton className="h-32" /> : null}
+      {q.isError ? <ErrorState message="Could not load channel health." onRetry={() => void q.refetch()} /> : null}
+      {q.data?.channels.length === 0 ? (
+        <EmptyState title="No channels" description="No ingestion channels are registered on this hub." />
+      ) : null}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        {q.data?.channels.map((ch) => (
+          <Card key={ch.name} className="p-4 space-y-2">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="font-medium">{ch.name}</h3>
+              <StatusPill tone={statusTone(ch.status)} size="sm">{ch.status}</StatusPill>
+            </div>
+            <p className="text-sm text-[var(--color-fg-muted)]">Source: {ch.source}</p>
+            {ch.error ? <p className="text-sm text-[var(--color-error-700)]">{ch.error}</p> : null}
+            {ch.detail ? (
+              <dl className="text-xs text-[var(--color-fg-muted)]">
+                {Object.entries(ch.detail).map(([k, v]) => (
+                  <div key={k}><dt className="inline font-medium">{k}: </dt><dd className="inline font-mono">{v}</dd></div>
+                ))}
+              </dl>
+            ) : null}
+            <Link
+              to={`/ingestions?source=${ch.source}`}
+              className="text-sm text-[var(--color-brand-600)] hover:underline"
+            >
+              View ingestions →
+            </Link>
+          </Card>
+        ))}
+      </div>
+    </div>
+  );
+}

@@ -177,10 +177,28 @@ export function FirstRunWizardPage(): JSX.Element {
               ) : (
                 <ul className="rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] p-3 font-mono text-xs">
                   {redirectOrigins.map((origin) => (
-                    <li key={origin}>{origin}</li>
+                    <li key={origin} className="flex items-center justify-between gap-2 py-0.5">
+                      <span>{origin}</span>
+                      <button
+                        type="button"
+                        className="shrink-0 text-[10px] uppercase tracking-wide text-[var(--color-brand-600)] hover:underline"
+                        onClick={() => void navigator.clipboard.writeText(origin)}
+                      >
+                        Copy
+                      </button>
+                    </li>
                   ))}
                 </ul>
               )}
+              {redirectOrigins.length > 0 ? (
+                <button
+                  type="button"
+                  className="text-sm text-[var(--color-brand-600)] hover:underline"
+                  onClick={() => void navigator.clipboard.writeText(redirectOrigins.join('\n'))}
+                >
+                  Copy all LAN URLs
+                </button>
+              ) : null}
               <p className="text-sm text-[var(--color-fg-muted)]">
                 <a
                   href="https://dashboard.clerk.com"

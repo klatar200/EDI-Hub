@@ -79,6 +79,8 @@ model Tenant {
   /// in a future phase. Set a value to 0 to disable retention for that
   /// category (audit log uses this in regulated industries).
   retention   Json     @default("{\"rawFiles\":540,\"parsedTree\":540,\"auditEvents\":365,\"alerts\":365}")
+  /// PS-6 — tenant-level hub settings (stale-traffic window, SLA countdown, quiet hours).
+  settings    Json     @default("{\"staleTrafficWindowHours\":6,\"slaCountdownEnabled\":false,\"quietHoursStart\":null,\"quietHoursEnd\":null,\"emailDigestEnabled\":false,\"emailDigestHourUtc\":8}")
   /// Phase 10 Sprint 3.4 — tenant soft-delete. Set when an admin calls
   /// DELETE /tenants/me. The retention worker hard-deletes the tenant +
   /// every tenant-scoped row 30 days after this timestamp.
@@ -96,6 +98,7 @@ model Tenant {
   alerts           Alert[]
   users            User[]
   auditEvents      AuditEvent[]
+  lifecycleNotes   LifecycleNote[]
 
   @@map("tenants")
 }
@@ -138,6 +141,22 @@ model AuditEvent {
   @@map("audit_events")
 }
 
+/// PS-9 — ops notes on a PO lifecycle conversation.
+model LifecycleNote {
+  id        String   @id @default(uuid()) @db.Uuid
+  tenantId  String   @map("tenant_id") @db.Uuid
+  tenant    Tenant   @relation(fields: [tenantId], references: [id], onDelete: Restrict)
+  po        String
+  body      String
+  authorId  String?  @map("author_id") @db.Uuid
+  author    User?    @relation(fields: [authorId], references: [id], onDelete: SetNull)
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @updatedAt @map("updated_at")
+
+  @@index([tenantId, po])
+  @@map("lifecycle_notes")
+}
+
 /// Phase 9 Sprint 2 — RBAC role on every User. Defaults to `viewer`; the
 /// Clerk webhook promotes the org creator to `admin`. Subsequent additions
 /// stay `viewer` until an admin promotes them via the Users page.
@@ -162,8 +181,12 @@ model User {
   email       String
   displayName String?  @map("display_name")
   role        UserRole @default(viewer)
+  /// PS-10 — saved lifecycle filter views and optional pinned POs.
+  preferences Json     @default("{}")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  lifecycleNotes LifecycleNote[]
 
   @@unique([tenantId, clerkUserId])
   @@index([tenantId])
@@ -197,6 +220,9 @@ model TradingPartner {
   /// Per-partner ack-code overrides keyed by AK field, e.g.
   /// `{ AK304: { "8": "Custom phrasing" }, AK403: { ... } }`.
   ackCodeOverrides  Json          @default("{}") @map("ack_code_overrides")
+  /// PS-11 F19 — per-partner Z-segment / proprietary element label overrides:
+  /// `{ "ZZ": { "1": "Custom label" } }`.
+  segmentLabelOverrides Json      @default("{}") @map("segment_label_overrides")
   /// Phase 6 Sprint 3 — per-(set, direction) SLA windows:
   /// `[{ setId, direction, withinMinutes, expectedAckSetId? }]`.
   /// Empty array means no SLA — Phase 7's missing-ack detector skips the

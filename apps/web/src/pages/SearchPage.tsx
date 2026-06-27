@@ -25,14 +25,10 @@ export function SearchPage(): JSX.Element {
   const q = sp.get('q') ?? '';
   const query = useQuery({ queryKey: ['search', q], queryFn: () => api.search(q), enabled: q.length > 0 });
 
+  const lifecycles = query.data?.lifecycles ?? [];
   const transactions = query.data?.transactions ?? [];
   const rawFiles = query.data?.rawFiles ?? [];
-  const nothing = !query.isLoading && transactions.length === 0 && rawFiles.length === 0;
-
-  // Distinct POs surfaced by the query — links straight to the lifecycle.
-  const polySpine = Array.from(
-    new Set(transactions.map((t) => t.poNumber).filter((p): p is string => !!p)),
-  );
+  const nothing = !query.isLoading && lifecycles.length === 0 && transactions.length === 0 && rawFiles.length === 0;
 
   return (
     <div className="space-y-6">
@@ -59,22 +55,27 @@ export function SearchPage(): JSX.Element {
         />
       ) : (
         <>
-          {polySpine.length > 0 && (
+          {lifecycles.length > 0 && (
             <Card>
               <Card.Header>
-                <Card.Title>Lifecycle ({polySpine.length})</Card.Title>
+                <Card.Title>Lifecycle conversations ({lifecycles.length})</Card.Title>
               </Card.Header>
               <Card.Content>
-                <ul className="space-y-1 text-sm">
-                  {polySpine.map((po) => (
-                    <li key={po}>
+                <ul className="space-y-2 text-sm">
+                  {lifecycles.map((lc) => (
+                    <li key={lc.po} className="flex flex-wrap items-center gap-2">
                       <Link
-                        to={`/lifecycle/${encodeURIComponent(po)}`}
-                        className="font-mono text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                        to={`/?po=${encodeURIComponent(lc.po)}`}
+                        className="font-mono font-medium text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
                       >
-                        {po}
+                        {lc.po}
                       </Link>
-                      <span className="ml-2 text-[var(--color-fg-subtle)]">— see the full chain</span>
+                      {lc.partnerDisplayName ? (
+                        <span className="text-[var(--color-fg-muted)]">{lc.partnerDisplayName}</span>
+                      ) : null}
+                      {lc.openAlertCount > 0 ? (
+                        <StatusPill tone="error" size="sm">{lc.openAlertCount} alert(s)</StatusPill>
+                      ) : null}
                     </li>
                   ))}
                 </ul>

@@ -53,6 +53,7 @@ export const MULTI_TENANT_MODELS = new Set<string>([
   'Alert',
   'User',
   'AuditEvent',
+  'LifecycleNote',
 ]);
 
 export const TENANT_EXEMPT_MODELS = new Set<string>(['Tenant', 'Job']);

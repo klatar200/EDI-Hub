@@ -3,11 +3,12 @@
  * URL-reflected filters, expected-document warnings, and raw download.
  */
 import { useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { LifecycleFlow, LifecycleSummary } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
+import { useHasRole } from '../lib/useRole.tsx';
 import {
   PageHeader,
   DataTable,
@@ -42,7 +43,62 @@ function formatDate(iso: string): string {
   return new Date(iso).toLocaleString();
 }
 
-function LifecycleRow({ row }: { row: LifecycleSummary }): JSX.Element {
+function LifecycleNotes({ po }: { po: string }): JSX.Element {
+  const qc = useQueryClient();
+  const isOps = useHasRole('ops');
+  const [draft, setDraft] = useState('');
+  const notesQ = useQuery({ queryKey: ['lifecycle-notes', po], queryFn: () => api.lifecycleNotes.list(po) });
+  const createM = useMutation({
+    mutationFn: () => api.lifecycleNotes.create(po, { body: draft }),
+    onSuccess: () => {
+      setDraft('');
+      void qc.invalidateQueries({ queryKey: ['lifecycle-notes', po] });
+    },
+  });
+  return (
+    <div className="mt-4 rounded-md border border-[var(--color-surface-border)] p-3" data-testid={`notes-${po}`}>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">Ops notes</h4>
+      <ul className="mt-2 space-y-2 text-sm">
+        {(notesQ.data?.items ?? []).map((n) => (
+          <li key={n.id} className="text-[var(--color-fg-muted)]">
+            <span className="text-[var(--color-fg)]">{n.body}</span>
+            <span className="ml-2 text-xs">— {n.authorDisplayName ?? 'ops'}</span>
+          </li>
+        ))}
+      </ul>
+      {isOps ? (
+        <div className="mt-2 flex gap-2">
+          <input
+            className="flex-1 rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm"
+            placeholder="Add a note…"
+            value={draft}
+            onChange={(e) => setDraft(e.target.value)}
+          />
+          <button
+            type="button"
+            className="rounded bg-[var(--color-brand-600)] px-3 py-1 text-sm text-white disabled:opacity-50"
+            disabled={!draft.trim() || createM.isPending}
+            onClick={() => createM.mutate()}
+          >
+            Save
+          </button>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function LifecycleRow({
+  row,
+  slaCountdownEnabled,
+  selected,
+  onToggleSelect,
+}: {
+  row: LifecycleSummary;
+  slaCountdownEnabled: boolean;
+  selected: boolean;
+  onToggleSelect: (po: string, checked: boolean) => void;
+}): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const expandQ = useQuery({
     queryKey: ['lifecycle', row.po],
@@ -56,6 +112,12 @@ function LifecycleRow({ row }: { row: LifecycleSummary }): JSX.Element {
     <>
       <DataTable.Tr data-testid={`lifecycle-row-${row.po}`}>
         <DataTable.Td>
+          <input
+            type="checkbox"
+            aria-label={`Select ${row.po}`}
+            checked={selected}
+            onChange={(e) => onToggleSelect(row.po, e.target.checked)}
+          />
           <button
             type="button"
             className="mr-2 inline-flex h-5 w-5 items-center justify-center rounded border border-[var(--color-surface-border)] text-xs text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-muted)]"
@@ -78,6 +140,11 @@ function LifecycleRow({ row }: { row: LifecycleSummary }): JSX.Element {
         </DataTable.Td>
         <DataTable.Td muted>{formatDate(row.startedAt)}</DataTable.Td>
         <DataTable.Td muted>{formatDate(row.lastActivityAt)}</DataTable.Td>
+        {slaCountdownEnabled ? (
+          <DataTable.Td muted className="text-xs">
+            {Math.max(0, Math.floor((Date.now() - new Date(row.lastActivityAt).getTime()) / 60_000))}m since activity
+          </DataTable.Td>
+        ) : null}
         <DataTable.Td>
           <span className="tabular-nums">{row.received}</span>
           {row.missing > 0 ? (
@@ -138,6 +205,7 @@ function LifecycleRow({ row }: { row: LifecycleSummary }): JSX.Element {
                   showDownloadRaw
                   compact
                 />
+                <LifecycleNotes po={row.po} />
               </div>
             )}
           </DataTable.Td>
@@ -149,7 +217,10 @@ function LifecycleRow({ row }: { row: LifecycleSummary }): JSX.Element {
 
 export function LifecyclesPage(): JSX.Element {
   const [sp, setSp] = useSearchParams();
+  const [selected, setSelected] = useState<Set<string>>(new Set());
   const partnersConfigQ = useQuery({ queryKey: ['partners-config'], queryFn: () => api.partnersConfig.list() });
+  const settingsQ = useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
+  const slaCountdownEnabled = settingsQ.data?.settings?.slaCountdownEnabled ?? false;
 
   const page = Math.max(1, Number.parseInt(sp.get('page') ?? '1', 10) || 1);
   const filters = {
@@ -203,9 +274,20 @@ export function LifecyclesPage(): JSX.Element {
         title="Lifecycles"
         subtitle="PO conversations — every related document in one place."
         actions={
-          <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
-            {listQ.isLoading ? 'Loading…' : `${total} conversation${total === 1 ? '' : 's'}`}
-          </span>
+          <div className="flex flex-wrap items-center gap-2">
+            {selected.size > 0 ? (
+              <button
+                type="button"
+                className="rounded border border-[var(--color-surface-border)] px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]"
+                onClick={() => void api.exportLifecyclesCsv({ pos: [...selected] })}
+              >
+                Export CSV ({selected.size})
+              </button>
+            ) : null}
+            <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
+              {listQ.isLoading ? 'Loading…' : `${total} conversation${total === 1 ? '' : 's'}`}
+            </span>
+          </div>
         }
       />
 
@@ -328,7 +410,20 @@ export function LifecyclesPage(): JSX.Element {
             </DataTable.Thead>
             <DataTable.Tbody>
               {items.map((row) => (
-                <LifecycleRow key={row.po} row={row} />
+                <LifecycleRow
+                  key={row.po}
+                  row={row}
+                  slaCountdownEnabled={slaCountdownEnabled}
+                  selected={selected.has(row.po)}
+                  onToggleSelect={(po, checked) => {
+                    setSelected((prev) => {
+                      const next = new Set(prev);
+                      if (checked) next.add(po);
+                      else next.delete(po);
+                      return next;
+                    });
+                  }}
+                />
               ))}
             </DataTable.Tbody>
           </DataTable>

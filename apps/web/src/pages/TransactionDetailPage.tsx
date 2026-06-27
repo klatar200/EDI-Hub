@@ -210,12 +210,15 @@ function headerFields(interp: InterpretedTransaction): Array<[string, string]> {
         ['PO number', interp.poNumber],
         ['Ack type', interp.ackType],
         ['Purpose', interp.purpose],
+        ['Total qty', interp.totalQty],
       ];
     case '856':
       return [
         ['PO number', interp.poNumber],
         ['Shipment ID', interp.shipmentId],
         ['Ship date', interp.shipDate],
+        ['Carrier ref', interp.carrierRef],
+        ['Total qty', interp.totalQty],
       ];
     case '810':
       return [

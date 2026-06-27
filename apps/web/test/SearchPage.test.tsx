@@ -11,7 +11,13 @@ function fakeFetch(input: unknown): Promise<unknown> {
       ok: true, status: 200,
       json: () => Promise.resolve({
         query: 'PO-12345',
-        transactions: [{ id: 't1', transactionSetId: '850', controlNumber: '0001', poNumber: 'PO-12345', invoiceNumber: null, purpose: '00', senderId: 'ACME', receiverId: 'GLOBEX', status: 'PARSED', ingestedAt: '2026-06-17T12:00:00.000Z' }],
+        lifecycles: [{
+          po: 'PO-12345',
+          partnerDisplayName: 'Acme',
+          lastActivityAt: '2026-06-17T12:00:00.000Z',
+          openAlertCount: 0,
+        }],
+        transactions: [{ id: 't1', transactionSetId: '850', controlNumber: '0001', poNumber: 'PO-12345', invoiceNumber: null, purpose: '00', senderId: 'ACME', receiverId: 'GLOBEX', status: 'PARSED', ingestedAt: '2026-06-17T12:00:00.000Z', direction: 'inbound' }],
         rawFiles: [{ id: 'r1', s3Key: 'k', fileHash: 'h', isaControlNumber: '000000900', source: 'upload', status: 'PARSED', errorMessage: null, ingestedAt: '2026-06-17T12:00:00.000Z' }],
       }),
     });
@@ -43,11 +49,11 @@ test('shows matching transactions and raw files for a query', async () => {
   // "PO-12345" and we have to disambiguate by destination.
   const links = await screen.findAllByRole('link', { name: 'PO-12345' });
   const transactionLink = links.find((a) => a.getAttribute('href') === '/transactions/t1');
-  const lifecycleLink = links.find((a) => a.getAttribute('href') === '/lifecycle/PO-12345');
+  const lifecycleLink = links.find((a) => a.getAttribute('href')?.includes('PO-12345'));
   expect(transactionLink).toBeDefined();
   expect(lifecycleLink).toBeDefined();
   expect(screen.getByText('000000900')).toBeInTheDocument(); // raw file by ISA
   expect(screen.getByText(/Transactions \(1\)/)).toBeInTheDocument();
   expect(screen.getByText(/Raw files \(1\)/)).toBeInTheDocument();
-  expect(screen.getByText(/Lifecycle \(1\)/)).toBeInTheDocument();
+  expect(screen.getByText(/Lifecycle conversations \(1\)/)).toBeInTheDocument();
 });

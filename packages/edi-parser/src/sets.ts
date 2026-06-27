@@ -113,8 +113,8 @@ export interface LineItem {
 }
 
 export interface Interpreted850 { type: '850'; purpose: string; poNumber: string; poDate: string; lineItems: LineItem[] }
-export interface Interpreted855 { type: '855'; purpose: string; ackType: string; poNumber: string; lineItems: LineItem[] }
-export interface Interpreted856 { type: '856'; shipmentId: string; poNumber: string; shipDate: string }
+export interface Interpreted855 { type: '855'; purpose: string; ackType: string; poNumber: string; lineItems: LineItem[]; totalQty: string }
+export interface Interpreted856 { type: '856'; shipmentId: string; poNumber: string; shipDate: string; carrierRef: string; totalQty: string }
 export interface Interpreted810 { type: '810'; invoiceNumber: string; invoiceDate: string; poNumber: string; totalAmount: string; lineItems: LineItem[] }
 export interface Interpreted860 { type: '860'; purpose: string; poNumber: string; originalPoNumber: string; poDate: string; lineItems: LineItem[] }
 export interface Interpreted875 { type: '875'; purpose: string; poNumber: string; poDate: string }
@@ -214,11 +214,31 @@ export function interpretTransaction(txn: DecomposedTransaction): InterpretedTra
     }
     case '855': {
       const bak = firstSegment(txn, 'BAK');
-      return { type: '855', purpose: ev(bak, 1), ackType: ev(bak, 2), poNumber: ev(bak, 3), lineItems: lineItemsFrom(txn, 'PO1') };
+      const items = lineItemsFrom(txn, 'PO1');
+      const totalQty = items.reduce((sum, li) => sum + (Number(li.quantity) || 0), 0);
+      return {
+        type: '855',
+        purpose: ev(bak, 1),
+        ackType: ev(bak, 2),
+        poNumber: ev(bak, 3),
+        lineItems: items,
+        totalQty: totalQty > 0 ? String(totalQty) : '',
+      };
     }
     case '856': {
       const bsn = firstSegment(txn, 'BSN');
-      return { type: '856', shipmentId: ev(bsn, 2), shipDate: ev(bsn, 3), poNumber: ev(firstSegment(txn, 'PRF'), 1) };
+      const items = lineItemsFrom(txn, 'SN1');
+      const totalQty = items.reduce((sum, li) => sum + (Number(li.quantity) || 0), 0);
+      const refSeg = txn.segments.find((s) => s.tag === 'REF' && ev(s, 1) === 'CN');
+      const td5 = firstSegment(txn, 'TD5');
+      return {
+        type: '856',
+        shipmentId: ev(bsn, 2),
+        shipDate: ev(bsn, 3),
+        poNumber: ev(firstSegment(txn, 'PRF'), 1),
+        carrierRef: ev(refSeg, 2) || ev(td5, 3) || ev(td5, 2),
+        totalQty: totalQty > 0 ? String(totalQty) : '',
+      };
     }
     case '810': {
       const big = firstSegment(txn, 'BIG');

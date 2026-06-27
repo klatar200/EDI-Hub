@@ -23,6 +23,7 @@ import type {
   PartnerContact,
   PartnerSlaWindow,
   PartnerStatus,
+  SegmentLabelOverrides,
   TradingPartnerRecord,
 } from '@edi/shared';
 import { CONNECTIVITY_CHANNELS } from '@edi/shared';
@@ -40,6 +41,7 @@ interface DbPartnerRow {
   supportedSets: string[];
   lifecycleFlows: unknown;
   ackCodeOverrides: unknown;
+  segmentLabelOverrides: unknown;
   slaWindows: unknown;
   /** Phase 8 Sprint 3 — JSONB; '{}' default means "not yet configured". */
   connectivity: unknown;
@@ -154,6 +156,16 @@ function readAckOverrides(raw: unknown): AckCodeOverrides {
   return out;
 }
 
+function readSegmentLabelOverrides(raw: unknown): SegmentLabelOverrides {
+  if (typeof raw !== 'object' || raw === null) return {};
+  const out: SegmentLabelOverrides = {};
+  for (const [seg, labels] of Object.entries(raw as Record<string, unknown>)) {
+    const map = readStringMap(labels);
+    if (Object.keys(map).length) out[seg] = map;
+  }
+  return out;
+}
+
 export function toRecord(row: DbPartnerRow): TradingPartnerRecord {
   return {
     id: row.id,
@@ -167,6 +179,7 @@ export function toRecord(row: DbPartnerRow): TradingPartnerRecord {
     supportedSets: Array.isArray(row.supportedSets) ? row.supportedSets.slice() : [],
     lifecycleFlows: readLifecycleFlows(row.lifecycleFlows),
     ackCodeOverrides: readAckOverrides(row.ackCodeOverrides),
+    segmentLabelOverrides: readSegmentLabelOverrides(row.segmentLabelOverrides ?? {}),
     slaWindows: readSlaWindows(row.slaWindows),
     connectivity: readConnectivity(row.connectivity),
     createdAt: row.createdAt.toISOString(),

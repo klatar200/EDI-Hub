@@ -105,8 +105,19 @@ export interface PartnersResponse {
 }
 
 /** Result of a global search by PO / invoice / ISA control number. */
+/** PS-10 — lifecycle hit in search results. */
+export interface LifecycleSearchHit {
+  po: string;
+  partnerDisplayName: string | null;
+  lastActivityAt: string;
+  openAlertCount: number;
+}
+
+/** Result of a global search by PO / invoice / ISA control number. */
 export interface SearchResponse {
   query: string;
+  /** PS-10 — lifecycle (PO) hits first. */
+  lifecycles: LifecycleSearchHit[];
   transactions: TransactionSummary[];
   rawFiles: RawFileRecord[];
 }
@@ -449,6 +460,8 @@ export interface TradingPartnerRecord {
   lifecycleFlows: LifecycleFlowDefinition[];
   /** Phase 6 Sprint 2 — empty object means "use shipped X12 dictionary" (Phase 5 behavior). */
   ackCodeOverrides: AckCodeOverrides;
+  /** PS-11 F19 — Z-segment / proprietary element label overrides. */
+  segmentLabelOverrides: SegmentLabelOverrides;
   /** Phase 6 Sprint 3 — empty array means "no SLA" (Phase 7 skips this partner). */
   slaWindows: PartnerSlaWindow[];
   /** Phase 8 Sprint 3 — connectivity metadata. `null` means "not yet
@@ -475,6 +488,7 @@ export interface PartnerConfigInput {
   supportedSets?: string[];
   lifecycleFlows?: LifecycleFlowDefinition[];
   ackCodeOverrides?: AckCodeOverrides;
+  segmentLabelOverrides?: SegmentLabelOverrides;
   /** Sprint 3 — per-(set, direction) SLA windows. */
   slaWindows?: PartnerSlaWindow[];
   /** Phase 8 Sprint 3 — partner connectivity. Omit on PATCH to leave the
@@ -682,4 +696,120 @@ export interface HealthServerInfo {
   /** Origins to add to Clerk Allowed redirect URIs (includes localhost + LAN IPs). */
   redirectOrigins: string[];
 }
+
+// ─────────────────────────────────────────────────────────────
+// PS-6 — Tenant settings hub
+// ─────────────────────────────────────────────────────────────
+
+export interface TenantSettings {
+  /** F2 — global stale-traffic detection window in hours (default 6). */
+  staleTrafficWindowHours: number;
+  /** F33 — show SLA countdown on lifecycle rows (default off). */
+  slaCountdownEnabled: boolean;
+  /** F13 — quiet hours for notifications (optional stub). */
+  quietHoursStart: string | null;
+  quietHoursEnd: string | null;
+  /** F51 — daily email digest opt-in. */
+  emailDigestEnabled: boolean;
+  /** Hour (0–23 UTC) to send digest. */
+  emailDigestHourUtc: number;
+}
+
+export interface TenantSettingsResponse {
+  settings: TenantSettings;
+  /** True when the caller can PATCH settings (admin). */
+  canEdit: boolean;
+}
+
+export type TenantSettingsPatch = Partial<TenantSettings>;
+
+// ─────────────────────────────────────────────────────────────
+// PS-7 — Channel health page
+// ─────────────────────────────────────────────────────────────
+
+export type ChannelHealthStatus = 'running' | 'disabled' | 'error';
+
+export interface ChannelHealthRecord {
+  name: string;
+  source: SourceChannel;
+  status: ChannelHealthStatus;
+  error?: string;
+  detail?: Record<string, string>;
+}
+
+export interface ChannelsResponse {
+  channels: ChannelHealthRecord[];
+}
+
+// ─────────────────────────────────────────────────────────────
+// PS-9 — Lifecycle ops notes
+// ─────────────────────────────────────────────────────────────
+
+export interface LifecycleNoteRecord {
+  id: string;
+  po: string;
+  body: string;
+  authorId: string | null;
+  authorDisplayName: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface LifecycleNoteListResponse {
+  items: LifecycleNoteRecord[];
+}
+
+export interface LifecycleNoteInput {
+  body: string;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PS-10 — Saved views + pins
+// ─────────────────────────────────────────────────────────────
+
+export interface SavedView {
+  id: string;
+  name: string;
+  /** URL query string for / lifecycles (without leading ?). */
+  query: string;
+}
+
+export interface UserPreferences {
+  savedViews?: SavedView[];
+  /** F43 — max 10 pinned PO numbers. */
+  pinnedPos?: string[];
+}
+
+export interface UserPreferencesResponse {
+  preferences: UserPreferences;
+}
+
+// ─────────────────────────────────────────────────────────────
+// PS-11 — Audit log viewer + bulk export
+// ─────────────────────────────────────────────────────────────
+
+export interface AuditEventRecord {
+  id: string;
+  actorId: string | null;
+  action: string;
+  targetType: string;
+  targetId: string;
+  payloadDiff: unknown;
+  createdAt: string;
+}
+
+export interface AuditListResponse {
+  items: AuditEventRecord[];
+  limit: number;
+  offset: number;
+  count: number;
+}
+
+/** PS-11 F57 — bulk lifecycle CSV export request. */
+export interface LifecycleBulkExportInput {
+  pos: string[];
+}
+
+/** PS-11 F19 — Z-segment label overrides on partner config. */
+export type SegmentLabelOverrides = Record<string, Record<string, string>>;
 

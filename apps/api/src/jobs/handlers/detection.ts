@@ -33,6 +33,7 @@ import {
   detectUnknownIsaSenders,
   type DetectionResult,
 } from '../../services/detection.js';
+import { readTenantSettings } from '../../services/tenant-settings.js';
 import type { NotifierDeps } from '../../services/notifier.js';
 
 /** Logger contract the handler uses for progress lines. */
@@ -100,7 +101,10 @@ export async function runDetectionPass(
       { tenantId, asOf: now.toISOString(), emitted: spike.emitted, notified: spike.notified },
       'detection: REJECTION_RATE_SPIKE pass complete',
     );
-    const globalStale = await detectGlobalStaleTraffic(deps.prisma, now, opts);
+    const globalStale = await detectGlobalStaleTraffic(deps.prisma, now, {
+      ...opts,
+      staleWindowHours: (await readTenantSettings(deps.prisma, tenantId)).staleTrafficWindowHours,
+    });
     const partnerStale = await detectPartnerStaleTraffic(deps.prisma, now, opts);
     const unknownIsa = await detectUnknownIsaSenders(deps.prisma, now, opts);
     return { missing, spike, globalStale, partnerStale, unknownIsa };

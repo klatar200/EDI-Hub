@@ -85,9 +85,12 @@ function fakePrisma(): PrismaClient {
         return [txn];
       },
     },
+    alert: {
+      async findMany() { return []; },
+    },
     // Phase 9 Sprint 1.4 — lifecycle route looks up tenant.ourIsaIds.
     tenant: {
-      async findUnique() { return null; },
+      async findUnique() { return { ourIsaIds: [], settings: {} }; },
     },
   } as unknown as PrismaClient;
 }

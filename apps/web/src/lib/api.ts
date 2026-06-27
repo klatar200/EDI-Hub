@@ -9,10 +9,16 @@ import type {
   AlertBulkAckInput,
   AlertListResponse,
   AlertRecord,
+  AuditListResponse,
+  ChannelsResponse,
   IngestListResponse,
   IngestUploadResponse,
+  LifecycleBulkExportInput,
   LifecycleListFilters,
   LifecycleListResponse,
+  LifecycleNoteInput,
+  LifecycleNoteListResponse,
+  LifecycleNoteRecord,
   LifecycleResponse,
   OutboundStage,
   PartnerConfigInput,
@@ -24,9 +30,13 @@ import type {
   SearchResponse,
   SetupPatchInput,
   SetupStatusResponse,
+  TenantSettingsPatch,
+  TenantSettingsResponse,
   TradingPartnerRecord,
   TransactionListResponse,
   TransactionSummary,
+  UserPreferences,
+  UserPreferencesResponse,
 } from '@edi/shared';
 import type { InterpretedTransaction } from '@edi/edi-parser';
 import type { TransactionRejection } from '@edi/shared';
@@ -268,6 +278,66 @@ export const api = {
   /** PS-5 — re-run parse pipeline for a raw file. */
   reparseRaw: (id: string) =>
     send<{ rawFile: import('@edi/shared').RawFileRecord; parse: unknown }>('POST', `/raw-files/${id}/reparse`, {}),
+  /** PS-6 — tenant settings hub. */
+  settings: {
+    get: () => get<TenantSettingsResponse>('/settings'),
+    patch: (input: TenantSettingsPatch) => send<TenantSettingsResponse>('PATCH', '/settings', input),
+  },
+  /** PS-7 — channel health. */
+  channels: {
+    list: () => get<ChannelsResponse>('/channels'),
+  },
+  /** PS-9 — lifecycle ops notes. */
+  lifecycleNotes: {
+    list: (po: string) => get<LifecycleNoteListResponse>(`/lifecycles/${encodeURIComponent(po)}/notes`),
+    create: (po: string, input: LifecycleNoteInput) =>
+      send<LifecycleNoteRecord>('POST', `/lifecycles/${encodeURIComponent(po)}/notes`, input),
+    remove: async (po: string, id: string): Promise<void> => {
+      await sendVoid('DELETE', `/lifecycles/${encodeURIComponent(po)}/notes/${id}`);
+    },
+  },
+  /** PS-9 — export raw file as txt/csv/pdf. */
+  exportRaw: async (id: string, format: 'txt' | 'csv' | 'pdf'): Promise<void> => {
+    const res = await fetch(`${BASE}/raw-files/${id}/export?format=${format}`, { headers: await authHeaders() });
+    if (!res.ok) throw new Error(`Export failed (${res.status})`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${id}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
+  /** PS-10 — user preferences (saved views, pins). */
+  preferences: {
+    get: () => get<UserPreferencesResponse>('/preferences'),
+    patch: (preferences: UserPreferences) => send<UserPreferencesResponse>('PATCH', '/preferences', preferences),
+  },
+  /** PS-11 — audit log (admin). */
+  audit: {
+    list: (params: { actorId?: string; action?: string; from?: string; to?: string; limit?: number; offset?: number } = {}) =>
+      get<AuditListResponse>(`/audit${qs(params as Record<string, string | number | undefined>)}`),
+  },
+  /** PS-11 — bulk lifecycle CSV export. */
+  exportLifecyclesCsv: async (input: LifecycleBulkExportInput): Promise<void> => {
+    const res = await fetch(`${BASE}/lifecycles/export`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
+      body: JSON.stringify(input),
+    });
+    if (!res.ok) throw new Error(`Export failed (${res.status})`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'lifecycles-export.csv';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
 };
 
 export type { TransactionSummary };

@@ -37,6 +37,40 @@ export function installApplicationMenu(): void {
       label: 'Help',
       submenu: [
         {
+          label: "What's New",
+          click: () => {
+            void shell.openExternal('https://github.com/klatar200/EDI-Hub/releases');
+          },
+        },
+        {
+          label: 'Copy LAN URL',
+          click: () => {
+            void (async () => {
+              try {
+                const res = await fetch('/health');
+                const h = (await res.json()) as { server?: { redirectOrigins?: string[] } };
+                const lan = (h.server?.redirectOrigins ?? []).find((o) => !o.includes('localhost'));
+                const url = lan ?? h.server?.redirectOrigins?.[0] ?? 'http://127.0.0.1:3000';
+                const { clipboard } = await import('electron');
+                clipboard.writeText(url);
+                await dialog.showMessageBox({
+                  type: 'info',
+                  message: 'LAN URL copied',
+                  detail: url,
+                  buttons: ['OK'],
+                });
+              } catch {
+                await dialog.showMessageBox({
+                  type: 'error',
+                  message: 'Could not read server URL',
+                  buttons: ['OK'],
+                });
+              }
+            })();
+          },
+        },
+        { type: 'separator' },
+        {
           label: 'About EDI Hub',
           click: () => {
             // showMessageBox returns a promise; we don't await it because

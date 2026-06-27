@@ -34,6 +34,10 @@ import { MetricsPage } from './pages/MetricsPage.tsx';
 import { DashboardPage } from './pages/DashboardPage.tsx';
 import { PartnersConfigPage } from './pages/PartnersConfigPage.tsx';
 import { AlertsPage } from './pages/AlertsPage.tsx';
+import { SettingsPage } from './pages/SettingsPage.tsx';
+import { ChannelsPage } from './pages/ChannelsPage.tsx';
+import { AuditPage } from './pages/AuditPage.tsx';
+import { TransactionSetsHelpPage } from './pages/TransactionSetsHelpPage.tsx';
 import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './lib/api.ts';
@@ -90,6 +94,10 @@ function SetupGate(): JSX.Element {
         <Route path="/metrics" element={<MetricsPage />} />
         <Route path="/partners-config" element={<PartnersConfigPage />} />
         <Route path="/alerts" element={<AlertsPage />} />
+        <Route path="/settings" element={<SettingsPage />} />
+        <Route path="/channels" element={<ChannelsPage />} />
+        <Route path="/help/transaction-sets" element={<TransactionSetsHelpPage />} />
+        <Route path="/admin/audit" element={<AuditPage />} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>

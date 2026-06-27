@@ -41,6 +41,11 @@ import { setupRoutes } from './routes/setup.js';
 import { alertsRoutes } from './routes/alerts.js';
 import { userRoutes } from './routes/users.js';
 import { auditRoutes } from './routes/audit.js';
+import { settingsRoutes } from './routes/settings.js';
+import { channelsRoutes } from './routes/channels.js';
+import { lifecycleNotesRoutes } from './routes/lifecycle-notes.js';
+import { preferencesRoutes } from './routes/preferences.js';
+import { lifecycleExportRoutes } from './routes/lifecycle-export.js';
 import { tenantRoutes } from './routes/tenants.js';
 import { webhookRoutes } from './routes/webhooks.js';
 import type { FastifyRequest } from 'fastify';
@@ -198,6 +203,11 @@ export async function buildServer(opts: BuildServerOptions = {}): Promise<Fastif
       await apiScope.register(alertsRoutes);
       await apiScope.register(userRoutes);
       await apiScope.register(auditRoutes);
+      await apiScope.register(settingsRoutes);
+      await apiScope.register(channelsRoutes);
+      await apiScope.register(lifecycleNotesRoutes);
+      await apiScope.register(preferencesRoutes);
+      await apiScope.register(lifecycleExportRoutes);
       await apiScope.register(tenantRoutes);
     },
     { prefix: '/api' },

@@ -170,8 +170,19 @@ export function IngestionsPage(): JSX.Element {
                 <DataTable.Td>
                   <StatusPill tone={rawFileTone(r.status)} withDot>{r.status}</StatusPill>
                 </DataTable.Td>
-                <DataTable.Td muted className="max-w-xs truncate" title={r.errorMessage ?? undefined}>
-                  {r.errorMessage ?? '—'}
+                <DataTable.Td muted className="max-w-xs">
+                  <span className="truncate" title={r.errorMessage ?? undefined}>{r.errorMessage ?? '—'}</span>
+                  {r.errorMessage ? (
+                    <button
+                      type="button"
+                      className="ml-2 text-xs text-[var(--color-brand-600)] hover:underline"
+                      onClick={() => void navigator.clipboard.writeText(
+                        `rawFileId: ${r.id}\nstatus: ${r.status}\nerror: ${r.errorMessage}`,
+                      )}
+                    >
+                      Copy context
+                    </button>
+                  ) : null}
                 </DataTable.Td>
                 <DataTable.Td muted>{new Date(r.ingestedAt).toLocaleString()}</DataTable.Td>
                 <DataTable.Td>

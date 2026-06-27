@@ -118,6 +118,18 @@ function makePrisma(store: FakeStore): PrismaClient {
         if (where.deletedAt === null) rows = rows.filter((r) => r.deletedAt === null);
         return rows;
       },
+      async findUnique() {
+        return {
+          settings: {
+            staleTrafficWindowHours: 6,
+            slaCountdownEnabled: false,
+            quietHoursStart: null,
+            quietHoursEnd: null,
+            emailDigestEnabled: false,
+            emailDigestHourUtc: 8,
+          },
+        };
+      },
     },
     tradingPartner: {
       async findMany({ where }: { where?: { status?: 'active' | 'disabled' } } = {}) {

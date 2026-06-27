@@ -34,6 +34,11 @@ import { setupRoutes } from '../src/routes/setup.js';
 import { alertsRoutes } from '../src/routes/alerts.js';
 import { userRoutes } from '../src/routes/users.js';
 import { auditRoutes } from '../src/routes/audit.js';
+import { settingsRoutes } from '../src/routes/settings.js';
+import { channelsRoutes } from '../src/routes/channels.js';
+import { lifecycleNotesRoutes } from '../src/routes/lifecycle-notes.js';
+import { preferencesRoutes } from '../src/routes/preferences.js';
+import { lifecycleExportRoutes } from '../src/routes/lifecycle-export.js';
 import { tenantRoutes } from '../src/routes/tenants.js';
 import { webhookRoutes } from '../src/routes/webhooks.js';
 
@@ -78,6 +83,11 @@ const EXPECTED: Record<string, Role> = {
   'GET /api/ingest/:id': 'viewer',
   'GET /api/ingest': 'viewer',
   'GET /api/setup': 'viewer',
+  'GET /api/settings': 'viewer',
+  'GET /api/channels': 'viewer',
+  'GET /api/preferences': 'viewer',
+  'GET /api/lifecycles/:po/notes': 'viewer',
+  'GET /api/raw-files/:id/export': 'viewer',
 
   // Ops actions
   'PATCH /api/alerts/:id/ack': 'ops',
@@ -100,6 +110,13 @@ const EXPECTED: Record<string, Role> = {
   // Ops-only mutating action — file upload is operational, not admin.
   'POST /api/ingest/upload': 'ops',
   'POST /api/raw-files/:id/reparse': 'ops',
+  'POST /api/lifecycles/:po/notes': 'ops',
+  'DELETE /api/lifecycles/:po/notes/:id': 'ops',
+  'POST /api/lifecycles/export': 'viewer',
+
+  // Admin settings
+  'PATCH /api/settings': 'admin',
+  'PATCH /api/preferences': 'viewer',
 };
 
 interface CapturedRoute {
@@ -152,6 +169,11 @@ test('every registered route declares the requiredRole expected by the policy', 
       await apiScope.register(alertsRoutes);
       await apiScope.register(userRoutes);
       await apiScope.register(auditRoutes);
+      await apiScope.register(settingsRoutes);
+      await apiScope.register(channelsRoutes);
+      await apiScope.register(lifecycleNotesRoutes);
+      await apiScope.register(preferencesRoutes);
+      await apiScope.register(lifecycleExportRoutes);
       await apiScope.register(tenantRoutes);
     },
     { prefix: '/api' },
