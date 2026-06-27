@@ -24,15 +24,17 @@ This folder holds the **real-AWS** definitions, applied per environment.
 ## Prerequisites
 
 Install **Terraform** (>= 1.5) and the **AWS CLI**, then configure AWS creds
-(`aws configure`). On Windows use PowerShell — see `ops/PATH_A_SPRINT_PLAN.md`
-§ A1.0 for `winget` install and `$env:TF_VAR_*` syntax (not `export`).
+(`aws configure`).
+
+**Windows (PowerShell / VS Code):** see **[`WINDOWS.md`](WINDOWS.md)** — all operator commands
+use `$env:TF_VAR_*` (not `export`). Project Cursor rule: `.cursor/rules/powershell-cli.mdc`.
 
 ## Apply order
 
 Apply in this order on a fresh environment. Each step is independently
 runnable so a partial environment can be reconciled by re-running.
 
-```bash
+```powershell
 cd infra
 terraform init
 

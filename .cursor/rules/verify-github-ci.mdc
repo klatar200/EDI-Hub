@@ -18,7 +18,7 @@ Local `npm run test:ci` is necessary but **not sufficient**. Before finishing a 
 
 Run before every push:
 
-```bash
+```powershell
 npm run test:ci
 ```
 

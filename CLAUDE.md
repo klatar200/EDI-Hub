@@ -84,9 +84,9 @@ Core tables:
 
 ## Commands
 
-> Commands will be added here as the project is scaffolded. Below are the intended patterns.
+> **Local terminal:** the project owner uses **PowerShell in VS Code on Windows**. User-facing CLI in docs and chat must use PowerShell (`$env:VAR = '...'`, `Copy-Item`, etc.) — see `.cursor/rules/powershell-cli.mdc` and `infra/WINDOWS.md` for deploy steps.
 
-```bash
+```powershell
 # Install dependencies (from repo root)
 npm install
 

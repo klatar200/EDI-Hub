@@ -1,0 +1,44 @@
+---
+description: User works in VS Code on Windows — all CLI commands shown to the user must be PowerShell.
+alwaysApply: true
+---
+
+# PowerShell CLI (mandatory for user-facing commands)
+
+The project owner **always uses PowerShell in VS Code on Windows**. When you give commands, setup steps, or copy-paste blocks in chat or docs **intended for the user to run locally**, use **PowerShell syntax only**.
+
+## Required
+
+- **Environment variables:** `$env:NAME = 'value'` — never `export NAME=...`
+- **File copy:** `Copy-Item src dst` — not `cp`
+- **Path changes:** `cd infra` or `Set-Location infra` — bash-only `&&` chains are OK in PowerShell 7+ but prefer separate lines or `;` for clarity
+- **Installs (Windows):** `winget install ...` when suggesting local tool setup
+- **Line continuation:** backtick `` ` `` at end of line, or single-line commands
+- **Secrets in session:** `$env:TF_VAR_db_master_password = '...'` before Terraform
+
+## Examples
+
+```powershell
+# Good
+$env:TF_VAR_db_master_password = 'YourStrongPasswordHere'
+$env:AWS_REGION = 'us-east-1'
+Copy-Item infra\env\staging.tfvars.example infra\env\staging.tfvars
+cd infra
+terraform init
+terraform apply -var-file=env/staging.tfvars
+```
+
+```powershell
+# Bad — do not show the user bash syntax
+export TF_VAR_db_master_password='...'
+cp infra/env/staging.tfvars.example infra/env/staging.tfvars
+```
+
+## Docs and plans
+
+- Operator/deploy docs (`BUILD_PLAN.md`, `infra/README.md`, runbooks): **PowerShell first**; optional bash in a collapsed “Linux/macOS” subsection only if both are needed.
+- Full Windows staging walkthrough: [`infra/WINDOWS.md`](../infra/WINDOWS.md)
+
+## Agent execution environment
+
+Cloud Agents and CI may run on Linux/bash internally — that is fine for automated runs. **Do not** paste bash-only instructions to the user when they are driving the terminal in VS Code on Windows.
