@@ -12,6 +12,7 @@ import type {
 } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { LifecycleRawPanel } from './LifecycleRawPanel.tsx';
+import { DuplicateComparePanel } from './DuplicateComparePanel.tsx';
 import { StatusPill, type StatusTone, Card, EmptyState } from './ui';
 import { OutboundLifecycleBadges } from './OutboundStage.tsx';
 
@@ -60,13 +61,19 @@ export function LifecycleTimeline({ events, po, showDownloadRaw = false, compact
   }
 
   const duplicateTotals = new Map<string, number>();
+  const duplicateGroups = new Map<string, LifecycleEvent[]>();
   for (const e of events) {
     if (e.kind !== 'transaction') continue;
     const k = `${e.transactionSetId}::${e.direction}`;
     duplicateTotals.set(k, (duplicateTotals.get(k) ?? 0) + 1);
+    const list = duplicateGroups.get(k) ?? [];
+    list.push(e);
+    duplicateGroups.set(k, list);
   }
+  const compareGroups = [...duplicateGroups.entries()].filter(([, g]) => g.length > 1);
 
   return (
+    <div>
     <ol className="relative">
       {events.map((e, i) => {
         const dupKey = e.kind === 'transaction' ? `${e.transactionSetId}::${e.direction}` : '';
@@ -83,6 +90,22 @@ export function LifecycleTimeline({ events, po, showDownloadRaw = false, compact
         );
       })}
     </ol>
+    {compareGroups.length > 0 ? (
+      <div className="mt-4 space-y-3" data-testid="duplicate-compare-section">
+        {compareGroups.map(([key, groupEvents]) => {
+          const [setId, direction] = key.split('::') as [string, LifecycleEvent['direction']];
+          return (
+            <DuplicateComparePanel
+              key={key}
+              setId={setId}
+              direction={direction}
+              events={groupEvents}
+            />
+          );
+        })}
+      </div>
+    ) : null}
+    </div>
   );
 }
 

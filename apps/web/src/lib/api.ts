@@ -296,6 +296,23 @@ export const api = {
       await sendVoid('DELETE', `/lifecycles/${encodeURIComponent(po)}/notes/${id}`);
     },
   },
+  /** PS-9 — export lifecycle conversation as txt/csv/pdf. */
+  exportLifecycle: async (po: string, format: 'txt' | 'csv' | 'pdf'): Promise<void> => {
+    const res = await fetch(
+      `${BASE}/lifecycles/${encodeURIComponent(po)}/export?format=${format}`,
+      { headers: await authHeaders() },
+    );
+    if (!res.ok) throw new Error(`Export failed (${res.status})`);
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `lifecycle-${po}.${format}`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  },
   /** PS-9 — export raw file as txt/csv/pdf. */
   exportRaw: async (id: string, format: 'txt' | 'csv' | 'pdf'): Promise<void> => {
     const res = await fetch(`${BASE}/raw-files/${id}/export?format=${format}`, { headers: await authHeaders() });

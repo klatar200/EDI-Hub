@@ -29,6 +29,7 @@ const FLOW_LABEL: Record<LifecycleResponse['flow'], string> = {
 };
 import { api, type LifecycleKey } from '../lib/api.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
+import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
 import {
   PageHeader,
   ErrorState,
@@ -89,13 +90,16 @@ export function LifecyclePage(): JSX.Element {
         }
         actions={
           q.data ? (
-            <button type="button" className="btn print:hidden" onClick={() => window.print()}>
+            <div className="flex flex-wrap items-center gap-3 print:hidden">
+              <LifecycleExportMenu po={q.data.po} />
+              <button type="button" className="btn" onClick={() => window.print()}>
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <path d="M6 9V2h12v7M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2" />
                 <rect x="6" y="14" width="12" height="8" />
               </svg>
               Print
             </button>
+            </div>
           ) : null
         }
       />

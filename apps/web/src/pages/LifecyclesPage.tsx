@@ -8,6 +8,7 @@ import { Link, useSearchParams } from 'react-router-dom';
 import type { LifecycleFlow, LifecycleSummary } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
+import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
 import { useHasRole } from '../lib/useRole.tsx';
 import {
   PageHeader,
@@ -205,6 +206,9 @@ function LifecycleRow({
                   showDownloadRaw
                   compact
                 />
+                <div className="mt-3">
+                  <LifecycleExportMenu po={expandQ.data.po} />
+                </div>
                 <LifecycleNotes po={row.po} />
               </div>
             )}

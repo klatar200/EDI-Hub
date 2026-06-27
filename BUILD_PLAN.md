@@ -114,17 +114,24 @@ Execution plan for the lifecycle-first product roadmap. Feature IDs map to [`PRO
 | **PS-6** | Settings hub, theme relocate, SLA toggles | F52, F20, F33, F13 | ✅ Done |
 | **PS-7** | Channel health page + alerts polish | F10, F8, F33 | ✅ Done |
 | **PS-8** | Typed 855/856 headers, glossary, parse feedback | F7, F31, F59, F60 | ✅ Done |
-| **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Done |
-| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ✅ Done |
-| **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ✅ Done |
-| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ✅ Done |
+| **PS-9** | Ops notes, duplicate compare, raw export | F15, F56, F34, F37 | ✅ Verified |
+| **PS-10** | Search lifecycle-first, saved views | F42, F16, F43 | ⏳ Partial |
+| **PS-11** | Audit viewer, email digest, dictionary UI, bulk CSV | F22, F51, F57, F19 | ⏳ Partial |
+| **PS-12** | Desktop LAN onboarding + Help menu | F39, F40, F61, F62 | ⏳ Partial |
 
 **PS-1 deliverables (reference):**
 
 - `GET /api/lifecycles` — paginated `LifecycleSummary[]` (default sort: `startedAt` desc)
 - `/` → `LifecyclesPage`; `/transactions` → secondary drill-down
 - Row summary: partner, flow, status counts, alert badge, parse-error badge (F32)
-- Expand stub loads `GET /lifecycle?po=` on row expand (full UX in PS-2)
+- Expand loads `GET /lifecycle?po=` on row expand (PS-2)
+
+**PS-9 deliverables (verified 2026-06-25):**
+
+- **F15** — `DuplicateComparePanel`: side-by-side raw EDI when multiple copies share set + direction
+- **F56** — Ops notes on lifecycle expand panel (`GET/POST /lifecycles/:po/notes`)
+- **F34** — `GET /lifecycles/:po/export?format=txt|csv|pdf` + `LifecycleExportMenu` on detail + expand
+- **F37** — Invoice/shipment entry via `?invoice=` / search (scoped; no dedicated 810 multi-PO view)
 
 Approved features not yet grouped or deferred → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md).
 

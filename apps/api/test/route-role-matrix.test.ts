@@ -113,6 +113,7 @@ const EXPECTED: Record<string, Role> = {
   'POST /api/lifecycles/:po/notes': 'ops',
   'DELETE /api/lifecycles/:po/notes/:id': 'ops',
   'POST /api/lifecycles/export': 'viewer',
+  'GET /api/lifecycles/:po/export': 'viewer',
 
   // Admin settings
   'PATCH /api/settings': 'admin',

@@ -106,6 +106,7 @@ test('expand loads timeline without route change', async () => {
   expect(panel.textContent).toContain('850');
   expect(panel.textContent).toContain('Expected — not received');
   expect(within(panel).getByTestId('download-raw')).toBeInTheDocument();
+  expect(within(panel).getByTestId('lifecycle-export-menu')).toBeInTheDocument();
 });
 
 test('shows expected-doc warning badge on list row', async () => {

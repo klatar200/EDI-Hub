@@ -1,4 +1,4 @@
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, within, fireEvent, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
@@ -240,10 +240,16 @@ test('duplicate badge renders when two events share set and direction', async ()
       },
     ],
   };
-  vi.stubGlobal('fetch', vi.fn((input: unknown) => {
+  vi.stubGlobal('fetch', vi.fn(async (input: unknown) => {
     const url = String(input);
     if (url.includes('/lifecycle?po=PO-DUP')) {
       return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve(DUPLICATES) });
+    }
+    if (url.includes('/raw-files/r-a/content')) {
+      return { ok: true, status: 200, text: () => Promise.resolve('ISA*00*COPY-A~ST*850*0001~') };
+    }
+    if (url.includes('/raw-files/r-b/content')) {
+      return { ok: true, status: 200, text: () => Promise.resolve('ISA*00*COPY-B~ST*850*0002~') };
     }
     return Promise.resolve({ ok: true, status: 200, json: () => Promise.resolve({}) });
   }));
@@ -252,6 +258,10 @@ test('duplicate badge renders when two events share set and direction', async ()
   expect(badges.length).toBe(2);
   expect(badges[0]!.textContent).toContain('1 of 2');
   expect(badges[1]!.textContent).toContain('2 of 2');
+  expect(await screen.findByTestId('duplicate-compare-section')).toBeInTheDocument();
+  expect(await screen.findByTestId('duplicate-compare-850-inbound')).toBeInTheDocument();
+  expect(await screen.findByText(/ISA\*00\*COPY-A/)).toBeInTheDocument();
+  expect(await screen.findByText(/ISA\*00\*COPY-B/)).toBeInTheDocument();
 });
 
 test('expand raw loads raw file content inline', async () => {
@@ -271,5 +281,24 @@ test('expand raw loads raw file content inline', async () => {
   expandButtons[0]!.click();
   expect(await screen.findByTestId('lifecycle-raw-panel')).toBeInTheDocument();
   expect(screen.getByText(/ISA\*00\*TEST/)).toBeInTheDocument();
+});
+
+test('lifecycle export menu triggers download', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (input: unknown) => {
+    const url = String(input);
+    if (url.includes('/lifecycle?po=PO-100')) {
+      return { ok: true, status: 200, json: () => Promise.resolve(HAPPY_PATH) };
+    }
+    if (url.includes('/lifecycles/PO-100/export?format=txt')) {
+      return { ok: true, status: 200, blob: () => Promise.resolve(new Blob(['lifecycle txt'])) };
+    }
+    return { ok: true, status: 200, json: () => Promise.resolve({}) };
+  }));
+  renderAt('/lifecycle/PO-100');
+  await screen.findByText('850');
+  fireEvent.click(await screen.findByTestId('export-lifecycle-txt'));
+  await waitFor(() => {
+    expect(fetch).toHaveBeenCalledWith(expect.stringContaining('/lifecycles/PO-100/export?format=txt'), expect.anything());
+  });
 });
 
