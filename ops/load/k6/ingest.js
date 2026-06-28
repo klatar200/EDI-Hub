@@ -90,7 +90,7 @@ export default function () {
     file: http.file(asciiBytes(body), `load-${nextControl}.edi`, 'application/edi-x12'),
   };
 
-  const res = http.post(`${BASE_URL}/ingest/upload`, formData, {
+  const res = http.post(`${BASE_URL}/api/ingest/upload`, formData, {
     headers,
     tags: { kind: 'ingest' },
   });

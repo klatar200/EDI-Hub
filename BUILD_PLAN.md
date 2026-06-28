@@ -72,7 +72,7 @@
 | 5 | Product sprints PS-0–PS-12 + PB-1–PB-8 | ✅ Done → [§6](#6-completed-product-sprints-reference) |
 | 6 | Queue + CORS architecture ADRs | ✅ Done → [§8](#8-open-remediation--architecture-decisions) · [`docs/adr/`](docs/adr/) |
 | 7 | **Local dev validation ($0)** | ⏳ Active → [§3.1](#31-active-track--local-development-0) |
-| 7b | **Security audit remediation** | ⏳ SEC-3 (go-live) → [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) (SEC-1–4 shipped) |
+| 7b | **Security audit remediation** | ⏳ SEC-3 infra at go-live → [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) (SEC-1–4 code shipped) |
 | 8 | Optional polish | 📋 [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) — only if it serves stability/UX |
 | 9 | Staging deploy (Sprint A1) | 🔒 **Deferred (go-live)** → [§9](#9-deploy-track--go-live-gate--deferred) |
 | 10 | M5 operational proof (Sprint A2) | 🔒 **Deferred (go-live)** → [§10](#10-pre-production-operator-checklist) |
@@ -465,7 +465,11 @@ Sign-off for M4 (Sellable). Items are code-enforced or test-verified unless mark
 
 | # | Item | Status | Evidence |
 |---|---|---|---|
-| 1.1 | JWT required except `/health`, `/webhooks/clerk` | ✅ | `apps/api/src/plugins/tenant.ts` |
+| 1.1 | JWT required except public probes + webhooks (see below) | ✅ | `apps/api/src/plugins/tenant.ts` `PUBLIC_ROUTES` |
+| 1.1a | Public: `GET /health` — minimal liveness (`{ status: 'ok' }` only) | ✅ | `routes/health.ts` (SEC-4) |
+| 1.1b | Public: `GET /readiness` — ALB target group; exposes dep + channel detail | ✅ | `routes/internal.ts` |
+| 1.1c | Public: `GET /internal/metrics` — app allowlist; **403 at ALB** from internet | ✅ | `infra/alb.tf` listener rule (SEC-3) |
+| 1.1d | Public: `POST /webhooks/clerk` — Svix signature, not JWT | ✅ | `routes/webhooks.ts` |
 | 1.2 | Clerk SDK verification | ✅ | `apps/api/src/services/auth.ts` |
 | 1.3 | Forged tokens → 401 | ✅ | `apps/api/test/isolation.test.ts` |
 | 1.4 | Webhook Svix signature | ✅ | `apps/api/src/routes/webhooks.ts` |
@@ -509,7 +513,9 @@ Sign-off for M4 (Sellable). Items are code-enforced or test-verified unless mark
 | 7.1–7.3 | Secrets Manager in prod; `.env` in dev | ✅ | `secrets.ts` |
 | 7.4 | ECS task KMS decrypt | ⚠️ Operator | `infra/secrets.tf` output |
 | 8.1–8.2 | Structured logs, no PII default | ✅ | `server.ts` |
-| 8.3 | Rate limiting | ✅ | Phase 10 code + `rate-limit.test.ts` |
+| 8.3 | Rate limiting | ✅ | `rate-limit.test.ts`; staging: `ops/load/k6/abuse-rate-limit.js` |
+| 8.3a | Per-task buckets (N× limit behind ALB) | ⚠️ Documented | `rate-limit.ts`; Redis/WAF at scale → `FUTURE_FEATURES.md` |
+| 8.3b | `trustProxy: true` — client IP from ALB | ✅ | `server.ts`; ECS SG ingress ALB-only (`ecs.tf`) |
 | 9.1–9.3 | Security headers; ALB header scrub | ✅ | `security-headers.test.ts` |
 | 10.1–10.3 | Private RDS; SG ingress; S3 block public | ✅ | `infra/rds.tf`, `s3.tf` |
 

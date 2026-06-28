@@ -18,7 +18,7 @@ This folder holds the **real-AWS** definitions, applied per environment **after 
 |---|---|
 | `s3.tf` | Raw-file bucket — versioned, private, SSE-S3, bucket policy that denies un-encrypted or non-TLS access. |
 | `rds.tf` | Encrypted Postgres 16, private subnets only, `rds.force_ssl=1`, deletion protection, 14-day backups. |
-| `alb.tf` | Public ALB with HTTPS:443 (ACM cert, TLS 1.3 policy) and HTTP:80 → HTTPS redirect, Route 53 ALIAS, target group pointed at the API task. Health check: `/readiness`. |
+| `alb.tf` | Public ALB with HTTPS:443 (ACM cert, TLS 1.3 policy) and HTTP:80 → HTTPS redirect, Route 53 ALIAS, target group pointed at the API task. Health check: `/readiness`. **SEC-H4:** listener rule returns 403 for `/internal/*` on the public listener. |
 | `ecs.tf` | ECS Fargate cluster, ECR repo, API task definition + service (same-origin web bundle via `WEB_STATIC_DIR`), IAM roles, task security group. |
 | `secrets.tf` | Four `aws_secretsmanager_secret` entries (DB URL + Clerk keys + Slack webhook) encrypted with a project-owned KMS CMK. |
 | `api-container/` | Dockerfile build/push runbook for the production API+web image. |
@@ -138,14 +138,36 @@ curl -I http://api.edihub.example.com   # expect 301 with Location: https://...
 # 2) HTTPS works and the response carries HSTS
 curl -I https://api.edihub.example.com/health   # expect 200 + Strict-Transport-Security
 
-# 3) S3 PUT without SSE is rejected
+# 3) /internal/metrics is NOT reachable from the public internet (SEC-H4)
+curl -I https://api.edihub.example.com/internal/metrics   # expect 403 from ALB
+
+# 4) S3 PUT without SSE is rejected
 aws s3api put-object --bucket edi-raw-files-prod --key test-no-sse \
   --body /dev/null   # expect AccessDenied (the bucket policy)
 
-# 4) Postgres rejects non-TLS connections
+# 5) Postgres rejects non-TLS connections
 psql "host=<endpoint> user=edi_admin dbname=edi_hub sslmode=disable"
 # expect: FATAL: no pg_hba.conf entry / SSL connection is required
+
+# 6) Rate limit abuse — 429 + Retry-After (BUILD_PLAN §10)
+k6 run -e BASE_URL=https://api.edihub.example.com -e BEARER=<jwt> \
+  ops/load/k6/abuse-rate-limit.js
 ```
+
+### Rate limits and WAF (SEC-M4, SEC-M5)
+
+The API enforces per-tenant token buckets in-process (`apps/api/src/plugins/rate-limit.ts`).
+With multiple ECS tasks behind the ALB, effective limits are **N × configured
+per-minute** (one bucket per task). That is acceptable for v1; see
+`FUTURE_FEATURES.md` for Redis-backed shared buckets or ALB WAF if organized
+abuse appears post-launch.
+
+`trustProxy: true` in `server.ts` means rate-limit keys and logs use the
+client IP from `X-Forwarded-For` (set by the ALB). The API task security group
+should only accept ingress from the ALB security group (`ecs.tf`).
+
+Prometheus scrapes of `/internal/metrics` must run **inside the VPC** (direct
+task IP or private path) — the public ALB listener blocks `/internal/*`.
 
 The application never needs bucket-admin rights at runtime — only the
 object-level permissions in `aws_iam_policy.ingestion`. Versioning means an

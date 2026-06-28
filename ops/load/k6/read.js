@@ -88,16 +88,16 @@ export default function () {
   switch (route) {
     case 'lifecycle':
       if (!PO_NUMBER) { skipped.add(1); sleep(1); return; }
-      url = `${BASE_URL}/lifecycle?po=${encodeURIComponent(PO_NUMBER)}`;
+      url = `${BASE_URL}/api/lifecycle?po=${encodeURIComponent(PO_NUMBER)}`;
       break;
     case 'transactions-list':
-      url = `${BASE_URL}/transactions${PARTNER_ID ? `?partner=${encodeURIComponent(PARTNER_ID)}` : ''}`;
+      url = `${BASE_URL}/api/transactions${PARTNER_ID ? `?partner=${encodeURIComponent(PARTNER_ID)}` : ''}`;
       break;
     case 'search':
-      url = `${BASE_URL}/search?q=${encodeURIComponent(PO_NUMBER || INVOICE_NUMBER || 'PO-')}`;
+      url = `${BASE_URL}/api/search?q=${encodeURIComponent(PO_NUMBER || INVOICE_NUMBER || 'PO-')}`;
       break;
     case 'partners-list':
-      url = `${BASE_URL}/partners-config`;
+      url = `${BASE_URL}/api/partners-config`;
       break;
   }
 

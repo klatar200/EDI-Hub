@@ -3,7 +3,7 @@
 **Date:** 2026-06-27  
 **Scope:** `apps/api`, `apps/web`, `packages/db` tenant extension  
 **Mode:** Local-first / pre-go-live — findings include SaaS, desktop LAN, and infra assumptions  
-**Status:** SEC-1 remediation **shipped** (2026-06-27) · SEC-2 **shipped** (2026-06-28) · SEC-4 **shipped** (2026-06-28) · SEC-3 pending (go-live infra)
+**Status:** SEC-1 **shipped** · SEC-2 **shipped** · SEC-4 **shipped** · SEC-3 **code ready** (apply at go-live)
 
 **Related:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) §12 · [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) (redirect stub)
 
@@ -176,18 +176,19 @@ Work in order. Each sprint ends with `npm run test:ci` green and targeted securi
 
 ---
 
-### Sprint SEC-3 — Go-live hardening (defer until AWS deploy)
+### Sprint SEC-3 — Go-live hardening
 
 **Goal:** Items that require staging/production infrastructure.
 
-| Task | Finding |
-|------|---------|
-| ALB SG: block `/internal/*` from internet | SEC-H3, SEC-H4 |
-| Shared rate limit or WAF | SEC-M4, SEC-M5 |
-| Update BUILD_PLAN §12 public route list | SEC-M8 doc |
-| k6 abuse test + rate-limit audit row | BUILD_PLAN §10 |
+| Task | Finding | Status |
+|------|---------|--------|
+| ALB listener rule: block `/internal/*` from internet | SEC-H4 | ✅ `infra/alb.tf` (apply at go-live) |
+| k6 abuse test + `rate.exceeded` audit verification | BUILD_PLAN §10 | ✅ `ops/load/k6/abuse-rate-limit.js` |
+| Update BUILD_PLAN §12 public route list | SEC-M8 doc | ✅ |
+| Shared rate limit or WAF | SEC-M4, SEC-M5 | ⚠️ Documented; Redis/WAF if abuse appears |
+| Operator smoke: `/internal/metrics` 403 via public URL | SEC-H4 | ⏳ After `terraform apply` |
 
-**Exit:** Staging smoke + security checklist §12 re-sign-off.
+**Exit:** Staging smoke + security checklist §12 re-sign-off after deploy.
 
 ---
 
@@ -240,4 +241,4 @@ Manual checks (local):
 
 ## Next step
 
-Start **Sprint SEC-3** when preparing go-live (ALB SG, shared rate limits, k6 abuse tests).
+At **go-live**: `terraform apply` (includes ALB `/internal/*` block), run `ops/load/k6/abuse-rate-limit.js` against staging, confirm `rate.exceeded` in audit log, re-sign §12.

@@ -154,6 +154,30 @@ resource "aws_lb_listener" "https" {
   }
 }
 
+# SEC-H4 — block /internal/* on the public listener. The app treats
+# /internal/metrics as unauthenticated for cheap Prometheus scrapes, but
+# that endpoint must not be reachable from the internet. Scrapers run inside
+# the VPC (direct task IP, private NLB, or security-group-scoped access).
+resource "aws_lb_listener_rule" "block_internal_paths" {
+  listener_arn = aws_lb_listener.https.arn
+  priority     = 1
+
+  action {
+    type = "fixed-response"
+    fixed_response {
+      content_type = "text/plain"
+      message_body = "Forbidden"
+      status_code  = "403"
+    }
+  }
+
+  condition {
+    path_pattern {
+      values = ["/internal/*"]
+    }
+  }
+}
+
 # HTTP listener: redirect everything to HTTPS.
 resource "aws_lb_listener" "http_redirect" {
   load_balancer_arn = aws_lb.api.arn

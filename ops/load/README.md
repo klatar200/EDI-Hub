@@ -31,9 +31,29 @@ k6 run \
 |---|---|---|---|---|
 | `read.js` | ramping-vus 0 → 50 → 0 | `VUS` (default 50) | 150 s | p95 < 500 ms reads, error < 1% |
 | `ingest.js` | constant-vus | `VUS` (default 5) | 60 s | p95 < 2 s, error < 5% |
+| `abuse-rate-limit.js` | shared-iterations burst | 10 VUs | ≤ 60 s | at least one 429 + `Retry-After` |
+
+`BASE_URL` is the **origin only** (no `/api` suffix). Scripts call `/api/...` routes.
 
 Both scripts use `k6 thresholds` so a failed run exits non-zero — wire
 into CI when the staging environment is reachable from the runner.
+
+### Rate-limit abuse check (SEC-3)
+
+After deploy (or locally with dev-fallback):
+
+```bash
+# Local — API on :3000, CLERK_SECRET_KEY blank (dev-fallback grants admin)
+k6 run -e BASE_URL=http://localhost:3000 ops/load/k6/abuse-rate-limit.js
+
+# Staging — real Clerk JWT for the load-test tenant
+k6 run -e BASE_URL=https://app.staging.edihub.example.com \
+  -e BEARER=<JWT> \
+  ops/load/k6/abuse-rate-limit.js
+```
+
+Confirm `rate.exceeded` appears in Admin → Audit log for the tenant. This
+is the BUILD_PLAN §10 “rate limit live” receipt alongside `rate-limit.test.ts`.
 
 ## Tuning knobs
 
