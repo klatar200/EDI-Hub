@@ -32,6 +32,8 @@ Install **Terraform** (>= 1.5) and the **AWS CLI**, then configure AWS creds
 **Windows (PowerShell / VS Code):** see **[`WINDOWS.md`](WINDOWS.md)** — all operator commands
 use `$env:TF_VAR_*` (not `export`). Project Cursor rule: `.cursor/rules/powershell-cli.mdc`.
 
+**macOS/Linux (bash):** `export TF_VAR_db_master_password='...'` before apply.
+
 ## Apply order
 
 Apply in this order on a fresh environment. Each step is independently
