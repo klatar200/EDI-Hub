@@ -148,7 +148,7 @@ Work in order. Each sprint ends with `npm run test:ci` green and targeted securi
 
 | Task | Finding | Effort |
 |------|---------|--------|
-| Desktop LAN auth hardening | SEC-C1, SEC-H5 | Medium — design: API key in `clerk-runtime.json` or require Clerk for desktop prod |
+| Desktop LAN auth hardening | SEC-C1, SEC-H5 | ✅ LAN API token (`EDI_HUB_LAN_API_TOKEN`) + desktop web token gate |
 | Block deleted tenants at auth | SEC-H1 | Small |
 | Org-switch cache invalidation | SEC-H2 | Small |
 | AuthBridge token-ready gate | SEC-W1 | Small |

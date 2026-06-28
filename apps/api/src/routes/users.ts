@@ -28,6 +28,7 @@ import type { ApiErrorResponse } from '@edi/shared';
 
 import { requiresRole } from '../plugins/rbac.js';
 import { emitAudit, type AuditAction } from '../services/audit.js';
+import { LAN_TOKEN_USER_ID } from '../services/lan-auth.js';
 interface UserRecord {
   id: string;
   email: string;
@@ -78,6 +79,17 @@ export async function userRoutes(
         displayName: 'Dev (fallback)',
         role: 'admin' as const,
         clerkUserId: 'dev-fallback',
+        createdAt: new Date(0).toISOString(),
+        updatedAt: new Date(0).toISOString(),
+      });
+    }
+    if (request.auth.userId === LAN_TOKEN_USER_ID) {
+      return reply.code(200).send({
+        id: request.auth.userId,
+        email: 'lan@desktop',
+        displayName: 'LAN operator',
+        role: 'admin' as const,
+        clerkUserId: 'lan-token',
         createdAt: new Date(0).toISOString(),
         updatedAt: new Date(0).toISOString(),
       });

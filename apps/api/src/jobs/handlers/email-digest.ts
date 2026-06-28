@@ -29,15 +29,21 @@ export function createEmailDigestHandler(deps: {
       if (!settings.emailDigestEnabled) return;
 
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000);
-      const [openAlerts, failedIngests, stalePartners] = await Promise.all([
+      const [openAlerts, failedIngests, stalePartners, unknownIsaAlerts] = await Promise.all([
         deps.prisma.alert.count({ where: { status: 'active' } }),
         deps.prisma.rawFile.count({
           where: { status: { in: ['PARSE_ERROR', 'FAILED'] }, ingestedAt: { gte: since } },
         }),
         deps.prisma.alert.count({ where: { status: 'active', type: 'STALE_TRAFFIC' } }),
+        deps.prisma.alert.count({ where: { status: 'active', type: 'UNKNOWN_ISA' } }),
       ]);
 
-      const summary = { openAlerts, failedIngests24h: failedIngests, staleTrafficAlerts: stalePartners };
+      const summary = {
+        openAlerts,
+        failedIngests24h: failedIngests,
+        staleTrafficAlerts: stalePartners,
+        unknownIsaAlerts,
+      };
 
       if (deps.previewMode) {
         await deps.prisma.$transaction(async (tx) => {

@@ -33,7 +33,7 @@ interface ChannelEntry {
 
 /** SEC-H3 — SFTP/AS2 passive ingest is pinned to the pilot tenant. Disable in
  *  production multi-tenant SaaS until per-tenant channel mapping exists. */
-function passiveChannelsAllowed(config: AppConfig): boolean {
+export function passiveChannelsAllowed(config: AppConfig): boolean {
   if (config.nodeEnv !== 'production') return true;
   if (isDesktopHubMode()) return true;
   return !config.clerk.secretKey.trim();

@@ -58,7 +58,7 @@ Review items here when planning post-launch sprints. Each entry should serve mon
 
 | ID | Feature | Summary |
 |---|---|---|
-| **W4.1** | Clerk webhook reconcile script | `reconcile-clerk.ts` for out-of-order org/membership delivery. |
+| **W4.1** | Clerk webhook reconcile script | ✅ `npm run reconcile-clerk --workspace=@edi/api` |
 | **W4.2** | Authenticated raw-file viewing | Ensure UI uses fetch+blob, not bare URL links under Clerk auth. |
 
 ---

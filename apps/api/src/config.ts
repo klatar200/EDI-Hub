@@ -7,6 +7,9 @@
  * `envalid` and add a richer health check; the contract here stays the same.)
  */
 
+import { isDesktopHubMode } from './services/hub-config.js';
+import { lanTokenConfigured } from './services/lan-auth.js';
+
 function required(name: string): string {
   const value = process.env[name];
   if (value === undefined || value.trim() === '') {
@@ -173,6 +176,8 @@ export interface AppConfig {
   webStatic: WebStaticConfig;
   /** Minutes to suppress duplicate alerts after one fires (Phase 7 Gate G). */
   alertSuppressionMinutes: number;
+  /** SEC-C1 — desktop LAN bearer token (min 32 chars). Alternative to Clerk on LAN installs. */
+  lanApiToken: string;
 }
 
 export function loadConfig(): AppConfig {
@@ -268,16 +273,26 @@ export function loadConfig(): AppConfig {
       // pure-web dev — that path is fronted by CloudFront / Vite.
       dir: optional('WEB_STATIC_DIR', ''),
     },
+    lanApiToken: optional('EDI_HUB_LAN_API_TOKEN', ''),
   };
 
   return config;
 }
 
-/** W1.1 — refuse production boot without Clerk. Call after `loadConfig` and
+/** W1.1 / SEC-C1 — refuse production boot without auth. Call after `loadConfig` and
  *  `applySecretsFromManager` so Secrets Manager overlays are included.
- *  Applies to SaaS and desktop hub — production always requires Clerk. */
+ *  SaaS production requires Clerk. Desktop hub may use Clerk OR a LAN API token. */
 export function assertProductionAuthConfig(config: AppConfig): void {
   if (config.nodeEnv !== 'production') return;
+
+  const clerkComplete =
+    config.clerk.secretKey.trim().length > 0
+    && config.clerk.webhookSecret.trim().length > 0
+    && (config.clerk.publishableKey?.trim().length ?? 0) > 0;
+
+  if (clerkComplete) return;
+
+  if (isDesktopHubMode() && lanTokenConfigured(config.lanApiToken)) return;
 
   const missing: string[] = [];
   if (!config.clerk.secretKey.trim()) missing.push('CLERK_SECRET_KEY');
@@ -285,16 +300,17 @@ export function assertProductionAuthConfig(config: AppConfig): void {
   if (!config.clerk.publishableKey?.trim()) {
     missing.push('VITE_CLERK_PUBLISHABLE_KEY or CLERK_PUBLISHABLE_KEY');
   }
+  if (isDesktopHubMode()) missing.push('EDI_HUB_LAN_API_TOKEN (min 32 chars)');
 
-  if (missing.length > 0) {
-    throw new Error(
-      `Production boot refused: missing Clerk configuration: ${missing.join(', ')}. ` +
-        'Set all Clerk secrets (via env or Secrets Manager) before NODE_ENV=production.',
-    );
-  }
+  throw new Error(
+    `Production boot refused: missing auth configuration: ${missing.join(', ')}. ` +
+      'Set Clerk secrets or EDI_HUB_LAN_API_TOKEN for desktop hub.',
+  );
 }
 
 /** One-line auth mode for startup logs. */
-export function resolveAuthMode(config: AppConfig): 'clerk' | 'dev-fallback' {
-  return config.clerk.secretKey.trim() ? 'clerk' : 'dev-fallback';
+export function resolveAuthMode(config: AppConfig): 'clerk' | 'lan-token' | 'dev-fallback' {
+  if (config.clerk.secretKey.trim()) return 'clerk';
+  if (lanTokenConfigured(config.lanApiToken) && isDesktopHubMode()) return 'lan-token';
+  return 'dev-fallback';
 }

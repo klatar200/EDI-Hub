@@ -19,6 +19,7 @@ import { BrowserRouter } from 'react-router-dom';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ClerkProvider } from '@clerk/react';
 import { App } from './App.tsx';
+import { DesktopLanRoot } from './DesktopLanRoot.tsx';
 import { ThemeProvider, useTheme } from './lib/useTheme.tsx';
 import { ToastProvider } from './lib/useToast.tsx';
 import './index.css';
@@ -28,6 +29,15 @@ const queryClient = new QueryClient({
 });
 
 const clerkKey = import.meta.env.VITE_CLERK_PUBLISHABLE_KEY as string | undefined;
+
+function isDesktopRuntime(): boolean {
+  return typeof window !== 'undefined'
+    && (window as Window & { runtime?: { mode?: string } }).runtime?.mode === 'desktop';
+}
+
+function clerkKeyMissing(): boolean {
+  return !clerkKey || clerkKey.startsWith('REPLACE_ME') || clerkKey === 'pk_test_...';
+}
 
 function MissingClerkKey(): JSX.Element {
   return (
@@ -45,7 +55,13 @@ function MissingClerkKey(): JSX.Element {
 
 const root = createRoot(document.getElementById('root')!);
 
-if (!clerkKey || clerkKey.startsWith('REPLACE_ME') || clerkKey === 'pk_test_...') {
+if (clerkKeyMissing() && isDesktopRuntime()) {
+  root.render(
+    <React.StrictMode>
+      <DesktopLanRoot />
+    </React.StrictMode>,
+  );
+} else if (clerkKeyMissing()) {
   // Catch both "unset" and "still placeholder" with one guard. The
   // placeholder check matches the value we ship in the .env template.
   root.render(<MissingClerkKey />);

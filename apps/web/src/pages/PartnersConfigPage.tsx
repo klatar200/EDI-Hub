@@ -893,24 +893,33 @@ function ContactsEditor({
             />
             <div className="col-span-4 flex flex-wrap items-center gap-2 text-xs">
               <span className="text-[var(--color-fg-muted)]">Alert types:</span>
-              {(['MISSING_ACK', 'REJECTION_RATE_SPIKE'] as const).map((t) => {
+              {(['MISSING_ACK', 'REJECTION_RATE_SPIKE', 'STALE_TRAFFIC', 'UNKNOWN_ISA'] as const).map((t) => {
                 const enabled = c.alertTypeOptIns?.includes(t) ?? true; // empty = all
+                const label =
+                  t === 'MISSING_ACK' ? 'missing-ack'
+                  : t === 'REJECTION_RATE_SPIKE' ? 'rejection-spike'
+                  : t === 'STALE_TRAFFIC' ? 'stale-traffic'
+                  : 'unknown-isa';
                 return (
                   <label key={t} className="flex items-center gap-1">
                     <input
                       type="checkbox"
                       checked={enabled}
                       onChange={() => {
-                        const current = c.alertTypeOptIns ?? ['MISSING_ACK', 'REJECTION_RATE_SPIKE'];
+                        const all = ['MISSING_ACK', 'REJECTION_RATE_SPIKE', 'STALE_TRAFFIC', 'UNKNOWN_ISA'] as const;
+                        const current = c.alertTypeOptIns ?? [...all];
                         const nextOptIns = enabled
                           ? current.filter((x) => x !== t)
                           : [...current, t];
                         const next = [...contacts];
-                        next[i] = { ...c, alertTypeOptIns: nextOptIns.length === 2 ? undefined : nextOptIns };
+                        next[i] = {
+                          ...c,
+                          alertTypeOptIns: nextOptIns.length === all.length ? undefined : [...nextOptIns],
+                        };
                         onChange(next);
                       }}
                     />
-                    {t === 'MISSING_ACK' ? 'missing-ack' : 'rejection-spike'}
+                    {label}
                   </label>
                 );
               })}

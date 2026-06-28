@@ -35,6 +35,7 @@ function makeConfig(): AppConfig {
     clerk: { secretKey: 'sk_test', webhookSecret: '' },
   storage: { backend: 's3', localDataDir: '/tmp/edi-test' },
     alertSuppressionMinutes: 60,
+    lanApiToken: '',
   cors: { allowedOrigins: [] },
   webStatic: { dir: "" },
   } as AppConfig;

@@ -111,7 +111,7 @@ npm run dev:web    # terminal 2 — http://localhost:5173
 
 ### Exit criteria (local track)
 
-- [ ] `npm run test:ci` green
+- [x] `npm run test:ci` green (`npm run smoke:local` wraps this)
 - [ ] Sign in (Clerk or dev-fallback) and see lifecycles UI
 - [ ] Upload or SFTP-drop a test 850; appears in lifecycle list
 - [ ] Alerts/detection runnable locally (`npm run detect --workspace=@edi/api` or dashboard)

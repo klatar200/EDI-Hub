@@ -36,7 +36,8 @@
     "infra:down": "docker compose down",
     "set-phase": "node scripts/set-phase.mjs",
     "release:tag": "node scripts/tag-release.mjs",
-    "generate:test-edi": "node scripts/generate-test-edi.mjs"
+    "generate:test-edi": "node scripts/generate-test-edi.mjs",
+    "smoke:local": "node scripts/smoke-local.mjs"
   },
   "devDependencies": {
     "@eslint/js": "^9.17.0",

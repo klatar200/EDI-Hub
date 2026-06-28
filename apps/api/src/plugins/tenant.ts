@@ -23,6 +23,13 @@ import type { FastifyInstance, FastifyPluginOptions, FastifyRequest } from 'fast
 import fp from 'fastify-plugin';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { verifyBearerToken, type AuthOutcome } from '../services/auth.js';
+import { isDesktopHubMode } from '../services/hub-config.js';
+import {
+  extractBearerToken,
+  LAN_TOKEN_USER_ID,
+  lanTokenConfigured,
+  verifyLanApiToken,
+} from '../services/lan-auth.js';
 
 // Phase 10 Sprint 1.3 — `/readiness` + `/internal/metrics` join the
 // allowlist. They run before the API has fully booted (readiness probes
@@ -76,6 +83,22 @@ async function tenantPluginImpl(
 
     if (outcome.kind === 'dev-fallback') {
       if (app.config.nodeEnv === 'production') {
+        if (isDesktopHubMode() && lanTokenConfigured(app.config.lanApiToken)) {
+          const bearer = extractBearerToken(request);
+          if (!bearer || !verifyLanApiToken(bearer, app.config.lanApiToken)) {
+            return reply.code(401).send({
+              error: { code: 'UNAUTHENTICATED', message: 'Valid LAN API token required.' },
+            });
+          }
+          request.tenantId = PILOT_TENANT_ID;
+          request.auth = {
+            userId: LAN_TOKEN_USER_ID,
+            clerkUserId: 'lan-token',
+            role: 'admin',
+            tenantId: PILOT_TENANT_ID,
+          };
+          return;
+        }
         return reply.code(500).send({
           error: {
             code: 'AUTH_MISCONFIGURED',

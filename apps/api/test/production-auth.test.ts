@@ -37,6 +37,7 @@ function prodConfig(overrides: Partial<AppConfig> = {}): AppConfig {
     },
     storage: { backend: 's3', localDataDir: '/tmp' },
     alertSuppressionMinutes: 60,
+    lanApiToken: '',
     cors: { allowedOrigins: [] },
     webStatic: { dir: '' },
     ...overrides,
@@ -66,7 +67,23 @@ test('assertProductionAuthConfig throws for desktop hub mode when Clerk secrets 
   try {
     assert.throws(
       () => assertProductionAuthConfig(prodConfig({ clerk: { secretKey: '', webhookSecret: '', publishableKey: '' } })),
-      /Production boot refused.*CLERK_SECRET_KEY/,
+      /Production boot refused.*EDI_HUB_LAN_API_TOKEN/,
+    );
+  } finally {
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+    else delete process.env.EDI_HUB_USER_DATA_DIR;
+  }
+});
+
+test('assertProductionAuthConfig passes for desktop hub with LAN API token', () => {
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
+  try {
+    assert.doesNotThrow(() =>
+      assertProductionAuthConfig(prodConfig({
+        clerk: { secretKey: '', webhookSecret: '', publishableKey: '' },
+        lanApiToken: 'desktop-lan-secret-token-32chars!!',
+      })),
     );
   } finally {
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
@@ -111,24 +128,36 @@ test('production + dev-fallback returns 500 AUTH_MISCONFIGURED on authenticated 
   await app.close();
 });
 
-test('production desktop hub + dev-fallback returns AUTH_MISCONFIGURED', async () => {
+test('production desktop hub + LAN token accepts bearer auth', async () => {
   const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  const token = 'desktop-lan-secret-token-32chars!!';
   process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
   try {
     const verifyAuth = async (): Promise<AuthOutcome> => ({ kind: 'dev-fallback' });
+    const prisma = {
+      async $disconnect() {},
+      tradingPartner: { async findMany() { return []; } },
+    } as unknown as PrismaClient;
     const app = await buildServer({
       config: prodConfig({
-        clerk: { secretKey: '', webhookSecret: '' },
+        clerk: { secretKey: '', webhookSecret: '', publishableKey: '' },
+        lanApiToken: token,
         storage: { backend: 'local', localDataDir: '/tmp/edi-raw' },
       }),
       s3: okS3,
-      prisma: okPrisma,
+      prisma,
       verifyAuth,
     });
 
-    const res = await app.inject({ method: 'GET', url: '/api/partners-config' });
-    assert.equal(res.statusCode, 500);
-    assert.equal(res.json().error.code, 'AUTH_MISCONFIGURED');
+    const denied = await app.inject({ method: 'GET', url: '/api/partners-config' });
+    assert.equal(denied.statusCode, 401);
+
+    const ok = await app.inject({
+      method: 'GET',
+      url: '/api/partners-config',
+      headers: { authorization: `Bearer ${token}` },
+    });
+    assert.equal(ok.statusCode, 200);
     await app.close();
   } finally {
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
