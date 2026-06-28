@@ -112,8 +112,9 @@ npm run dev:web    # terminal 2 — http://localhost:5173
 ### Exit criteria (local track)
 
 - [x] `npm run test:ci` green (`npm run smoke:local` wraps this)
-- [ ] Sign in (Clerk or dev-fallback) and see lifecycles UI
-- [ ] Upload or SFTP-drop a test 850; appears in lifecycle list
+- [ ] `npm run validate:local` green (Docker Postgres + MinIO — ingest, lifecycle, detection)
+- [ ] Sign in (Clerk or dev-fallback) and see lifecycles UI in browser
+- [ ] Upload or SFTP-drop a test 850; appears in lifecycle list (browser or validate:local)
 - [ ] Alerts/detection runnable locally (`npm run detect --workspace=@edi/api` or dashboard)
 
 ### Explicitly out of scope until go-live
@@ -559,6 +560,7 @@ npm run dev:web
 npm run typecheck
 npm run lint
 npm run test:ci
+npm run validate:local   # Docker stack: ingest → parse → lifecycle → detection
 ```
 
 See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md).

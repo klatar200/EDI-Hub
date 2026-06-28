@@ -10,6 +10,7 @@
     "clean": "tsc --build --clean",
     "start": "node dist/index.js",
     "smoke": "tsc --build && dotenv -e ../../.env -- tsx test/smoke.ts",
+    "smoke:local": "tsc --build && dotenv -e ../../.env -- tsx test/smoke-local.ts",
     "backfill": "dotenv -e ../../.env -- tsx src/scripts/backfill-parse.ts",
     "backfill-direction": "tsx src/scripts/backfill-direction.ts",
     "purge-raw-by-isa": "tsx src/scripts/purge-raw-by-isa.ts",

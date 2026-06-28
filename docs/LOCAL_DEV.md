@@ -70,6 +70,10 @@ Open http://localhost:5173
 ## Ingest test EDI
 
 ```powershell
+# Full stack validation (Postgres + MinIO + migrate + ingest + lifecycle + detection):
+npm run validate:local
+
+# Or upload only (API must be running):
 curl.exe -F "file=@apps/api/test/fixtures/sample_850.edi" http://localhost:3000/ingest/upload
 curl.exe http://localhost:3000/health
 ```
