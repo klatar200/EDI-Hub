@@ -1,7 +1,10 @@
 # Infrastructure
 
+> 🔒 **Go-live gate — not active.** Owner develops **locally only** (`docs/LOCAL_DEV.md`) until ready for paid AWS.  
+> **Do not run `terraform apply`** during pre-launch development. When go-live: [`WINDOWS.md`](WINDOWS.md) · [`BUILD_PLAN.md`](../BUILD_PLAN.md) §9.
+
 Local development uses `docker-compose.yml` at the repo root (Postgres + MinIO).
-This folder holds the **real-AWS** definitions, applied per environment.
+This folder holds the **real-AWS** definitions, applied per environment **after go-live**.
 
 > Status: Phase 1 shipped the raw-file bucket. Phase 9 Sprint 4 added
 > Secrets Manager entries. Phase 9 Sprint 5 added the encrypted RDS instance,

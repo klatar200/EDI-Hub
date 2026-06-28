@@ -7,7 +7,7 @@ searching, troubleshooting, and alerting.
 **North Star:** Transaction lifecycle stitching — pull up a PO number and see
 the 850, 855, 856, 810, and all 997s in one chronological view.
 
-**Planning:** Active roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Architecture ADRs → [`docs/adr/`](docs/adr/) · **Staging (Windows)** → [`infra/WINDOWS.md`](infra/WINDOWS.md) · Approved backlog (historical) → [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) · Optional/deferred → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md)
+**Planning:** **Local dev ($0)** → [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) · Roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Architecture ADRs → [`docs/adr/`](docs/adr/) · AWS deploy (deferred) → [`BUILD_PLAN.md` §9](BUILD_PLAN.md#9-deploy-track--go-live-gate--deferred) · Optional → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md)
 
 **Tests:** 436 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
 
@@ -103,11 +103,13 @@ infra/          Terraform (AWS); local dev uses docker-compose.yml
 
 ---
 
-## Quickstart (local)
+## Quickstart (local — $0)
 
-```bash
+No AWS required. Full guide: [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md).
+
+```powershell
 npm install
-cp .env.example .env
+Copy-Item .env.example .env
 docker compose up -d            # Postgres + MinIO + SFTP
 npm run db:migrate
 npm run dev:api                 # http://localhost:3000
@@ -116,14 +118,14 @@ npm run dev:web                 # http://localhost:5173 (proxies /api)
 
 ### Ingest a test file
 
-```bash
-curl -F file=@apps/api/test/fixtures/sample_850.edi http://localhost:3000/ingest/upload
-curl http://localhost:3000/health
+```powershell
+curl.exe -F "file=@apps/api/test/fixtures/sample_850.edi" http://localhost:3000/ingest/upload
+curl.exe http://localhost:3000/health
 ```
 
 ### SFTP channel
 
-```bash
+```powershell
 # SFTP_WATCH_ENABLED=true in .env, restart API
 sftp -P 2222 edi@localhost    # password: edi
 # put file into incoming/
@@ -135,7 +137,7 @@ MinIO console: http://localhost:9001 (minioadmin / minioadmin)
 
 ## Verify
 
-```bash
+```powershell
 npm run typecheck
 npm run lint                  # zero warnings
 npm run test:ci               # db + parser + api + web + desktop

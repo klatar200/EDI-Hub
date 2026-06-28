@@ -1,10 +1,10 @@
 # EDI Data Hub — Build Plan & Roadmap
 
 **Owner:** Keagan  
-**Last updated:** 2026-06-25  
-**Status:** Phases **0–10** and **desktop track** code-complete. **Product backlog (PS + PB sprints) complete.** Production deploy and first external customer not done.
+**Last updated:** 2026-06-27  
+**Status:** Phases **0–10** and **desktop track** code-complete. **Product backlog complete.** **Active track: local development ($0).** AWS staging and go-live are **deferred** until the owner is ready.
 
-> **Active planning lives here.** Shipped capabilities are listed in [`README.md`](README.md#features). Optional and deferred ideas are in [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md). Operational runbooks stay in `ops/RUNBOOKS.md`.
+> **Active planning lives here.** **Local dev guide:** [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md). Shipped capabilities → [`README.md`](README.md#features). Optional ideas → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md). **Paid AWS deploy** → [§9](#9-deploy-track--go-live-gate--deferred) (do not run until go-live).
 
 ---
 
@@ -13,12 +13,13 @@
 1. [Current snapshot](#1-current-snapshot)
 2. [North Star & principles](#2-north-star--principles)
 3. [Roadmap — what's next](#3-roadmap--whats-next)
+3.1. [Active track — local development ($0)](#31-active-track--local-development-0)
 4. [Phase & milestone map](#4-phase--milestone-map)
 5. [Tech stack](#5-tech-stack)
 6. [Completed product sprints (reference)](#6-completed-product-sprints-reference)
 7. [UI overhaul (Sprint A3)](#7-ui-overhaul-sprint-a3)
 8. [Open remediation & architecture decisions](#8-open-remediation--architecture-decisions)
-9. [Deploy track — staging & M5 proof](#9-deploy-track--staging--m5-proof)
+9. [Deploy track — go-live gate (deferred)](#9-deploy-track--go-live-gate--deferred)
 10. [Pre-production operator checklist](#10-pre-production-operator-checklist)
 11. [Clerk setup](#11-clerk-setup)
 12. [Security checklist (sign-off)](#12-security-checklist-sign-off)
@@ -37,10 +38,12 @@
 | **Tests** | **436** — 46 db · 48 parser · 256 api · 61 web · 25 desktop |
 | **CI** | typecheck · lint (0 warnings) · `test:ci` green |
 | **Product backlog** | ✅ PS-0–PS-12 + PB-1–PB-8 complete — [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) |
-| **Production** | ⏳ Not deployed — [§10](#10-pre-production-operator-checklist) |
-| **Next focus** | Staging deploy (§9) → M5 operational proof (§10) |
+| **Production** | 🔒 Deferred until go-live — [§9](#9-deploy-track--go-live-gate--deferred) |
+| **Next focus** | **Local dev ($0)** → [§3.1](#31-active-track--local-development-0) |
 
-**M5 in code ≠ M5 in production.** Operator drills (restore, k6 baseline, runbook cold-read) must pass before M5 is declared in a live environment.
+**M5 in code ≠ M5 in production.** Operator drills (restore, k6 baseline, runbook cold-read) run at **go-live**, not during local-only development.
+
+**Cost policy:** No paid AWS, domains, or Clerk production tiers until the owner declares go-live readiness. Cursor rule: `.cursor/rules/local-first-zero-cost.mdc`.
 
 ---
 
@@ -50,13 +53,15 @@
 
 **Anti-drift rule:** New work must serve monitoring, troubleshooting, alerting, or stability.
 
-**Principles:** De-risk parsing early · every phase demoable · raw file is sacred · passive observability (copies only, never live path).
+**Principles:** De-risk parsing early · every phase demoable · raw file is sacred · passive observability (copies only, never live path) · **local-first until go-live** (zero cloud spend during development).
 
 ---
 
 ## 3. Roadmap — what's next
 
-**Product features:** All approved backlog items are shipped (see [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md)). Remaining work is infrastructure, deploy proof, and go-to-market.
+**Product features:** All approved backlog items are shipped ([`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md)).
+
+**Infrastructure:** **Local only** until go-live. Do not provision AWS staging.
 
 | # | Workstream | Status |
 |---|---|---|
@@ -66,12 +71,57 @@
 | 4 | UI overhaul — Sprint A3 | ✅ Done → [§7](#7-ui-overhaul-sprint-a3) |
 | 5 | Product sprints PS-0–PS-12 + PB-1–PB-8 | ✅ Done → [§6](#6-completed-product-sprints-reference) |
 | 6 | Queue + CORS architecture ADRs | ✅ Done → [§8](#8-open-remediation--architecture-decisions) · [`docs/adr/`](docs/adr/) |
-| 7 | Staging deploy (Sprint A1) | ⏳ **Next** → [§9](#9-deploy-track--staging--m5-proof) |
-| 8 | M5 operational proof (Sprint A2) | ⏳ → [§10 exit checklist](#phase-10-exit-checklist-m5--production-ready) |
-| 9 | Phase 11 commercialization | ⏳ → [§13](#13-phase-11--12--go-to-market) |
-| 10 | Phase 12 external pilot (M6) | ⏳ → [§13](#13-phase-11--12--go-to-market) |
+| 7 | **Local dev validation ($0)** | ⏳ **Active** → [§3.1](#31-active-track--local-development-0) |
+| 8 | Optional polish | 📋 [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) — only if it serves stability/UX |
+| 9 | Staging deploy (Sprint A1) | 🔒 **Deferred (go-live)** → [§9](#9-deploy-track--go-live-gate--deferred) |
+| 10 | M5 operational proof (Sprint A2) | 🔒 **Deferred (go-live)** → [§10](#10-pre-production-operator-checklist) |
+| 11 | Phase 11 commercialization | 🔒 **Deferred** → [§13](#13-phase-11--12--go-to-market) |
+| 12 | Phase 12 external pilot (M6) | 🔒 **Deferred** → [§13](#13-phase-11--12--go-to-market) |
 
-Low-priority polish (W4.x, desktop OPTIONAL-D1/D2, deferred product ideas) → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
+---
+
+## 3.1 Active track — local development ($0)
+
+**Goal:** Run the full hub on your machine — no AWS bill, no domain, no `terraform apply`.
+
+**Guide:** [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) (PowerShell / VS Code).
+
+### Stack (local substitutes)
+
+| Production | Local (free) |
+|---|---|
+| RDS Postgres | Docker Postgres (`docker-compose.yml`) |
+| S3 | MinIO (`docker-compose.yml`) |
+| ECS + ALB + ACM | `npm run dev:api` + `npm run dev:web` (Vite proxies `/api`) |
+| Secrets Manager | `.env` (from `.env.example`) |
+| Clerk production | Clerk **Free** `pk_test_` / `sk_test_`, or API **dev-fallback** (no keys) |
+| SFTP / AS2 | Optional local channels via `docker compose` |
+
+### Quickstart (PowerShell)
+
+```powershell
+npm install
+Copy-Item .env.example .env
+docker compose up -d
+npm run db:migrate
+npm run dev:api    # terminal 1 — http://localhost:3000
+npm run dev:web    # terminal 2 — http://localhost:5173
+```
+
+### Exit criteria (local track)
+
+- [ ] `npm run test:ci` green
+- [ ] Sign in (Clerk or dev-fallback) and see lifecycles UI
+- [ ] Upload or SFTP-drop a test 850; appears in lifecycle list
+- [ ] Alerts/detection runnable locally (`npm run detect --workspace=@edi/api` or dashboard)
+
+### Explicitly out of scope until go-live
+
+- AWS account, Terraform apply, Route 53, staging URL
+- Clerk Hobby/Organizations billing (unless you choose it for multi-org testing)
+- k6 against staging, restore drills on RDS, CloudWatch — [§10](#10-pre-production-operator-checklist)
+
+Low-priority polish → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
 
 ---
 
@@ -97,9 +147,11 @@ Feature detail for completed phases → [`README.md` § Features](README.md#feat
 
 ## 5. Tech stack
 
-React + Vite + Tailwind · Fastify + TypeScript · PostgreSQL + Prisma · S3/MinIO · Clerk · AWS + Terraform · GitHub Actions.
+**Local development (active — $0):** React + Vite · Fastify · Postgres (Docker) · MinIO · Clerk Free or dev-fallback · GitHub Actions CI.
 
-Cron/Task Scheduler for detection today (BullMQ deferred — [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md)).
+**Production (deferred until go-live):** AWS RDS + S3 + ECS + ALB · Secrets Manager · Terraform in `infra/` · Clerk Hobby+ for Organizations.
+
+Cron/Task Scheduler for detection locally (BullMQ deferred — [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md)).
 
 ---
 
@@ -198,16 +250,22 @@ Moved to [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) (webhook reconcile, raw-file
 
 ---
 
-## 9. Deploy track — staging & M5 proof
+## 9. Deploy track — go-live gate (deferred)
 
-**When:** After architecture ADRs (W3.1/W3.2) and you schedule a deploy week. Local dev needs no AWS:
+> 🔒 **NOT ACTIVE.** Owner policy: **no paid cloud spend** until the app is ready to go live.  
+> **Do not** run `terraform apply`, create an AWS account for this project, or buy a domain during local development.  
+> **When ready:** follow [`infra/WINDOWS.md`](infra/WINDOWS.md) (PowerShell) — expect ~**$40–60+/month** for minimal always-on staging (ALB + RDS + Fargate) plus domain/hosted zone fees.
 
-```bash
-npm run infra:up && npm run db:migrate
-npm run dev:api && npm run dev:web
+**Local substitute (use now):** [§3.1](#31-active-track--local-development-0) · [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md)
+
+```powershell
+npm run infra:up
+npm run db:migrate
+npm run dev:api
+npm run dev:web
 ```
 
-### Sprint A1 — Staging environment
+### Sprint A1 — Staging environment (go-live only)
 
 **Goal:** HTTPS API + RDS + S3 + Secrets Manager; Clerk staging app wired.
 
@@ -282,6 +340,8 @@ Tag `m5-production-ready` when all five exit items pass.
 
 ## 10. Pre-production operator checklist
 
+🔒 **Deferred until go-live.** Complete after [§9](#9-deploy-track--go-live-gate--deferred) when accepting AWS costs.
+
 Operator-only work before first external customer. Check off and date each line.
 
 ### Infrastructure apply (per environment)
@@ -322,7 +382,18 @@ Operator-only work before first external customer. Check off and date each line.
 
 ## 11. Clerk setup
 
-One-time per environment (dev, staging, prod). Values go in `.env` / Secrets Manager — never commit secrets.
+### Local development ($0)
+
+| Approach | Cost | When |
+|----------|------|------|
+| **Dev-fallback** | Free | Leave `CLERK_SECRET_KEY` blank — API pins pilot tenant; good for parser/UI work |
+| **Clerk Free + test keys** | Free | Real sign-in UI with `pk_test_` / `sk_test_` in `.env` |
+
+Copy `.env.example` → `.env`. See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md).
+
+### Staging / production (go-live — paid tiers may apply)
+
+One-time per environment. Values go in `.env` (local) or Secrets Manager (AWS) — never commit secrets.
 
 ### 1. Create application
 
@@ -330,7 +401,7 @@ One-time per environment (dev, staging, prod). Values go in `.env` / Secrets Man
 
 ### 2. Enable Organizations
 
-Organizations → Settings → enable. Maps to `Tenant` rows. Requires **Hobby** plan ($25/mo) minimum.
+Organizations → Settings → enable. Maps to `Tenant` rows. Requires **Clerk Hobby** ($25/mo) — **defer until go-live**; not required for local dev-fallback or single-org testing.
 
 ### 3. API keys
 
@@ -364,8 +435,8 @@ CLERK_WEBHOOK_SECRET=whsec_...
 
 After creating org in Clerk, attach existing pilot data:
 
-```bash
-npm run attach-pilot-org --workspace=@edi/api -- <clerk_org_id>
+```powershell
+npm run attach-pilot-org --workspace=@edi/api -- org_xxxxxxxx
 ```
 
 ### 7. Verify
@@ -453,6 +524,8 @@ Deferred security items → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
 
 ## 13. Phase 11 & 12 — go to market
 
+🔒 **Deferred** until local product is validated and [§9](#9-deploy-track--go-live-gate--deferred) staging is live.
+
 ### Phase 11 — Commercialization
 
 **Blockers:** Gate 4 (self-serve Stripe vs direct sales); **Q7** (employer data rights); **Q11** (business entity).
@@ -467,10 +540,18 @@ Deferred security items → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md).
 
 ## 14. Commands
 
-```bash
+**Local (PowerShell — active):**
+
+```powershell
 npm install
-npm run typecheck && npm run lint && npm run test:ci
-npm run dev:api && npm run dev:web
-npm run db:migrate --workspace=@edi/db
-npm run infra:up    # Postgres + MinIO + SFTP
+Copy-Item .env.example .env
+npm run infra:up
+npm run db:migrate
+npm run dev:api
+npm run dev:web
+npm run typecheck
+npm run lint
+npm run test:ci
 ```
+
+See [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md).

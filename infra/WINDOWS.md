@@ -1,7 +1,9 @@
 # Staging deploy on Windows (PowerShell)
 
-Use this guide if you are on **Windows PowerShell** or **PowerShell 7** in VS Code.
-Do **not** use `export` — that is bash/Linux/macOS syntax.
+> 🔒 **DEFERRED until go-live.** Do not use this guide until you are ready to accept AWS + domain costs (~$40–60+/mo).  
+> **Active development:** [`docs/LOCAL_DEV.md`](../docs/LOCAL_DEV.md) (zero cost).
+
+Use this guide when you are on **Windows PowerShell** or **PowerShell 7** in VS Code and have opted into paid staging.
 
 **New to AWS?** Start with [Part 0 — From zero](#part-0--from-zero-aws-account-passwords-clerk) below.
 
