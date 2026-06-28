@@ -75,6 +75,12 @@ async function authHeaders(): Promise<Record<string, string>> {
   return token ? { Authorization: `Bearer ${token}` } : {};
 }
 
+/** Strip path separators and control chars from user-supplied download names. */
+function safeDownloadFilename(name: string, fallback: string): string {
+  const base = name.replace(/[/\\?%*:|"<>]/g, '_').replace(/\.\./g, '_').slice(0, 200);
+  return base.length > 0 ? base : fallback;
+}
+
 function qs(params: Record<string, string | number | boolean | string[] | undefined>): string {
   const sp = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
@@ -274,7 +280,7 @@ export const api = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = filename ?? `${id}.edi`;
+    a.download = safeDownloadFilename(filename ?? '', `${id}.edi`);
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -312,7 +318,7 @@ export const api = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `lifecycle-${po}.${format}`;
+    a.download = safeDownloadFilename(`lifecycle-${po}.${format}`, `lifecycle-export.${format}`);
     document.body.appendChild(a);
     a.click();
     a.remove();
@@ -326,7 +332,7 @@ export const api = {
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `${id}.${format}`;
+    a.download = safeDownloadFilename(`${id}.${format}`, `export.${format}`);
     document.body.appendChild(a);
     a.click();
     a.remove();

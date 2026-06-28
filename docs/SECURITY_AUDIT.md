@@ -3,7 +3,7 @@
 **Date:** 2026-06-27  
 **Scope:** `apps/api`, `apps/web`, `packages/db` tenant extension  
 **Mode:** Local-first / pre-go-live — findings include SaaS, desktop LAN, and infra assumptions  
-**Status:** Audit complete · remediation **not started**
+**Status:** SEC-1 remediation **shipped** (2026-06-27) · SEC-2/SEC-3 pending
 
 **Related:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) §12 · [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) (redirect stub)
 
@@ -227,4 +227,4 @@ Manual checks (local):
 
 ## Next step
 
-Start **Sprint SEC-1** when ready to implement fixes. Say which sprint to execute (or “fix SEC-H2 only”) and work can proceed on `main`.
+Start **Sprint SEC-2** for remaining defense-in-depth items (partners mutation UI guards, `setup/verify-auth` hardening tests).

@@ -12,6 +12,7 @@
 import type { IngestionDeps } from '../services/ingestion.js';
 import type { AppConfig } from '../config.js';
 import type { ChannelHealth, IngestionChannel } from './types.js';
+import { isDesktopHubMode } from '../services/hub-config.js';
 import { startSftpChannel } from '../sftp/watcher.js';
 import { startAs2Channel } from './as2.js';
 import { DESKTOP_DROP_CHANNEL_NAME, startDesktopDropChannel } from './desktop-drop.js';
@@ -30,16 +31,31 @@ interface ChannelEntry {
   channel: IngestionChannel | null;
 }
 
+/** SEC-H3 — SFTP/AS2 passive ingest is pinned to the pilot tenant. Disable in
+ *  production multi-tenant SaaS until per-tenant channel mapping exists. */
+function passiveChannelsAllowed(config: AppConfig): boolean {
+  if (config.nodeEnv !== 'production') return true;
+  if (isDesktopHubMode()) return true;
+  return !config.clerk.secretKey.trim();
+}
+
 export async function startConfiguredChannels(
   deps: IngestionDeps,
   config: AppConfig,
   opts: { desktopDropFolder?: string | null } = {},
 ): Promise<ChannelRegistry> {
   const entries: ChannelEntry[] = [];
+  const passiveOk = passiveChannelsAllowed(config);
+
+  if (!passiveOk && (config.sftp.enabled || config.as2.enabled)) {
+    deps.logger.warn(
+      'SFTP/AS2 passive channels are disabled in production multi-tenant mode (ingest is pinned to pilot tenant)',
+    );
+  }
 
   entries.push(
     await startOne({
-      enabled: config.sftp.enabled,
+      enabled: config.sftp.enabled && passiveOk,
       name: 'sftp',
       source: 'sftp',
       detail: { watchDir: config.sftp.watchDir },
@@ -49,7 +65,7 @@ export async function startConfiguredChannels(
 
   entries.push(
     await startOne({
-      enabled: config.as2.enabled,
+      enabled: config.as2.enabled && passiveOk,
       name: 'as2',
       source: 'as2',
       detail: { inboxDir: config.as2.inboxDir },

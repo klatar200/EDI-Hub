@@ -66,7 +66,7 @@ function renderPage() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
     <QueryClientProvider client={qc}>
-      <MeProvider>
+      <MeProvider orgId="test-org">
         <MemoryRouter>
           <AlertsPage />
         </MemoryRouter>

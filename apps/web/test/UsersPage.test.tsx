@@ -42,7 +42,7 @@ function renderPage(): void {
   render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <MeProvider>
+        <MeProvider orgId="test-org">
           <UsersPage />
         </MeProvider>
       </MemoryRouter>
