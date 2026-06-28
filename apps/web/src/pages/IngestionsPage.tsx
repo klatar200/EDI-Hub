@@ -12,6 +12,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useSearchParams } from 'react-router-dom';
 import type { RawFileRecord } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { buildParseErrorReport } from '../lib/parse-error-report.ts';
 import { IngestUploadPanel } from '../components/IngestUploadPanel.tsx';
 import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
@@ -179,21 +180,7 @@ export function IngestionsPage(): JSX.Element {
                       type="button"
                       className="ml-2 text-xs text-[var(--color-brand-600)] hover:underline"
                       data-testid={`copy-parse-context-${r.id}`}
-                      onClick={() => void navigator.clipboard.writeText(
-                        [
-                          '# EDI Hub parse error report',
-                          `rawFileId: ${r.id}`,
-                          `isaControlNumber: ${r.isaControlNumber ?? 'n/a'}`,
-                          `source: ${r.source}`,
-                          `status: ${r.status}`,
-                          `ingestedAt: ${r.ingestedAt}`,
-                          '',
-                          'error:',
-                          r.errorMessage,
-                          '',
-                          'Tip: check Partners → segment label overrides for Z-segments.',
-                        ].join('\n'),
-                      )}
+                      onClick={() => void navigator.clipboard.writeText(buildParseErrorReport(r))}
                     >
                       Copy report
                     </button>

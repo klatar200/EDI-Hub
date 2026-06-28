@@ -24,7 +24,7 @@ import { emitAudit } from '../services/audit.js';
 
 import { requiresRole } from '../plugins/rbac.js';
 const STATUS_SET = new Set<AlertStatus>(['active', 'acknowledged', 'resolved']);
-const TYPE_SET = new Set<AlertType>(['MISSING_ACK', 'REJECTION_RATE_SPIKE', 'STALE_TRAFFIC']);
+const TYPE_SET = new Set<AlertType>(['MISSING_ACK', 'REJECTION_RATE_SPIKE', 'STALE_TRAFFIC', 'UNKNOWN_ISA']);
 
 export async function alertsRoutes(
   app: FastifyInstance,

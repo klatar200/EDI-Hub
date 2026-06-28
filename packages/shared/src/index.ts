@@ -631,6 +631,7 @@ export const ALERT_TYPES = [
   'MISSING_ACK',
   'REJECTION_RATE_SPIKE',
   'STALE_TRAFFIC',
+  'UNKNOWN_ISA',
 ] as const;
 export type AlertType = (typeof ALERT_TYPES)[number];
 

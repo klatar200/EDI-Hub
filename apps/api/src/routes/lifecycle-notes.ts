@@ -76,8 +76,8 @@ export async function lifecycleNotesRoutes(
       const created = await withAudit(
         app.prisma,
         {
-          action: 'tenant.config-update',
-          targetType: 'tenant',
+          action: 'lifecycle.note.create',
+          targetType: 'lifecycleNote',
           actorId: request.auth?.userId ?? null,
         },
         (tx) =>
@@ -105,8 +105,8 @@ export async function lifecycleNotesRoutes(
         await withAudit(
           app.prisma,
           {
-            action: 'tenant.config-update',
-            targetType: 'tenant',
+            action: 'lifecycle.note.delete',
+            targetType: 'lifecycleNote',
             actorId: request.auth?.userId ?? null,
           },
           async (tx) => {

@@ -40,9 +40,11 @@ export type AuditAction =
   // Phase 10 Sprint 4 — rate-limit breach (best-effort audit so abuse
   // patterns show up in the audit log without blocking the 429 response).
   | 'rate.exceeded'
-  | 'rawFile.reparse';
+  | 'rawFile.reparse'
+  | 'lifecycle.note.create'
+  | 'lifecycle.note.delete';
 
-export type AuditTargetType = 'tradingPartner' | 'alert' | 'user' | 'tenant' | 'system' | 'rawFile';
+export type AuditTargetType = 'tradingPartner' | 'alert' | 'user' | 'tenant' | 'system' | 'rawFile' | 'lifecycleNote';
 
 export interface AuditDiff {
   before?: unknown;

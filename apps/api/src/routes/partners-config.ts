@@ -78,8 +78,8 @@ function readInput(body: unknown): PartnerConfigInput {
                 : undefined,
             alertTypeOptIns: Array.isArray(c.alertTypeOptIns)
               ? (c.alertTypeOptIns as unknown[]).filter(
-                  (t): t is 'MISSING_ACK' | 'REJECTION_RATE_SPIKE' | 'STALE_TRAFFIC' =>
-                    t === 'MISSING_ACK' || t === 'REJECTION_RATE_SPIKE' || t === 'STALE_TRAFFIC',
+                  (t): t is 'MISSING_ACK' | 'REJECTION_RATE_SPIKE' | 'STALE_TRAFFIC' | 'UNKNOWN_ISA' =>
+                    t === 'MISSING_ACK' || t === 'REJECTION_RATE_SPIKE' || t === 'STALE_TRAFFIC' || t === 'UNKNOWN_ISA',
                 )
               : undefined,
           }))

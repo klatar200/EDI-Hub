@@ -35,8 +35,8 @@ function readContacts(raw: unknown): PartnerContact[] {
       role: String(c.role ?? ''),
       slackWebhook: typeof c.slackWebhook === 'string' && c.slackWebhook.length > 0 ? c.slackWebhook : undefined,
       alertTypeOptIns: Array.isArray(c.alertTypeOptIns)
-        ? c.alertTypeOptIns.filter((t): t is 'MISSING_ACK' | 'REJECTION_RATE_SPIKE' | 'STALE_TRAFFIC' =>
-            t === 'MISSING_ACK' || t === 'REJECTION_RATE_SPIKE' || t === 'STALE_TRAFFIC',
+        ? c.alertTypeOptIns.filter((t): t is 'MISSING_ACK' | 'REJECTION_RATE_SPIKE' | 'STALE_TRAFFIC' | 'UNKNOWN_ISA' =>
+            t === 'MISSING_ACK' || t === 'REJECTION_RATE_SPIKE' || t === 'STALE_TRAFFIC' || t === 'UNKNOWN_ISA',
           )
         : undefined,
     }))
@@ -476,16 +476,15 @@ export async function detectUnknownIsaSenders(
     const unknownReceiver = !knownIsa.has(ic.receiverId);
     if (!unknownSender && !unknownReceiver) continue;
 
-    const dedupeKey = `STALE_TRAFFIC::unknown_isa::${ic.senderId}::${ic.receiverId}`;
+    const dedupeKey = `UNKNOWN_ISA::${ic.senderId}::${ic.receiverId}`;
     await createAlert(prisma, {
       partnerId: null,
-      type: 'STALE_TRAFFIC',
+      type: 'UNKNOWN_ISA',
       severity: 'warning',
       title: `Unknown ISA pair: ${ic.senderId} → ${ic.receiverId}`,
       body: 'Interchange sender/receiver IDs match no configured trading partner.',
       dedupeKey,
       sourceRef: {
-        scope: 'unknown_isa',
         senderId: ic.senderId,
         receiverId: ic.receiverId,
         rawFileId: ic.rawFileId,

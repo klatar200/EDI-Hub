@@ -47,15 +47,18 @@ const TYPE_OPTIONS: Array<{ value: AlertType | ''; label: string }> = [
   { value: 'MISSING_ACK', label: 'Missing 997 ack' },
   { value: 'REJECTION_RATE_SPIKE', label: 'Rejection-rate spike' },
   { value: 'STALE_TRAFFIC', label: 'Stale traffic' },
+  { value: 'UNKNOWN_ISA', label: 'Unknown ISA sender' },
 ];
 
 const TYPE_LABEL: Record<AlertType, string> = {
   MISSING_ACK: 'Missing 997 ack',
   REJECTION_RATE_SPIKE: 'Rejection-rate spike',
   STALE_TRAFFIC: 'Stale traffic',
+  UNKNOWN_ISA: 'Unknown ISA sender',
 };
 
 function alertTypeLabel(alert: AlertRecord): string {
+  if (alert.type === 'UNKNOWN_ISA') return TYPE_LABEL.UNKNOWN_ISA;
   if (alert.sourceRef.scope === 'unknown_isa') return 'Unknown ISA sender';
   return TYPE_LABEL[alert.type];
 }

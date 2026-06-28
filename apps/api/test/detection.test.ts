@@ -8,7 +8,7 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
 import type { PrismaClient } from '@prisma/client';
-import { detectMissingAcks, detectRejectionSpikes } from '../src/services/detection.js';
+import { detectMissingAcks, detectRejectionSpikes, detectUnknownIsaSenders } from '../src/services/detection.js';
 
 type Dir = 'inbound' | 'outbound' | 'unknown';
 
@@ -46,7 +46,20 @@ interface FakeAlert {
   acknowledgedAt: Date | null; acknowledgedBy: string | null; suppressUntil: Date | null;
 }
 
-interface World { partners: FakePartner[]; txns: FakeTxn[]; alerts: FakeAlert[]; seq: number }
+interface FakeInterchange {
+  senderId: string;
+  receiverId: string;
+  rawFileId: string;
+  ingestedAt: Date;
+}
+
+interface World {
+  partners: FakePartner[];
+  txns: FakeTxn[];
+  alerts: FakeAlert[];
+  interchanges: FakeInterchange[];
+  seq: number;
+}
 
 function txnMatches(t: FakeTxn, where: Record<string, unknown>): boolean {
   if (where.transactionSetId !== undefined) {
@@ -127,6 +140,24 @@ function makePrisma(world: World): PrismaClient {
         return row;
       },
     },
+    interchange: {
+      async findMany({ where }: { where?: { rawFile?: { ingestedAt?: { gte?: Date } } } } = {}) {
+        const gte = where?.rawFile?.ingestedAt?.gte;
+        let rows = world.interchanges;
+        if (gte) rows = rows.filter((ic) => ic.ingestedAt >= gte);
+        const seen = new Set<string>();
+        return rows.filter((ic) => {
+          const key = `${ic.senderId}::${ic.receiverId}`;
+          if (seen.has(key)) return false;
+          seen.add(key);
+          return true;
+        }).map((ic) => ({
+          senderId: ic.senderId,
+          receiverId: ic.receiverId,
+          rawFileId: ic.rawFileId,
+        }));
+      },
+    },
   } as unknown as PrismaClient;
 }
 
@@ -181,6 +212,7 @@ test('emits MISSING_ACK for an outbound txn past the SLA window with no matching
         senderId: 'US', receiverId: 'SYSCO',
       }),
     ],
+    interchanges: [],
     alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
@@ -215,6 +247,7 @@ test('does not emit when a matching 997 ack is present', async () => {
         ackedTxnControls: [{ setId: '810', control: '1', status: 'A' }],
       }),
     ],
+    interchanges: [],
     alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
@@ -239,6 +272,7 @@ test('idempotent on rerun: same condition, same dedupeKey, no duplicate alert', 
         senderId: 'US', receiverId: 'SYSCO',
       }),
     ],
+    interchanges: [],
     alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
@@ -264,6 +298,7 @@ test('does not emit when the txn is still within the SLA window', async () => {
         senderId: 'US', receiverId: 'SYSCO',
       }),
     ],
+    interchanges: [],
     alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
@@ -310,7 +345,7 @@ test('emits REJECTION_RATE_SPIKE when current rate jumps absolutely from low bas
         isaSenderIds: ['SYSCO'], isaReceiverIds: ['US'],
       }),
     ],
-    txns, alerts: [], seq: 0,
+    txns, interchanges: [], alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
   const result = await detectRejectionSpikes(prisma, new Date('2026-06-18T00:00:00Z'));
@@ -334,7 +369,7 @@ test('does NOT emit when current rate stays near baseline', async () => {
   txns.push(buildAckTxn('c-rej', '2026-06-17T22:00:00Z', [{ setId: '850', control: 'cr', status: 'R' }]));
   const world: World = {
     partners: [buildPartner({ id: 'p-sysco', displayName: 'Sysco', isaSenderIds: ['SYSCO'], isaReceiverIds: ['US'] })],
-    txns, alerts: [], seq: 0,
+    txns, interchanges: [], alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
   const result = await detectRejectionSpikes(prisma, new Date('2026-06-18T00:00:00Z'));
@@ -352,7 +387,7 @@ test('does NOT emit when baseline total is below the minimum required', async ()
   ];
   const world: World = {
     partners: [buildPartner({ id: 'p-sysco', displayName: 'Sysco', isaSenderIds: ['SYSCO'], isaReceiverIds: ['US'] })],
-    txns, alerts: [], seq: 0,
+    txns, interchanges: [], alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
   const result = await detectRejectionSpikes(prisma, new Date('2026-06-18T00:00:00Z'));
@@ -380,6 +415,7 @@ test('MISSING_ACK alert sourceRef includes the txn poNumber when available', asy
         poNumber: 'PO-12345',
       }),
     ],
+    interchanges: [],
     alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
@@ -405,6 +441,7 @@ test('detection sets initial suppressUntil when suppressionMinutes is provided',
         senderId: 'US', receiverId: 'SYSCO',
       }),
     ],
+    interchanges: [],
     alerts: [], seq: 0,
   };
   const prisma = makePrisma(world);
@@ -413,5 +450,32 @@ test('detection sets initial suppressUntil when suppressionMinutes is provided',
   const sup = world.alerts[0]!.suppressUntil;
   assert.ok(sup);
   assert.equal(sup!.toISOString(), '2026-06-18T11:00:00.000Z');
+});
+
+test('emits UNKNOWN_ISA when recent interchange IDs match no partner', async () => {
+  const world: World = {
+    partners: [
+      buildPartner({
+        id: 'p-known', displayName: 'Known',
+        isaSenderIds: ['KNOWN'], isaReceiverIds: ['HUB'],
+      }),
+    ],
+    txns: [],
+    interchanges: [
+      {
+        senderId: 'STRANGER',
+        receiverId: 'HUB',
+        rawFileId: 'rf-1',
+        ingestedAt: new Date('2026-06-18T09:00:00Z'),
+      },
+    ],
+    alerts: [], seq: 0,
+  };
+  const prisma = makePrisma(world);
+  const now = new Date('2026-06-18T10:00:00Z');
+  const result = await detectUnknownIsaSenders(prisma, now);
+  assert.equal(result.emitted, 1);
+  assert.equal(world.alerts[0]!.type, 'UNKNOWN_ISA');
+  assert.equal(world.alerts[0]!.dedupeKey, 'UNKNOWN_ISA::STRANGER::HUB');
 });
 
