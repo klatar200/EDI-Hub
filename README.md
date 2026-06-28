@@ -7,7 +7,7 @@ searching, troubleshooting, and alerting.
 **North Star:** Transaction lifecycle stitching — pull up a PO number and see
 the 850, 855, 856, 810, and all 997s in one chronological view.
 
-**Planning:** **Local dev ($0)** → [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) · Roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md) · Architecture ADRs → [`docs/adr/`](docs/adr/) · AWS deploy (deferred) → [`BUILD_PLAN.md` §9](BUILD_PLAN.md#9-deploy-track--go-live-gate--deferred) · Optional → [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md)
+**Planning:** **Local dev ($0)** → [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md) · **Security audit** → [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) · Roadmap → [`BUILD_PLAN.md`](BUILD_PLAN.md)
 
 **Tests:** 436 automated (`npm run test:ci`) · Node 20+ (CI uses Node 22)
 
