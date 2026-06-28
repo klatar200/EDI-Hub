@@ -207,7 +207,9 @@ export function IngestionsPage(): JSX.Element {
                     onClick={() => void api.rawContent(r.id).then((t) => {
                       const blob = new Blob([t], { type: 'text/plain' });
                       const url = URL.createObjectURL(blob);
-                      window.open(url, '_blank');
+                      const opened = window.open(url, '_blank');
+                      if (!opened) URL.revokeObjectURL(url);
+                      else setTimeout(() => URL.revokeObjectURL(url), 60_000);
                     })}
                   >
                     Raw

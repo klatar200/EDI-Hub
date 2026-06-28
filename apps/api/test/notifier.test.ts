@@ -127,6 +127,22 @@ test('globalSlackWebhook fallback applies when no contact has slackWebhook', asy
   assert.deepEqual(slacks, ['https://hooks.slack.com/FALLBACK']);
 });
 
+test('live mode ignores non-allowlisted slack webhooks', async () => {
+  const slacks: string[] = [];
+  const r = await notify(
+    {
+      prisma: stubPrisma,
+      config: { ...baseConfig, mode: 'live' },
+      sendEmail: async () => { /* noop */ },
+      postSlack: async (url) => { slacks.push(url); },
+    },
+    alertOf(),
+    partnerOf([{ name: 'A', email: 'a@p.com', role: 'ops', slackWebhook: 'https://evil.example.com/hook' }]),
+  );
+  assert.equal(slacks.length, 0);
+  assert.equal(r.recipients.filter((x) => x.channel === 'slack').length, 0);
+});
+
 test('live email failure does not throw; logs and returns delivered=false when nothing else sent', async () => {
   const r = await notify(
     {

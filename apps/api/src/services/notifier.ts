@@ -28,6 +28,7 @@ import type {
 import type { NotifierConfig } from '../config.js';
 import { readTenantSettings } from './tenant-settings.js';
 import { isInQuietHours } from './quiet-hours.js';
+import { isAllowedSlackWebhookUrl } from './slack-webhook.js';
 
 export interface NotifierDeps {
   prisma: PrismaClient;
@@ -118,10 +119,14 @@ async function defaultSendEmail(config: NotifierConfig, input: SendEmailInput): 
 }
 
 async function defaultPostSlack(webhookUrl: string, payload: SlackPayload): Promise<void> {
+  if (!isAllowedSlackWebhookUrl(webhookUrl)) {
+    throw new Error('Slack webhook URL is not on the allowlist');
+  }
   const res = await fetch(webhookUrl, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(payload),
+    signal: AbortSignal.timeout(10_000),
   });
   if (!res.ok) throw new Error(`Slack webhook returned ${res.status}`);
 }
@@ -151,8 +156,14 @@ export async function notify(
 
   const contacts = partner ? eligibleContacts(partner.contacts, alert.type) : [];
   const emailTargets = contacts.map((c) => c.email).filter((e) => e.length > 0);
-  const slackTargets = contacts.map((c) => c.slackWebhook).filter((u): u is string => !!u);
-  if (slackTargets.length === 0 && deps.config.globalSlackWebhook.length > 0) {
+  const slackTargets = contacts
+    .map((c) => c.slackWebhook)
+    .filter((u): u is string => typeof u === 'string' && isAllowedSlackWebhookUrl(u));
+  if (
+    slackTargets.length === 0 &&
+    deps.config.globalSlackWebhook.length > 0 &&
+    isAllowedSlackWebhookUrl(deps.config.globalSlackWebhook)
+  ) {
     slackTargets.push(deps.config.globalSlackWebhook);
   }
 

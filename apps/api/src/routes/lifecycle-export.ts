@@ -11,6 +11,9 @@ import { lifecycleToCsv, lifecycleToPdf, lifecycleToTxt } from '../services/life
 import { buildLifecycleExportZip } from '../services/lifecycle-export-zip.js';
 import { tenantContext } from '@edi/db';
 
+/** Maximum POs per bulk export request (CSV or ZIP). */
+export const MAX_BULK_EXPORT_POS = 50;
+
 function csvEscape(v: string): string {
   if (v.includes(',') || v.includes('"') || v.includes('\n')) {
     return `"${v.replace(/"/g, '""')}"`;
@@ -67,6 +70,15 @@ export async function lifecycleExportRoutes(
         : [];
       if (pos.length === 0) {
         const body: ApiErrorResponse = { error: { code: 'BAD_REQUEST', message: 'Provide at least one PO.' } };
+        return reply.code(400).send(body);
+      }
+      if (pos.length > MAX_BULK_EXPORT_POS) {
+        const body: ApiErrorResponse = {
+          error: {
+            code: 'BAD_REQUEST',
+            message: `Export is limited to ${MAX_BULK_EXPORT_POS} POs per request.`,
+          },
+        };
         return reply.code(400).send(body);
       }
       const tenant = request.tenantId

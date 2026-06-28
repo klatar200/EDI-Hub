@@ -11,6 +11,8 @@ import type {
 import { requiresRole } from '../plugins/rbac.js';
 import { withAudit } from '../services/audit.js';
 
+const MAX_NOTE_BODY_CHARS = 4_096;
+
 interface NoteRow {
   id: string;
   po: string;
@@ -60,6 +62,15 @@ export async function lifecycleNotesRoutes(
       const bodyText = typeof request.body?.body === 'string' ? request.body.body.trim() : '';
       if (!bodyText) {
         const body: ApiErrorResponse = { error: { code: 'BAD_REQUEST', message: 'Note body is required.' } };
+        return reply.code(400).send(body);
+      }
+      if (bodyText.length > MAX_NOTE_BODY_CHARS) {
+        const body: ApiErrorResponse = {
+          error: {
+            code: 'BAD_REQUEST',
+            message: `Note body must be at most ${MAX_NOTE_BODY_CHARS} characters.`,
+          },
+        };
         return reply.code(400).send(body);
       }
       const created = await withAudit(

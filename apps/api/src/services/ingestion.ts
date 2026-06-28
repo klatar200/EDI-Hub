@@ -22,6 +22,7 @@ import { setTimeout as sleep } from 'node:timers/promises';
 import { Readable } from 'node:stream';
 import type { S3Client } from '@aws-sdk/client-s3';
 import type { PrismaClient } from '@prisma/client';
+import { Prisma } from '@prisma/client';
 import type { FastifyBaseLogger } from 'fastify';
 import type { RawFileStatus, SourceChannel } from '@edi/shared';
 import { extractEnvelopeIds, EdiParseError } from '@edi/edi-parser';
@@ -201,6 +202,36 @@ export async function ingestRawFile(deps: IngestionDeps, input: IngestInput): Pr
     }
     return { outcome: 'stored', id: record.id, s3Key: record.s3Key, fileHash, isaControlNumber, status: finalStatus };
   } catch (err) {
+    if (
+      isaControlNumber &&
+      err instanceof Prisma.PrismaClientKnownRequestError &&
+      err.code === 'P2002'
+    ) {
+      const tenantId = tenantContext.requireTenantId();
+      const existing = await deps.prisma.rawFile.findUnique({
+        where: { tenantId_isaControlNumber: { tenantId, isaControlNumber } },
+      });
+      if (existing) {
+        deps.logger.warn(
+          { ...baseLog, key, outcome: 'duplicate_race', existingId: existing.id, durationMs: Date.now() - startedAt },
+          'Concurrent duplicate ingest; returning existing record (orphan bytes may remain in storage)',
+        );
+        return {
+          outcome: 'duplicate',
+          id: existing.id,
+          s3Key: existing.s3Key,
+          fileHash,
+          isaControlNumber,
+          status: 'DUPLICATE',
+          duplicateOf: {
+            id: existing.id,
+            ingestedAt: existing.ingestedAt.toISOString(),
+            source: existing.source,
+            status: existing.status,
+          },
+        };
+      }
+    }
     deps.logger.error(
       { ...baseLog, key, outcome: 'db_error', marker: 'NEEDS_DB_RECONCILIATION', err, durationMs: Date.now() - startedAt },
       'DB write failed after successful S3 upload',

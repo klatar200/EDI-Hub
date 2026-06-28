@@ -162,6 +162,9 @@ export async function snoozeAlert(
   return toRecord(updated);
 }
 
+/** Maximum alerts returned in a single list query. */
+export const MAX_LIST_ALERTS = 500;
+
 export async function listAlerts(
   prisma: PrismaClient,
   filters: AlertFilters = {},
@@ -190,6 +193,7 @@ export async function listAlerts(
   const rows = (await prisma.alert.findMany({
     where,
     orderBy: [{ status: 'asc' }, { lastSeenAt: 'desc' }],
+    take: MAX_LIST_ALERTS,
   })) as unknown as DbAlertRow[];
   return rows.map(toRecord);
 }

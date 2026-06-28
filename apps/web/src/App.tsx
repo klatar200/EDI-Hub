@@ -95,14 +95,14 @@ function SetupGate(): JSX.Element {
         <Route path="/lifecycle/:po" element={<LifecyclePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />
         <Route path="/metrics" element={<MetricsPage />} />
-        <Route path="/partners-config" element={<PartnersConfigPage />} />
+        <Route path="/partners-config" element={<RequireRole role="admin"><PartnersConfigPage /></RequireRole>} />
         <Route path="/alerts" element={<AlertsPage />} />
         <Route path="/settings" element={<SettingsPage />} />
         <Route path="/channels" element={<ChannelsPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/help/transaction-sets" element={<TransactionSetsHelpPage />} />
         <Route path="/admin/audit" element={<RequireRole role="admin"><AuditPage /></RequireRole>} />
-        <Route path="/users" element={<UsersPage />} />
+        <Route path="/users" element={<RequireRole role="admin"><UsersPage /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
     </Routes>

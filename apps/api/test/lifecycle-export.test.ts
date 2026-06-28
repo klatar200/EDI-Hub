@@ -135,3 +135,18 @@ test('GET /lifecycles/:po/export rejects bad format', async () => {
   assert.equal(res.statusCode, 400);
   await app.close();
 });
+
+test('POST /lifecycles/export rejects more than MAX_BULK_EXPORT_POS', async () => {
+  const app = await buildServer({ config, s3: fakeS3 });
+  const pos = Array.from({ length: 51 }, (_, i) => `PO-${i}`);
+  const res = await app.inject({
+    method: 'POST',
+    url: '/api/lifecycles/export',
+    headers: { 'content-type': 'application/json' },
+    payload: { pos, format: 'csv' },
+  });
+  assert.equal(res.statusCode, 400);
+  const body = res.json() as { error: { message: string } };
+  assert.match(body.error.message, /50/);
+  await app.close();
+});

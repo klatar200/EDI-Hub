@@ -6,6 +6,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { LifecycleListFilters, LifecycleSummary } from '@edi/shared';
 import { getLifecycle, summarizeLifecycleEvents } from './lifecycle.js';
 import { computeSlaSummary, shouldShowSlaCountdown } from './sla-summary.js';
+import { openAlertCountByPo } from './alert-counts.js';
 
 /** Build human-readable expected-document warnings from gap events. */
 export function expectedWarningsFromEvents(
@@ -93,16 +94,7 @@ export async function listLifecycles(
     LIMIT ${pageSize} OFFSET ${offset}
   `;
 
-  const activeAlerts = await prisma.alert.findMany({
-    where: { status: 'active' },
-    select: { sourceRef: true },
-  });
-  const alertsByPo = new Map<string, number>();
-  for (const a of activeAlerts) {
-    const ref = a.sourceRef as Record<string, unknown>;
-    const po = typeof ref.poNumber === 'string' ? ref.poNumber : null;
-    if (po) alertsByPo.set(po, (alertsByPo.get(po) ?? 0) + 1);
-  }
+  const alertsByPo = await openAlertCountByPo(prisma);
 
   const parseErrorPos = await prisma.transaction.findMany({
     where: {

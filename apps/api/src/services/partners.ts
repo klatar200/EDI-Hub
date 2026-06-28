@@ -27,6 +27,7 @@ import type {
   TradingPartnerRecord,
 } from '@edi/shared';
 import { CONNECTIVITY_CHANNELS } from '@edi/shared';
+import { assertAllowedSlackWebhookUrl } from './slack-webhook.js';
 
 interface DbPartnerRow {
   id: string;
@@ -167,7 +168,15 @@ function readSegmentLabelOverrides(raw: unknown): SegmentLabelOverrides {
   return out;
 }
 
-export function toRecord(row: DbPartnerRow): TradingPartnerRecord {
+export function toRecord(row: DbPartnerRow, options?: { redactWebhookSecrets?: boolean }): TradingPartnerRecord {
+  const contacts = readContacts(row.contacts);
+  const redact = options?.redactWebhookSecrets === true;
+  const safeContacts = redact
+    ? contacts.map((c) => ({
+        ...c,
+        slackWebhook: c.slackWebhook ? '***' : undefined,
+      }))
+    : contacts;
   return {
     id: row.id,
     tenantId: row.tenantId,
@@ -176,7 +185,7 @@ export function toRecord(row: DbPartnerRow): TradingPartnerRecord {
     isaReceiverIds: row.isaReceiverIds,
     status: row.status,
     notes: row.notes,
-    contacts: readContacts(row.contacts),
+    contacts: safeContacts,
     supportedSets: Array.isArray(row.supportedSets) ? row.supportedSets.slice() : [],
     lifecycleFlows: readLifecycleFlows(row.lifecycleFlows),
     ackCodeOverrides: readAckOverrides(row.ackCodeOverrides),
@@ -259,6 +268,17 @@ export function validatePartnerInput(input: PartnerConfigInput): void {
           'slaWindows.withinMinutes must be a positive integer.',
           'slaWindows',
         );
+      }
+    }
+  }
+  if (input.contacts) {
+    for (const c of input.contacts) {
+      if (c.slackWebhook) {
+        try {
+          assertAllowedSlackWebhookUrl(c.slackWebhook);
+        } catch (err) {
+          throw new PartnerValidationError((err as Error).message, 'slackWebhook');
+        }
       }
     }
   }
@@ -354,16 +374,23 @@ export async function assertNoIsaOverlap(
 }
 
 /** List all configured partners, newest first. */
-export async function listPartners(prisma: PrismaClient): Promise<TradingPartnerRecord[]> {
+export async function listPartners(
+  prisma: PrismaClient,
+  options?: { redactWebhookSecrets?: boolean },
+): Promise<TradingPartnerRecord[]> {
   const rows = (await prisma.tradingPartner.findMany({
     orderBy: { createdAt: 'desc' },
   })) as unknown as DbPartnerRow[];
-  return rows.map(toRecord);
+  return rows.map((row) => toRecord(row, { redactWebhookSecrets: options?.redactWebhookSecrets }));
 }
 
-export async function getPartner(prisma: PrismaClient, id: string): Promise<TradingPartnerRecord | null> {
+export async function getPartner(
+  prisma: PrismaClient,
+  id: string,
+  options?: { redactWebhookSecrets?: boolean },
+): Promise<TradingPartnerRecord | null> {
   const row = (await prisma.tradingPartner.findUnique({ where: { id } })) as unknown as DbPartnerRow | null;
-  return row ? toRecord(row) : null;
+  return row ? toRecord(row, { redactWebhookSecrets: options?.redactWebhookSecrets }) : null;
 }
 
 /**

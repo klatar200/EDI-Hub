@@ -3,7 +3,7 @@
 **Date:** 2026-06-27  
 **Scope:** `apps/api`, `apps/web`, `packages/db` tenant extension  
 **Mode:** Local-first / pre-go-live — findings include SaaS, desktop LAN, and infra assumptions  
-**Status:** SEC-1 **shipped** · SEC-2 **shipped** · SEC-4 **shipped** · SEC-3 **code ready** (apply at go-live)
+**Status:** SEC-1–4 **shipped** · SEC-5 **shipped** (2026-06-28) · SEC-3 infra at go-live
 
 **Related:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) §12 · [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) (redirect stub)
 
@@ -206,6 +206,29 @@ Work in order. Each sprint ends with `npm run test:ci` green and targeted securi
 | Remove dead `rawFileContentUrl` | SEC-L4 | ✅ |
 
 **Exit:** `npm run test:ci` green; public `/health` returns only `{ status: 'ok' }`.
+
+---
+
+### Sprint SEC-5 — Stability + residual security (shipped)
+
+**Goal:** Close gaps found in the second full-app review.
+
+| Task | Area | Status |
+|------|------|--------|
+| Slack webhook SSRF allowlist | Security | ✅ `slack-webhook.ts` |
+| Redact `slackWebhook` for non-admin API responses | Security | ✅ `partners.ts` |
+| Cap bulk lifecycle export (`50` POs) | Stability | ✅ `lifecycle-export.ts` |
+| ISA dedup race → `duplicate` on `P2002` | Stability | ✅ `ingestion.ts` |
+| Search/lifecycle: single alert scan per request | Stability | ✅ `alert-counts.ts` |
+| `/partners` distinct SQL (not full scan) | Stability | ✅ `partners.ts` route |
+| Cap alert list at 500 rows | Stability | ✅ `alerts.ts` |
+| Cap lifecycle note body (4 KB) | Stability | ✅ `lifecycle-notes.ts` |
+| Schedule recurring detection jobs | Alerting | ✅ `index.ts` |
+| Admin route guards (`/users`, `/partners-config`) | Security | ✅ `App.tsx` |
+| Blob URL revoke on ingestions Raw view | Security | ✅ `IngestionsPage.tsx` |
+| CSP: Clerk production domains | Security | ✅ `csp.ts` |
+
+**Deferred (larger refactors):** async parse on ingest, lifecycle list N+1, streaming ZIP export, desktop secret storage.
 
 ---
 

@@ -18,6 +18,8 @@ import { createJobsAdapter } from './jobs/factory.js';
 import {
   createDetectionHandler,
   DETECTION_JOB_NAME,
+  DETECTION_INTERVAL_MS,
+  bootstrapDetectionSchedule,
 } from './jobs/handlers/detection.js';
 import {
   bootstrapEmailDigestSchedules,
@@ -64,6 +66,9 @@ async function main(): Promise<void> {
   // (`scripts/run-detection.ts`) calls the same factory, so there's one
   // source of truth for what a detection pass does.
   const jobs = createJobsAdapter(app.prisma, { logger: app.log });
+  const scheduleDetection = async (): Promise<void> => {
+    await jobs.enqueue(DETECTION_JOB_NAME, {}, { delayMs: DETECTION_INTERVAL_MS });
+  };
   jobs.register(
     DETECTION_JOB_NAME,
     createDetectionHandler({
@@ -71,6 +76,7 @@ async function main(): Promise<void> {
       notifier: { prisma: app.prisma, config: app.config.notifier },
       suppressionMinutes: app.config.alertSuppressionMinutes,
       logger: app.log,
+      scheduleNext: scheduleDetection,
     }),
   );
   const digestPreviewMode = app.config.notifier.mode !== 'live';
@@ -88,6 +94,12 @@ async function main(): Promise<void> {
   );
   jobs.start();
   app.decorate('jobs', jobs);
+
+  void bootstrapDetectionSchedule(async (payload, delayMs) => {
+    await jobs.enqueue(DETECTION_JOB_NAME, payload, { delayMs });
+  }).catch((err) => {
+    app.log.warn({ err }, 'Detection schedule bootstrap failed (non-fatal)');
+  });
 
   void bootstrapEmailDigestSchedules(
     app.prisma,

@@ -7,8 +7,8 @@ export const CONTENT_SECURITY_POLICY = [
   "script-src 'self'",
   "style-src 'self' 'unsafe-inline'",
   "img-src 'self' data: blob: https://img.clerk.com",
-  "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com",
-  "frame-src https://*.clerk.accounts.dev",
+  "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.accounts.com https://api.clerk.com https://frontend-api.clerk.com",
+  "frame-src https://*.clerk.accounts.dev https://*.clerk.accounts.com",
   "font-src 'self'",
   "worker-src 'self' blob:",
 ].join('; ');

@@ -33,6 +33,12 @@ import {
   validatePartnerInput,
 } from '../services/partners.js';
 
+function redactPartnerSecrets<T extends { auth?: { role?: string } | null }>(
+  request: T,
+): boolean {
+  return request.auth?.role !== 'admin';
+}
+
 function badBody(reply: FastifyReply, err: Error): FastifyReply {
   const body: ApiErrorResponse = {
     error: {
@@ -146,14 +152,18 @@ export async function partnersConfigRoutes(
   app: FastifyInstance,
   _opts: FastifyPluginOptions,
 ): Promise<void> {
-  app.get('/partners-config', requiresRole('viewer'), async (_request, reply) => {
-    const items = await listPartners(app.prisma);
+  app.get('/partners-config', requiresRole('viewer'), async (request, reply) => {
+    const items = await listPartners(app.prisma, {
+      redactWebhookSecrets: redactPartnerSecrets(request),
+    });
     const body: PartnerConfigListResponse = { items };
     return reply.code(200).send(body);
   });
 
   app.get<{ Params: { id: string } }>('/partners-config/:id', requiresRole('viewer'), async (request, reply) => {
-    const record = await getPartner(app.prisma, request.params.id);
+    const record = await getPartner(app.prisma, request.params.id, {
+      redactWebhookSecrets: redactPartnerSecrets(request),
+    });
     if (!record) {
       const body: ApiErrorResponse = { error: { code: 'NOT_FOUND', message: 'No partner with that id.' } };
       return reply.code(404).send(body);

@@ -16,6 +16,7 @@ import {
   getPartner,
   listPartners,
   resolvePartnerByIsa,
+  toRecord,
   validatePartnerInput,
 } from '../src/services/partners.js';
 import type { PartnerConfigInput } from '@edi/shared';
@@ -423,5 +424,31 @@ test('toRecord exposes connectivity round-trip; unconfigured rows come back null
   // Unconfigured partner: stored as '{}' by the schema default — toRecord
   // reads it back as null so the UI knows there's nothing to show.
   assert.equal(without.connectivity, null);
+});
+
+test('toRecord redacts slackWebhook for non-admin list responses', async () => {
+  const row = {
+    id: 'p-1',
+    tenantId: 't-1',
+    displayName: 'Acme',
+    isaSenderIds: ['ACME'],
+    isaReceiverIds: ['US'],
+    status: 'active' as const,
+    notes: null,
+    contacts: [{ name: 'A', email: 'a@acme.com', role: 'ops', slackWebhook: 'https://hooks.slack.com/secret' }],
+    supportedSets: [],
+    lifecycleFlows: [],
+    ackCodeOverrides: {},
+    segmentLabelOverrides: {},
+    slaWindows: [],
+    slaCountdownEnabled: false,
+    connectivity: {},
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  };
+  const full = toRecord(row as never);
+  assert.equal(full.contacts[0]!.slackWebhook, 'https://hooks.slack.com/secret');
+  const redacted = toRecord(row as never, { redactWebhookSecrets: true });
+  assert.equal(redacted.contacts[0]!.slackWebhook, '***');
 });
 

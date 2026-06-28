@@ -13,6 +13,7 @@ import type {
 } from '@edi/shared';
 import { requiresRole } from '../plugins/rbac.js';
 import { getLifecycle, linkedPosForInvoice } from '../services/lifecycle.js';
+import { openAlertCountByPo } from '../services/alert-counts.js';
 
 interface InterchangeRow { senderId: string; receiverId: string; rawFile?: { status: RawFileStatus; ingestedAt: Date } | null }
 interface TransactionRow {
@@ -62,6 +63,7 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
         })
       : null;
     const ourIsaIds = tenant?.ourIsaIds ?? [];
+    const alertsByPo = await openAlertCountByPo(app.prisma);
 
     const lifecycles: LifecycleSearchHit[] = [];
 
@@ -78,14 +80,7 @@ export async function searchRoutes(app: FastifyInstance, _opts: FastifyPluginOpt
           .map((e) => e.ingestedAt as string)
           .sort()
           .at(-1) ?? new Date().toISOString();
-        const activeAlerts = await app.prisma.alert.findMany({
-          where: { status: 'active' },
-          select: { sourceRef: true },
-        });
-        const openAlertCount = activeAlerts.filter((a) => {
-          const ref = a.sourceRef as Record<string, unknown>;
-          return ref.poNumber === po;
-        }).length;
+        const openAlertCount = alertsByPo.get(po) ?? 0;
         lifecycles.push({
           po,
           partnerDisplayName: lc.partner?.displayName ?? null,

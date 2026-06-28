@@ -51,6 +51,8 @@ export interface DetectionHandlerDeps {
   /** Injected for tests / cron drift; defaults to `() => new Date()`. */
   now?: () => Date;
   logger?: DetectionLogger;
+  /** Re-enqueue the next detection pass after this one completes. */
+  scheduleNext?: () => Promise<void>;
 }
 
 /** Payload contract the producer must satisfy. */
@@ -147,12 +149,28 @@ export function createDetectionHandler(deps: DetectionHandlerDeps): JobHandler {
   const logger = deps.logger ?? noopLogger;
   return async (rawPayload: unknown): Promise<void> => {
     const payload = parsePayload(rawPayload);
-    if (payload.tenantId) {
-      await runDetectionPass({ ...deps, logger }, payload);
-      return;
+    try {
+      if (payload.tenantId) {
+        await runDetectionPass({ ...deps, logger }, payload);
+      } else {
+        await runDetectionForAllTenants({ ...deps, logger }, payload);
+      }
+    } finally {
+      if (deps.scheduleNext) {
+        await deps.scheduleNext();
+      }
     }
-    await runDetectionForAllTenants({ ...deps, logger }, payload);
   };
+}
+
+/** Default interval between automated detection passes (per install). */
+export const DETECTION_INTERVAL_MS = 15 * 60 * 1000;
+
+export async function bootstrapDetectionSchedule(
+  enqueue: (payload: DetectionJobPayload, delayMs: number) => Promise<void>,
+  delayMs = 60_000,
+): Promise<void> {
+  await enqueue({}, delayMs);
 }
 
 /** Defensive: the queue stores payloads as JSON strings, so by the time they
