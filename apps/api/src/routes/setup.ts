@@ -15,6 +15,7 @@ import {
   readHubConfig,
   writeHubConfig,
 } from '../services/hub-config.js';
+import { buildHealthServerInfo } from '../services/server-address.js';
 
 function isObject(v: unknown): v is Record<string, unknown> {
   return typeof v === 'object' && v !== null && !Array.isArray(v);
@@ -93,6 +94,7 @@ async function buildStatus(
     clerkRedirectVerified: cfg.clerkRedirectVerified === true,
     desktopMode: true,
     ourIsaIds,
+    server: buildHealthServerInfo(app.config.port),
   };
 }
 

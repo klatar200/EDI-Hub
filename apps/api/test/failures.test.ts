@@ -171,18 +171,15 @@ test('DB unreachable -> 503 DB_UNAVAILABLE with NO S3 write (fail fast)', async 
   await app.close();
 });
 
-test('GET /health -> 200 ok when DB and S3 are reachable', async () => {
+test('GET /health -> 200 ok with minimal public body', async () => {
   const app = await buildServer({ config: testConfig, s3: okS3(new Map()), prisma: okPrisma() });
   const res = await app.inject({ method: 'GET', url: '/health' });
   assert.equal(res.statusCode, 200);
-  // Phase 8 Sprint 2 — channels list is part of the response shape now.
-  // `buildServer` doesn't boot channels (that's index.ts's job), so the list
-  // is empty here. Asserting individual fields keeps the test future-proof.
   const body = res.json();
   assert.equal(body.status, 'ok');
-  assert.equal(body.db, 'connected');
-  assert.equal(body.s3, 'reachable');
-  assert.deepEqual(body.channels, []);
+  assert.equal(body.db, undefined);
+  assert.equal(body.s3, undefined);
+  assert.equal(body.channels, undefined);
   await app.close();
 });
 
@@ -215,11 +212,9 @@ test('GET /readiness -> 503 not-ready when S3 is down', async () => {
   await app.close();
 });
 
-// ─────────────────────────────────────────────────────────────
-// Phase 8 Sprint 2 — /health surfaces channel status when registered.
-// ─────────────────────────────────────────────────────────────
+// Phase 8 Sprint 2 — channel status is on /readiness, not public /health (SEC-M3).
 
-test('GET /health reports channel statuses when the registry is decorated', async () => {
+test('GET /readiness reports channel statuses when the registry is decorated', async () => {
   const app = await buildServer({ config: testConfig, s3: okS3(new Map()), prisma: okPrisma() });
   const channels: ChannelHealth[] = [
     { name: 'sftp', source: 'sftp', status: 'running', detail: { watchDir: '/tmp/sftp' } },
@@ -231,10 +226,10 @@ test('GET /health reports channel statuses when the registry is decorated', asyn
     ensureDesktopDropFolder: async () => {},
   };
 
-  const res = await app.inject({ method: 'GET', url: '/health' });
+  const res = await app.inject({ method: 'GET', url: '/readiness' });
   assert.equal(res.statusCode, 200);
   const body = res.json();
-  assert.equal(body.status, 'ok');
+  assert.equal(body.status, 'ready');
   assert.equal(body.channels.length, 2);
   const sftp = body.channels.find((c: { name: string }) => c.name === 'sftp');
   const as2 = body.channels.find((c: { name: string }) => c.name === 'as2');

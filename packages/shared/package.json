@@ -9,6 +9,10 @@
     ".": {
       "types": "./dist/index.d.ts",
       "default": "./dist/index.js"
+    },
+    "./server-address": {
+      "types": "./dist/server-address.d.ts",
+      "default": "./dist/server-address.js"
     }
   },
   "scripts": {

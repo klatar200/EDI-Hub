@@ -72,7 +72,7 @@
 | 5 | Product sprints PS-0–PS-12 + PB-1–PB-8 | ✅ Done → [§6](#6-completed-product-sprints-reference) |
 | 6 | Queue + CORS architecture ADRs | ✅ Done → [§8](#8-open-remediation--architecture-decisions) · [`docs/adr/`](docs/adr/) |
 | 7 | **Local dev validation ($0)** | ⏳ Active → [§3.1](#31-active-track--local-development-0) |
-| 7b | **Security audit remediation** | ⏳ **Next** → [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) (SEC-1 → SEC-3) |
+| 7b | **Security audit remediation** | ⏳ SEC-3 (go-live) → [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) (SEC-1–4 shipped) |
 | 8 | Optional polish | 📋 [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) — only if it serves stability/UX |
 | 9 | Staging deploy (Sprint A1) | 🔒 **Deferred (go-live)** → [§9](#9-deploy-track--go-live-gate--deferred) |
 | 10 | M5 operational proof (Sprint A2) | 🔒 **Deferred (go-live)** → [§10](#10-pre-production-operator-checklist) |

@@ -8,7 +8,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import type { HealthServerInfo, PartnerConfigInput } from '@edi/shared';
+import type { PartnerConfigInput } from '@edi/shared';
 import { CLERK_DASHBOARD_URL } from '@edi/shared';
 import { Card } from '../components/ui/Card.tsx';
 import { FormField, Input } from '../components/ui/forms.tsx';
@@ -16,17 +16,6 @@ import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
 const STEPS = ['Welcome', 'Clerk', 'Drop folder', 'Partner', 'Telemetry'] as const;
-
-interface HealthResponse {
-  status: string;
-  server?: HealthServerInfo;
-}
-
-async function fetchHealth(): Promise<HealthResponse> {
-  const res = await fetch('/health');
-  if (!res.ok) throw new Error(`Health check failed (${res.status})`);
-  return (await res.json()) as HealthResponse;
-}
 
 export function FirstRunWizardPage(): JSX.Element {
   const navigate = useNavigate();
@@ -41,13 +30,6 @@ export function FirstRunWizardPage(): JSX.Element {
   const [ourIsaId, setOurIsaId] = useState('');
   const [partnerError, setPartnerError] = useState<string | null>(null);
   const [telemetryError, setTelemetryError] = useState<string | null>(null);
-
-  const healthQ = useQuery({
-    queryKey: ['health', 'wizard'],
-    queryFn: fetchHealth,
-    enabled: step === 1,
-    staleTime: 60_000,
-  });
 
   const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({
@@ -134,7 +116,7 @@ export function FirstRunWizardPage(): JSX.Element {
     }
   }
 
-  const redirectOrigins = healthQ.data?.server?.redirectOrigins ?? [];
+  const redirectOrigins = setupQ.data?.server?.redirectOrigins ?? [];
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-[var(--color-surface-bg)] p-6">
@@ -175,7 +157,7 @@ export function FirstRunWizardPage(): JSX.Element {
                 <strong>Allowed redirect URIs</strong> so sign-in works from this server
                 (including other machines on your LAN):
               </p>
-              {healthQ.isLoading ? (
+              {setupQ.isLoading ? (
                 <p className="text-sm text-[var(--color-fg-muted)]">Loading server addresses…</p>
               ) : (
                 <ul className="rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] p-3 font-mono text-xs">

@@ -3,7 +3,7 @@
 **Date:** 2026-06-27  
 **Scope:** `apps/api`, `apps/web`, `packages/db` tenant extension  
 **Mode:** Local-first / pre-go-live — findings include SaaS, desktop LAN, and infra assumptions  
-**Status:** SEC-1 remediation **shipped** (2026-06-27) · SEC-2 **shipped** (2026-06-28) · SEC-3 pending
+**Status:** SEC-1 remediation **shipped** (2026-06-27) · SEC-2 **shipped** (2026-06-28) · SEC-4 **shipped** (2026-06-28) · SEC-3 pending (go-live infra)
 
 **Related:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) §12 · [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) (redirect stub)
 
@@ -178,20 +178,33 @@ Work in order. Each sprint ends with `npm run test:ci` green and targeted securi
 
 ### Sprint SEC-3 — Go-live hardening (defer until AWS deploy)
 
-**Goal:** Items that matter when staging/production exists.
+**Goal:** Items that require staging/production infrastructure.
 
 | Task | Finding |
 |------|---------|
 | ALB SG: block `/internal/*` from internet | SEC-H3, SEC-H4 |
-| Minimal `/health` for public probes | SEC-M3 |
-| CSP for static assets | SEC-W4 |
-| `VITE_API_URL` production allowlist | SEC-W2 |
 | Shared rate limit or WAF | SEC-M4, SEC-M5 |
-| Prisma.sql migration for lifecycles | SEC-M7 |
 | Update BUILD_PLAN §12 public route list | SEC-M8 doc |
 | k6 abuse test + rate-limit audit row | BUILD_PLAN §10 |
 
 **Exit:** Staging smoke + security checklist §12 re-sign-off.
+
+---
+
+### Sprint SEC-4 — Local hardening (shipped)
+
+**Goal:** Code-level fixes from SEC-3 that do not require AWS.
+
+| Task | Finding | Status |
+|------|---------|--------|
+| Minimal `/health` for public probes | SEC-M3 | ✅ |
+| Move LAN redirect origins to `GET /api/setup` | SEC-M3 | ✅ |
+| Prisma.sql migration for lifecycles | SEC-M7 | ✅ |
+| `VITE_API_URL` production allowlist (`/api` only) | SEC-W2 | ✅ |
+| CSP for production SPA build | SEC-W4 | ✅ |
+| Remove dead `rawFileContentUrl` | SEC-L4 | ✅ |
+
+**Exit:** `npm run test:ci` green; public `/health` returns only `{ status: 'ok' }`.
 
 ---
 
@@ -205,7 +218,7 @@ Work in order. Each sprint ends with `npm run test:ci` green and targeted securi
 | SEC-H3 Passive channels | Document; keep SFTP off in `.env` | Multi-tenant SaaS deploy |
 | SEC-H4 Metrics public | Ignore locally | ALB + SG at deploy |
 | SEC-M4–M5 Rate limit scale | Ignore single dev task | ECS multi-task |
-| SEC-W4 CSP | Optional locally | Required for production |
+| SEC-W4 CSP | ✅ Shipped (SEC-4) | CDN header at go-live optional |
 
 ---
 
@@ -227,4 +240,4 @@ Manual checks (local):
 
 ## Next step
 
-Start **Sprint SEC-3** when preparing go-live (ALB SG, CSP, minimal `/health`, Prisma.sql migration).
+Start **Sprint SEC-3** when preparing go-live (ALB SG, shared rate limits, k6 abuse tests).

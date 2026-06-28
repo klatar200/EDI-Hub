@@ -110,6 +110,10 @@ test('GET /api/setup reports desktop wizard incomplete on fresh install', async 
     const body = res.json() as { firstRunComplete: boolean; desktopMode: boolean };
     assert.equal(body.desktopMode, true);
     assert.equal(body.firstRunComplete, false);
+    const server = (body as { server?: { redirectOrigins: string[] } }).server;
+    assert.ok(server);
+    assert.ok(server!.redirectOrigins.length >= 2);
+    assert.ok(server!.redirectOrigins.some((o) => o.includes('127.0.0.1')));
   } finally {
     await closeTestApp(app);
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
@@ -140,8 +144,8 @@ test('PATCH /api/setup completes wizard and starts desktop-drop channel', async 
     assert.equal(body.firstRunComplete, true);
     assert.equal(body.dropFolderPath, dropDir);
 
-    const health = await app.inject({ method: 'GET', url: '/health' });
-    const channels = (health.json() as { channels: Array<{ name: string; status: string }> }).channels;
+    const readiness = await app.inject({ method: 'GET', url: '/readiness' });
+    const channels = (readiness.json() as { channels: Array<{ name: string; status: string }> }).channels;
     const desktop = channels.find((c) => c.name === 'desktop-drop');
     assert.ok(desktop);
     assert.equal(desktop!.status, 'running');

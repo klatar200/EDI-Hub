@@ -11,15 +11,6 @@ function jsonResponse(body: unknown): Promise<FakeResponse> {
 
 function fakeFetch(input: unknown): Promise<FakeResponse> {
   const url = String(input);
-  if (url.includes('/health')) {
-    return jsonResponse({
-      status: 'ok',
-      server: {
-        port: 3000,
-        redirectOrigins: ['http://127.0.0.1:3000', 'http://192.168.1.50:3000'],
-      },
-    });
-  }
   if (url.includes('/api/setup')) {
     return jsonResponse({
       firstRunComplete: false,
@@ -28,6 +19,10 @@ function fakeFetch(input: unknown): Promise<FakeResponse> {
       hasIngested: false,
       clerkRedirectVerified: false,
       desktopMode: true,
+      server: {
+        port: 3000,
+        redirectOrigins: ['http://127.0.0.1:3000', 'http://192.168.1.50:3000'],
+      },
     });
   }
   return jsonResponse({});

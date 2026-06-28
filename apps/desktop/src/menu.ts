@@ -45,10 +45,10 @@ export function buildApplicationMenuTemplate(): MenuItemConstructorOptions[] {
           click: () => {
             void (async () => {
               try {
-                const res = await fetch('/health');
-                const h = (await res.json()) as { server?: { redirectOrigins?: string[] } };
+                const port = Number(process.env.PORT ?? 3000);
+                const { buildHealthServerInfo } = await import('@edi/shared/server-address');
                 const { preferredLanOrigin } = await import('@edi/shared');
-                const url = preferredLanOrigin(h.server?.redirectOrigins ?? []);
+                const url = preferredLanOrigin(buildHealthServerInfo(port).redirectOrigins);
                 const { clipboard } = await import('electron');
                 clipboard.writeText(url);
                 await dialog.showMessageBox({

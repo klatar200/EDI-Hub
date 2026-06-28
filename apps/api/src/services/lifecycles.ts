@@ -1,6 +1,7 @@
 /**
  * PS-1 — paginated PO/conversation list for the lifecycle-first homepage.
  */
+import { Prisma } from '@prisma/client';
 import type { PrismaClient } from '@prisma/client';
 import type { LifecycleListFilters, LifecycleSummary } from '@edi/shared';
 import { getLifecycle, summarizeLifecycleEvents } from './lifecycle.js';
@@ -46,55 +47,51 @@ export async function listLifecycles(
   const offset = (page - 1) * pageSize;
   const sortDir = filters.sort === 'startedAt:asc' ? 'ASC' : 'DESC';
 
-  const conditions: string[] = ['t.po_number IS NOT NULL', 't.tenant_id = $1::uuid'];
-  const params: unknown[] = [await tenantIdFromContext()];
-  let paramIdx = 2;
+  const tenantId = await tenantIdFromContext();
+  const conditions: Prisma.Sql[] = [
+    Prisma.sql`t.po_number IS NOT NULL`,
+    Prisma.sql`t.tenant_id = ${tenantId}::uuid`,
+  ];
 
   if (filters.from) {
-    conditions.push(`rf.ingested_at >= $${paramIdx}::timestamptz`);
-    params.push(new Date(filters.from));
-    paramIdx += 1;
+    conditions.push(Prisma.sql`rf.ingested_at >= ${new Date(filters.from)}::timestamptz`);
   }
   if (filters.to) {
-    conditions.push(`rf.ingested_at <= $${paramIdx}::timestamptz`);
-    params.push(new Date(filters.to));
-    paramIdx += 1;
+    conditions.push(Prisma.sql`rf.ingested_at <= ${new Date(filters.to)}::timestamptz`);
   }
   if (filters.pos && filters.pos.length > 0) {
-    conditions.push(`t.po_number = ANY($${paramIdx}::text[])`);
-    params.push(filters.pos);
-    paramIdx += 1;
+    conditions.push(Prisma.sql`t.po_number = ANY(${filters.pos}::text[])`);
   }
 
-  const whereSql = conditions.join(' AND ');
+  const whereSql = Prisma.join(conditions, ' AND ');
+  const orderSql =
+    sortDir === 'ASC'
+      ? Prisma.sql`MIN(rf.ingested_at) ASC`
+      : Prisma.sql`MIN(rf.ingested_at) DESC`;
 
-  const countRows = await prisma.$queryRawUnsafe<Array<{ count: bigint }>>(
-    `SELECT COUNT(DISTINCT t.po_number)::bigint AS count
-     FROM transactions t
-     INNER JOIN functional_groups fg ON t.functional_group_id = fg.id
-     INNER JOIN interchanges i ON fg.interchange_id = i.id
-     INNER JOIN raw_files rf ON i.raw_file_id = rf.id
-     WHERE ${whereSql}`,
-    ...params,
-  );
+  const countRows = await prisma.$queryRaw<Array<{ count: bigint }>>`
+    SELECT COUNT(DISTINCT t.po_number)::bigint AS count
+    FROM transactions t
+    INNER JOIN functional_groups fg ON t.functional_group_id = fg.id
+    INNER JOIN interchanges i ON fg.interchange_id = i.id
+    INNER JOIN raw_files rf ON i.raw_file_id = rf.id
+    WHERE ${whereSql}
+  `;
   const total = Number(countRows[0]?.count ?? 0);
 
-  const poRows = await prisma.$queryRawUnsafe<PoRow[]>(
-    `SELECT t.po_number AS po,
-            MIN(rf.ingested_at) AS started_at,
-            MAX(rf.ingested_at) AS last_activity_at
-     FROM transactions t
-     INNER JOIN functional_groups fg ON t.functional_group_id = fg.id
-     INNER JOIN interchanges i ON fg.interchange_id = i.id
-     INNER JOIN raw_files rf ON i.raw_file_id = rf.id
-     WHERE ${whereSql}
-     GROUP BY t.po_number
-     ORDER BY MIN(rf.ingested_at) ${sortDir}
-     LIMIT $${paramIdx} OFFSET $${paramIdx + 1}`,
-    ...params,
-    pageSize,
-    offset,
-  );
+  const poRows = await prisma.$queryRaw<PoRow[]>`
+    SELECT t.po_number AS po,
+           MIN(rf.ingested_at) AS started_at,
+           MAX(rf.ingested_at) AS last_activity_at
+    FROM transactions t
+    INNER JOIN functional_groups fg ON t.functional_group_id = fg.id
+    INNER JOIN interchanges i ON fg.interchange_id = i.id
+    INNER JOIN raw_files rf ON i.raw_file_id = rf.id
+    WHERE ${whereSql}
+    GROUP BY t.po_number
+    ORDER BY ${orderSql}
+    LIMIT ${pageSize} OFFSET ${offset}
+  `;
 
   const activeAlerts = await prisma.alert.findMany({
     where: { status: 'active' },

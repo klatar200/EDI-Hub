@@ -729,6 +729,8 @@ export interface SetupStatusResponse {
   desktopMode: boolean;
   /** ISA IDs that identify this tenant in interchange envelopes (ISA06/08). */
   ourIsaIds: string[];
+  /** Desktop installs — LAN redirect origins for Clerk setup (auth-required). */
+  server?: HealthServerInfo;
 }
 
 /** PATCH /api/setup — partial hub config updates from the wizard. */
@@ -741,7 +743,7 @@ export interface SetupPatchInput {
   ourIsaIds?: string[];
 }
 
-/** Public server addressing surfaced on GET /health for Clerk redirect setup. */
+/** Server addressing for Clerk redirect setup (GET /api/setup in desktop mode). */
 export interface HealthServerInfo {
   port: number;
   /** Origins to add to Clerk Allowed redirect URIs (includes localhost + LAN IPs). */

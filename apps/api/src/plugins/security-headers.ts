@@ -14,6 +14,18 @@
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import fp from 'fastify-plugin';
 
+/** CSP for HTML responses when the API serves the production SPA (desktop / bundled). */
+const CONTENT_SECURITY_POLICY = [
+  "default-src 'self'",
+  "script-src 'self'",
+  "style-src 'self' 'unsafe-inline'",
+  "img-src 'self' data: blob: https://img.clerk.com",
+  "connect-src 'self' https://*.clerk.accounts.dev https://api.clerk.com",
+  "frame-src https://*.clerk.accounts.dev",
+  "font-src 'self'",
+  "worker-src 'self' blob:",
+].join('; ');
+
 /** 6 months — long enough to be useful, short enough to back out if needed. */
 const HSTS_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;
 
@@ -31,6 +43,10 @@ async function securityHeadersImpl(
     );
     reply.header('X-Content-Type-Options', 'nosniff');
     reply.header('Referrer-Policy', 'no-referrer');
+    const contentType = reply.getHeader('content-type');
+    if (typeof contentType === 'string' && contentType.includes('text/html')) {
+      reply.header('Content-Security-Policy', CONTENT_SECURITY_POLICY);
+    }
     return payload;
   });
 }

@@ -100,12 +100,21 @@ function matches(t: FakeTxn, where: Record<string, unknown>): boolean {
 
 interface PoMeta { po: string; started_at: Date; last_activity_at: Date }
 
+function sqlText(query: unknown): string {
+  if (query && typeof query === 'object' && 'strings' in query) {
+    return (query as { strings: string[] }).strings.join('?');
+  }
+  return String(query);
+}
+
 function makeListPrisma(txns: FakeTxn[], poMeta: PoMeta[]): PrismaClient {
   const alerts: Array<{ status: string; sourceRef: unknown }> = [
     { status: 'active', sourceRef: { poNumber: 'PO-100' } },
   ];
   return {
-    $queryRawUnsafe: async (sql: string, ..._args: unknown[]) => {
+    $queryRaw: async (query: unknown, ..._values: unknown[]) => {
+      const sql = sqlText(query);
+      assert.ok(!sql.includes('DROP TABLE'), 'user input must not appear in raw SQL text');
       if (sql.includes('COUNT(DISTINCT')) {
         return [{ count: BigInt(poMeta.length) }];
       }
@@ -267,6 +276,28 @@ const config = {
 } as AppConfig;
 
 const fakeS3 = { config: { requestHandler: {}, maxAttempts: 1, endpointProvider: () => ({ url: new URL('http://localhost:9000') }) }, async send() { return {}; } } as unknown as S3Client;
+
+test('listLifecycles tolerates malicious pos filter values without SQL injection', async () => {
+  const malicious = "'; DROP TABLE transactions; --";
+  const txns = [
+    tx({
+      id: 't-evil', transactionSetId: '850', controlNumber: 'T1', groupControl: '1',
+      poNumber: malicious, direction: 'inbound', ingestedAt: '2026-06-01T10:00:00Z',
+    }),
+  ];
+  const poMeta: PoMeta[] = [
+    { po: malicious, started_at: new Date('2026-06-01T10:00:00Z'), last_activity_at: new Date('2026-06-01T10:00:00Z') },
+  ];
+  const prisma = makeListPrisma(txns, poMeta);
+
+  const result = await tenantContext.run({ tenantId: PILOT_TENANT_ID }, () =>
+    listLifecycles(prisma, { pos: [malicious] }, { ourIsaIds: [] }),
+  );
+
+  assert.equal(result.total, 1);
+  assert.equal(result.items.length, 1);
+  assert.equal(result.items[0]!.po, malicious);
+});
 
 test('GET /api/lifecycles returns paginated list shape', async () => {
   const poMeta: PoMeta[] = [

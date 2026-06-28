@@ -3,7 +3,6 @@
  */
 import { useQuery } from '@tanstack/react-query';
 import { Link } from 'react-router-dom';
-import type { HealthServerInfo } from '@edi/shared';
 import {
   CLERK_DASHBOARD_URL,
   LAN_INSTALL_DOCS_URL,
@@ -14,27 +13,10 @@ import { PageHeader, Card } from '../components/ui';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
-interface HealthResponse {
-  status: string;
-  server?: HealthServerInfo;
-}
-
-async function fetchHealth(): Promise<HealthResponse> {
-  const res = await fetch('/health');
-  if (!res.ok) throw new Error(`Health check failed (${res.status})`);
-  return (await res.json()) as HealthResponse;
-}
-
 export function HelpPage(): JSX.Element {
   const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({ queryKey: setupKey, queryFn: () => api.setup.get(), retry: false });
-  const healthQ = useQuery({
-    queryKey: ['health', 'help'],
-    queryFn: fetchHealth,
-    enabled: setupQ.data?.desktopMode === true,
-    staleTime: 60_000,
-  });
-  const origins = healthQ.data?.server?.redirectOrigins ?? [];
+  const origins = setupQ.data?.server?.redirectOrigins ?? [];
   const lanUrl = preferredLanOrigin(origins);
   const isDesktop = setupQ.data?.desktopMode === true;
 
@@ -80,7 +62,7 @@ export function HelpPage(): JSX.Element {
               </a>
               ).
             </p>
-            {healthQ.isLoading ? (
+            {setupQ.isLoading ? (
               <p className="text-xs text-[var(--color-fg-muted)]">Loading server addresses…</p>
             ) : (
               <>

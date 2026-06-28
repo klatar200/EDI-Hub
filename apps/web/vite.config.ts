@@ -1,9 +1,26 @@
 import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import tailwindcss from '@tailwindcss/vite';
+import { CONTENT_SECURITY_POLICY } from './src/lib/csp.ts';
 
 export default defineConfig({
-  plugins: [react(), tailwindcss()],
+  plugins: [
+    react(),
+    tailwindcss(),
+    {
+      name: 'inject-csp',
+      transformIndexHtml: {
+        order: 'post',
+        handler(html, ctx) {
+          if (ctx.server) return html;
+          return html.replace(
+            '<head>',
+            `<head>\n    <meta http-equiv="Content-Security-Policy" content="${CONTENT_SECURITY_POLICY}" />`,
+          );
+        },
+      },
+    },
+  ],
   // Load .env from the monorepo root, not apps/web. Keeps a single .env
   // for both the API (dotenv-cli) and the web app (Vite) — see Phase 9
   // CLERK_SETUP consolidated into BUILD_PLAN.md §11; root .env.local preferred.

@@ -9,22 +9,14 @@
  * `/readiness` (defined in routes/internal.ts). The ALB target group
  * should hit `/readiness`; ECS health-check uses `/health`.
  *
- * Backward-compat for the existing tests: the old `/health` returned
- * { status, db, s3, channels } — so this file still exposes those fields,
- * but always reports OK. The dep-checking moved to `/readiness`.
+ * SEC-M3 — public `/health` returns only `{ status: 'ok' }`. Channel
+ * paths, LAN IPs, and dependency detail live on `/readiness` (VPC/ALB)
+ * or `GET /api/setup` (authenticated desktop admins).
  */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import type { ChannelHealth } from '../channels/types.js';
-import type { HealthServerInfo } from '@edi/shared';
-import { buildHealthServerInfo } from '../services/server-address.js';
 
 interface LivenessResponse {
   status: 'ok';
-  db: 'connected';
-  s3: 'reachable';
-  channels: ChannelHealth[];
-  /** Desktop track D8 Sprint 2 — server addressing for Clerk redirect setup. */
-  server?: HealthServerInfo;
 }
 
 export async function healthRoutes(
@@ -32,13 +24,7 @@ export async function healthRoutes(
   _opts: FastifyPluginOptions,
 ): Promise<void> {
   app.get('/health', async (_request, reply) => {
-    const body: LivenessResponse = {
-      status: 'ok',
-      db: 'connected',
-      s3: 'reachable',
-      channels: app.channels?.health() ?? [],
-      server: buildHealthServerInfo(app.config.port),
-    };
+    const body: LivenessResponse = { status: 'ok' };
     return reply.code(200).send(body);
   });
 }

@@ -47,8 +47,18 @@ import type { TransactionRejection } from '@edi/shared';
 //              at http://127.0.0.1:3000 (LAN clients reach it at http://<server-ip>:3000).
 //   - Dev:     Vite at :5173 proxies /api to the API at :3000 (see vite.config.ts).
 // `VITE_API_URL` lets a developer override for an unusual local layout.
-const BASE: string =
-  (import.meta.env.VITE_API_URL as string | undefined) ?? '/api';
+// SEC-W2 — production builds only trust same-origin `/api`.
+function resolveApiBase(): string {
+  const override = import.meta.env.VITE_API_URL as string | undefined;
+  if (!override || override === '/api') return '/api';
+  if (import.meta.env.PROD) {
+    console.warn('[SEC-W2] VITE_API_URL rejected in production — using /api');
+    return '/api';
+  }
+  return override;
+}
+
+const BASE: string = resolveApiBase();
 
 /** Phase 9 Sprint 2 — JWT plumbing.
  *
@@ -283,7 +293,6 @@ export const api = {
     patch: (input: SetupPatchInput) => send<SetupStatusResponse>('PATCH', '/setup', input),
     verifyAuth: () => send<{ ok: boolean }>('POST', '/setup/verify-auth', {}),
   },
-  rawFileContentUrl: (id: string) => `${BASE}/raw-files/${id}/content`,
   rawContent: async (id: string): Promise<string> => {
     const res = await fetch(`${BASE}/raw-files/${id}/content`, { headers: await authHeaders() });
     if (res.status === 401) notifyUnauthorized(401);
