@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { OrganizationSwitcher, UserButton } from '@clerk/react';
 import { RequireRole } from '../lib/useRole.tsx';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { SearchBox } from './SearchBox.tsx';
 
 interface NavItem {
@@ -41,16 +42,18 @@ function navClass({ isActive }: { isActive: boolean }): string {
 
 export function Layout(): JSX.Element {
   // Unread badge — refreshed every 30s; falls back silently when the API is down.
+  const alertsBadgeKey = useTenantQueryKey('alerts', 'active', 'unread-badge');
   const activeAlerts = useQuery({
-    queryKey: ['alerts', 'active', 'unread-badge'],
+    queryKey: alertsBadgeKey,
     queryFn: () => api.alerts.list({ status: 'active' }),
     refetchInterval: 30_000,
     retry: false,
   });
   const unread = activeAlerts.data?.items.length ?? 0;
 
+  const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({
-    queryKey: ['setup'],
+    queryKey: setupKey,
     queryFn: () => api.setup.get(),
     refetchInterval: 30_000,
     retry: false,

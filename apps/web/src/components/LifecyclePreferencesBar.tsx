@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SavedView, UserPreferences } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { FormField, Input, Select } from './ui';
 
 const MAX_PINS = 10;
@@ -44,13 +45,14 @@ export function SavedViewsBar({
   onTogglePinnedOnly: (enabled: boolean) => void;
 }): JSX.Element {
   const qc = useQueryClient();
+  const preferencesKey = useTenantQueryKey('preferences');
   const [viewName, setViewName] = useState('');
   const savedViews = preferences.savedViews ?? [];
   const pinnedCount = preferences.pinnedPos?.length ?? 0;
 
   const patchM = useMutation({
     mutationFn: (next: UserPreferences) => api.preferences.patch(next),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['preferences'] }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: preferencesKey }),
   });
 
   function saveCurrentView(): void {
@@ -164,9 +166,10 @@ export function PinButton({
 
 export function usePinToggle(preferences: UserPreferences | undefined) {
   const qc = useQueryClient();
+  const preferencesKey = useTenantQueryKey('preferences');
   const patchM = useMutation({
     mutationFn: (next: UserPreferences) => api.preferences.patch(next),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['preferences'] }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: preferencesKey }),
   });
 
   function togglePin(po: string): void {

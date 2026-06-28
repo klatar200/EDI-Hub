@@ -43,6 +43,7 @@ import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
 import { UsersPage } from './pages/UsersPage.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './lib/api.ts';
+import { useTenantQueryKey } from './lib/useTenantQuery.ts';
 
 function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element {
   return (
@@ -54,8 +55,9 @@ function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element 
 
 function SetupGate(): JSX.Element {
   const isAdmin = useHasRole('admin');
+  const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({
-    queryKey: ['setup'],
+    queryKey: setupKey,
     queryFn: () => api.setup.get(),
     retry: false,
     staleTime: 10_000,

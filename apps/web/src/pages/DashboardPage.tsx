@@ -6,6 +6,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { DashboardIngestWindow } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   Card,
@@ -34,8 +35,9 @@ export function DashboardPage(): JSX.Element {
   const [ingestWindow, setIngestWindow] = useState<DashboardIngestWindow>('24h');
   const [rejectionDays, setRejectionDays] = useState<7 | 30>(7);
 
+  const dashboardKey = useTenantQueryKey('dashboard', ingestWindow, rejectionDays);
   const q = useQuery({
-    queryKey: ['dashboard', ingestWindow, rejectionDays],
+    queryKey: dashboardKey,
     queryFn: () => api.dashboard({ ingestWindow, rejectionWindowDays: rejectionDays }),
   });
 

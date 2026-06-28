@@ -11,18 +11,20 @@
  */
 import { useLayoutEffect, type ReactNode } from 'react';
 import { useAuth } from '@clerk/react';
-import { setAuthTokenGetter } from '../lib/api.ts';
+import { setAuthTokenGetter, setUnauthorizedHandler } from '../lib/api.ts';
 
 export function AuthBridge(): null {
-  const { getToken } = useAuth();
+  const { getToken, signOut } = useAuth();
   useLayoutEffect(() => {
-    // useLayoutEffect runs before paint so the token getter is installed
-    // before MeProvider's first /me fetch.
     setAuthTokenGetter(() => getToken());
+    setUnauthorizedHandler(() => {
+      void signOut();
+    });
     return () => {
       setAuthTokenGetter(async () => null);
+      setUnauthorizedHandler(null);
     };
-  }, [getToken]);
+  }, [getToken, signOut]);
   return null;
 }
 

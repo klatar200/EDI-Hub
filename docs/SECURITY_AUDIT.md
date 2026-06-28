@@ -3,7 +3,7 @@
 **Date:** 2026-06-27  
 **Scope:** `apps/api`, `apps/web`, `packages/db` tenant extension  
 **Mode:** Local-first / pre-go-live — findings include SaaS, desktop LAN, and infra assumptions  
-**Status:** SEC-1 remediation **shipped** (2026-06-27) · SEC-2/SEC-3 pending
+**Status:** SEC-1 remediation **shipped** (2026-06-27) · SEC-2 **shipped** (2026-06-28) · SEC-3 pending
 
 **Related:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) §12 · [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) (redirect stub)
 
@@ -227,4 +227,4 @@ Manual checks (local):
 
 ## Next step
 
-Start **Sprint SEC-2** for remaining defense-in-depth items (partners mutation UI guards, `setup/verify-auth` hardening tests).
+Start **Sprint SEC-3** when preparing go-live (ALB SG, CSP, minimal `/health`, Prisma.sql migration).

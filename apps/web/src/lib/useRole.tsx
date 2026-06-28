@@ -21,12 +21,14 @@ interface MeContextValue {
   me: UserRecord | null;
   isLoading: boolean;
   isError: boolean;
+  orgId?: string;
 }
 
 const MeContext = createContext<MeContextValue>({
   me: null,
   isLoading: true,
   isError: false,
+  orgId: undefined,
 });
 
 export function MeProvider({
@@ -46,7 +48,7 @@ export function MeProvider({
   });
   return (
     <MeContext.Provider
-      value={{ me: q.data ?? null, isLoading: q.isLoading, isError: q.isError }}
+      value={{ me: q.data ?? null, isLoading: q.isLoading, isError: q.isError, orgId }}
     >
       {children}
     </MeContext.Provider>

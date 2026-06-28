@@ -28,6 +28,7 @@ const FLOW_LABEL: Record<LifecycleResponse['flow'], string> = {
   unknown: 'Custom / unknown flow',
 };
 import { api, type LifecycleKey } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
 import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
 import {
@@ -46,8 +47,9 @@ export function LifecyclePage(): JSX.Element {
   const key: LifecycleKey = invoice ? 'invoice' : shipment ? 'shipment' : 'po';
   const value = invoice ?? shipment ?? poParam;
 
+  const lifecycleKey = useTenantQueryKey('lifecycle', key, value);
   const q = useQuery({
-    queryKey: ['lifecycle', key, value],
+    queryKey: lifecycleKey,
     queryFn: () => api.lifecycle(key, value),
     enabled: value.length > 0,
     // Desktop drop-folder workflow: new files can land while this page is open.

@@ -27,6 +27,7 @@ import {
   Input,
 } from '../components/ui';
 import { RequireRole } from '../lib/useRole.tsx';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useToast } from '../lib/useToast.tsx';
 
 const SNOOZE_OPTIONS: Array<{ minutes: number; label: string }> = [
@@ -149,8 +150,10 @@ export function AlertsPage(): JSX.Element {
   const [type, setType] = useState<AlertType | ''>('');
   const [partnerName, setPartnerName] = useState('');
   const [sortBy, setSortBy] = useState<'sla' | 'recent'>('sla');
+  const alertsKey = useTenantQueryKey('alerts', status, type, partnerName);
+  const alertsPrefix = useTenantQueryKey('alerts');
   const alertsQ = useQuery({
-    queryKey: ['alerts', status, type, partnerName],
+    queryKey: alertsKey,
     queryFn: () => api.alerts.list({
       status: status || undefined,
       type: type || undefined,
@@ -165,7 +168,7 @@ export function AlertsPage(): JSX.Element {
     mutationFn: (id: string) => api.alerts.ack(id, { who: 'ops' }),
     onSuccess: () => {
       toast.success('Alert acknowledged');
-      void qc.invalidateQueries({ queryKey: ['alerts'] });
+      void qc.invalidateQueries({ queryKey: alertsPrefix });
     },
     onError: (err) => {
       toast.error('Could not acknowledge', { description: err instanceof Error ? err.message : 'Server returned an error.' });
@@ -175,7 +178,7 @@ export function AlertsPage(): JSX.Element {
     mutationFn: ({ id, minutes }: { id: string; minutes: number }) => api.alerts.snooze(id, minutes),
     onSuccess: () => {
       toast.success('Alert snoozed');
-      void qc.invalidateQueries({ queryKey: ['alerts'] });
+      void qc.invalidateQueries({ queryKey: alertsPrefix });
     },
     onError: (err) => {
       toast.error('Could not snooze', { description: err instanceof Error ? err.message : 'Server returned an error.' });
@@ -185,7 +188,7 @@ export function AlertsPage(): JSX.Element {
     mutationFn: () => api.runDetection(),
     onSuccess: () => {
       toast.success('Detection pass complete');
-      void qc.invalidateQueries({ queryKey: ['alerts'] });
+      void qc.invalidateQueries({ queryKey: alertsPrefix });
     },
     onError: (err) => {
       toast.error('Detection failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });
@@ -198,7 +201,7 @@ export function AlertsPage(): JSX.Element {
     }),
     onSuccess: (res) => {
       toast.success(`Acknowledged ${res.acknowledged} alert${res.acknowledged === 1 ? '' : 's'}`);
-      void qc.invalidateQueries({ queryKey: ['alerts'] });
+      void qc.invalidateQueries({ queryKey: alertsPrefix });
     },
     onError: (err) => {
       toast.error('Bulk acknowledge failed', { description: err instanceof Error ? err.message : 'Server returned an error.' });

@@ -12,6 +12,7 @@ import {
 } from '@edi/shared';
 import { PageHeader, Card } from '../components/ui';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
 interface HealthResponse {
   status: string;
@@ -25,7 +26,8 @@ async function fetchHealth(): Promise<HealthResponse> {
 }
 
 export function HelpPage(): JSX.Element {
-  const setupQ = useQuery({ queryKey: ['setup'], queryFn: () => api.setup.get(), retry: false });
+  const setupKey = useTenantQueryKey('setup');
+  const setupQ = useQuery({ queryKey: setupKey, queryFn: () => api.setup.get(), retry: false });
   const healthQ = useQuery({
     queryKey: ['health', 'help'],
     queryFn: fetchHealth,

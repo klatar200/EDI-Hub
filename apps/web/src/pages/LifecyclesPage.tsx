@@ -17,6 +17,7 @@ import {
   usePinToggle,
 } from '../components/LifecyclePreferencesBar.tsx';
 import { useHasRole } from '../lib/useRole.tsx';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -66,17 +67,18 @@ function LifecycleNotes({ po }: { po: string }): JSX.Element {
   const qc = useQueryClient();
   const isOps = useHasRole('ops');
   const [draft, setDraft] = useState('');
-  const notesQ = useQuery({ queryKey: ['lifecycle-notes', po], queryFn: () => api.lifecycleNotes.list(po) });
+  const notesKey = useTenantQueryKey('lifecycle-notes', po);
+  const notesQ = useQuery({ queryKey: notesKey, queryFn: () => api.lifecycleNotes.list(po) });
   const createM = useMutation({
     mutationFn: () => api.lifecycleNotes.create(po, { body: draft }),
     onSuccess: () => {
       setDraft('');
-      void qc.invalidateQueries({ queryKey: ['lifecycle-notes', po] });
+      void qc.invalidateQueries({ queryKey: notesKey });
     },
   });
   const deleteM = useMutation({
     mutationFn: (id: string) => api.lifecycleNotes.remove(po, id),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['lifecycle-notes', po] }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: notesKey }),
   });
   return (
     <div className="mt-4 rounded-md border border-[var(--color-surface-border)] p-3" data-testid={`notes-${po}`}>
@@ -144,16 +146,18 @@ function LifecycleRow({
   const [expanded, setExpanded] = useState(false);
   const isOps = useHasRole('ops');
   const qc = useQueryClient();
+  const lifecycleKey = useTenantQueryKey('lifecycle', row.po);
+  const lifecyclesKey = useTenantQueryKey('lifecycles');
   const expandQ = useQuery({
-    queryKey: ['lifecycle', row.po],
+    queryKey: lifecycleKey,
     queryFn: () => api.lifecycle('po', row.po),
     enabled: expanded,
   });
   const reparseM = useMutation({
     mutationFn: (id: string) => api.reparseRaw(id),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['lifecycle', row.po] });
-      void qc.invalidateQueries({ queryKey: ['lifecycles'] });
+      void qc.invalidateQueries({ queryKey: lifecycleKey });
+      void qc.invalidateQueries({ queryKey: lifecyclesKey });
     },
   });
   const parseErrorRawIds = [...new Set(
@@ -308,9 +312,12 @@ export function LifecyclesPage(): JSX.Element {
   const [sp, setSp] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [includeRawInZip, setIncludeRawInZip] = useState(false);
-  const partnersConfigQ = useQuery({ queryKey: ['partners-config'], queryFn: () => api.partnersConfig.list() });
-  const settingsQ = useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
-  const preferencesQ = useQuery({ queryKey: ['preferences'], queryFn: () => api.preferences.get() });
+  const partnersConfigKey = useTenantQueryKey('partners-config');
+  const settingsKey = useTenantQueryKey('settings');
+  const preferencesKey = useTenantQueryKey('preferences');
+  const partnersConfigQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
+  const settingsQ = useQuery({ queryKey: settingsKey, queryFn: () => api.settings.get() });
+  const preferencesQ = useQuery({ queryKey: preferencesKey, queryFn: () => api.preferences.get() });
   const slaCountdownEnabled = settingsQ.data?.settings?.slaCountdownEnabled ?? false;
   const pinnedPos = preferencesQ.data?.preferences.pinnedPos ?? [];
   const { togglePin, isPending: pinPending } = usePinToggle(preferencesQ.data?.preferences);
@@ -334,8 +341,9 @@ export function LifecyclesPage(): JSX.Element {
     sort,
   };
 
+  const lifecyclesKey = useTenantQueryKey('lifecycles', filters);
   const listQ = useQuery({
-    queryKey: ['lifecycles', filters],
+    queryKey: lifecyclesKey,
     queryFn: () => api.lifecycles(filters),
   });
 

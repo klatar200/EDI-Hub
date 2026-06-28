@@ -5,6 +5,7 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import type { ChannelHealthRecord } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { PageHeader, Card, StatusPill, ErrorState, Skeleton, EmptyState } from '../components/ui';
 
 function statusTone(status: ChannelHealthRecord['status']): 'success' | 'neutral' | 'error' {
@@ -14,7 +15,8 @@ function statusTone(status: ChannelHealthRecord['status']): 'success' | 'neutral
 }
 
 export function ChannelsPage(): JSX.Element {
-  const q = useQuery({ queryKey: ['channels'], queryFn: () => api.channels.list(), refetchInterval: 30_000 });
+  const channelsKey = useTenantQueryKey('channels');
+  const q = useQuery({ queryKey: channelsKey, queryFn: () => api.channels.list(), refetchInterval: 30_000 });
 
   return (
     <div className="space-y-6">

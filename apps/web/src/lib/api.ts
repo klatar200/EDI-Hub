@@ -70,6 +70,18 @@ export function setAuthTokenGetter(fn: AuthTokenGetter): void {
   getAuthToken = fn;
 }
 
+/** SEC-L1 — optional handler invoked on 401 responses (AuthBridge wires sign-out). */
+type UnauthorizedHandler = () => void;
+let onUnauthorized: UnauthorizedHandler | null = null;
+
+export function setUnauthorizedHandler(fn: UnauthorizedHandler | null): void {
+  onUnauthorized = fn;
+}
+
+function notifyUnauthorized(status: number): void {
+  if (status === 401 && onUnauthorized) onUnauthorized();
+}
+
 async function authHeaders(): Promise<Record<string, string>> {
   const token = await getAuthToken();
   return token ? { Authorization: `Bearer ${token}` } : {};
@@ -97,6 +109,7 @@ function qs(params: Record<string, string | number | boolean | string[] | undefi
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: await authHeaders() });
+  if (res.status === 401) notifyUnauthorized(401);
   if (!res.ok) throw new Error(`API request failed (${res.status}) for ${path}`);
   return (await res.json()) as T;
 }
@@ -106,6 +119,7 @@ async function get<T>(path: string): Promise<T> {
 async function getOrNull<T>(path: string): Promise<T | null> {
   const res = await fetch(`${BASE}${path}`, { headers: await authHeaders() });
   if (res.status === 404) return null;
+  if (res.status === 401) notifyUnauthorized(401);
   if (!res.ok) throw new Error(`API request failed (${res.status}) for ${path}`);
   return (await res.json()) as T;
 }
@@ -126,6 +140,7 @@ async function send<T>(method: 'POST' | 'PATCH', path: string, body: unknown): P
     body: JSON.stringify(body),
   });
   const json: unknown = await res.json().catch(() => ({}));
+  if (res.status === 401) notifyUnauthorized(401);
   if (!res.ok) {
     throw new ApiCallError(
       `API ${method} failed (${res.status}) for ${path}`,
@@ -138,6 +153,7 @@ async function send<T>(method: 'POST' | 'PATCH', path: string, body: unknown): P
 
 async function sendVoid(method: 'DELETE', path: string): Promise<void> {
   const res = await fetch(`${BASE}${path}`, { method, headers: await authHeaders() });
+  if (res.status === 401) notifyUnauthorized(401);
   if (!res.ok && res.status !== 204) {
     throw new Error(`API ${method} failed (${res.status}) for ${path}`);
   }
@@ -210,6 +226,7 @@ export const api = {
       body: fd,
     });
     const json: unknown = await res.json().catch(() => ({}));
+    if (res.status === 401) notifyUnauthorized(401);
     if (!res.ok) {
       const msg =
         typeof json === 'object' && json !== null && 'error' in json
@@ -269,12 +286,14 @@ export const api = {
   rawFileContentUrl: (id: string) => `${BASE}/raw-files/${id}/content`,
   rawContent: async (id: string): Promise<string> => {
     const res = await fetch(`${BASE}/raw-files/${id}/content`, { headers: await authHeaders() });
+    if (res.status === 401) notifyUnauthorized(401);
     if (!res.ok) throw new Error(`Could not load raw file (${res.status})`);
     return res.text();
   },
   /** PS-2 — authenticated raw file download trigger. */
   downloadRawFile: async (id: string, filename?: string): Promise<void> => {
     const res = await fetch(`${BASE}/raw-files/${id}/content`, { headers: await authHeaders() });
+    if (res.status === 401) notifyUnauthorized(401);
     if (!res.ok) throw new Error(`Could not download raw file (${res.status})`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -313,6 +332,7 @@ export const api = {
       `${BASE}/lifecycles/${encodeURIComponent(po)}/export?format=${format}`,
       { headers: await authHeaders() },
     );
+    if (res.status === 401) notifyUnauthorized(401);
     if (!res.ok) throw new Error(`Export failed (${res.status})`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -327,6 +347,7 @@ export const api = {
   /** PS-9 — export raw file as txt/csv/pdf. */
   exportRaw: async (id: string, format: 'txt' | 'csv' | 'pdf'): Promise<void> => {
     const res = await fetch(`${BASE}/raw-files/${id}/export?format=${format}`, { headers: await authHeaders() });
+    if (res.status === 401) notifyUnauthorized(401);
     if (!res.ok) throw new Error(`Export failed (${res.status})`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);
@@ -355,6 +376,7 @@ export const api = {
       headers: { 'Content-Type': 'application/json', ...(await authHeaders()) },
       body: JSON.stringify(input),
     });
+    if (res.status === 401) notifyUnauthorized(401);
     if (!res.ok) throw new Error(`Export failed (${res.status})`);
     const blob = await res.blob();
     const url = URL.createObjectURL(blob);

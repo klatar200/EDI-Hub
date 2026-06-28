@@ -4,6 +4,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import type { TenantSettingsPatch } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useTheme } from '../lib/useTheme.tsx';
 import { ThemeToggle } from '../components/ui/ThemeToggle.tsx';
 import { PageHeader, Card, FormField, Input, Select, ErrorState, Skeleton } from '../components/ui';
@@ -13,12 +14,13 @@ export function SettingsPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
   const { mode } = useTheme();
-  const q = useQuery({ queryKey: ['settings'], queryFn: () => api.settings.get() });
+  const settingsKey = useTenantQueryKey('settings');
+  const q = useQuery({ queryKey: settingsKey, queryFn: () => api.settings.get() });
 
   const patch = useMutation({
     mutationFn: (input: TenantSettingsPatch) => api.settings.patch(input),
     onSuccess: () => {
-      void qc.invalidateQueries({ queryKey: ['settings'] });
+      void qc.invalidateQueries({ queryKey: settingsKey });
       toast.success('Settings saved');
     },
     onError: () => toast.error('Could not save settings'),

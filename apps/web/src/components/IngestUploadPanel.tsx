@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
 import type { IngestUploadResponse } from '@edi/shared';
 import { api, ApiCallError } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { Card, StatusPill, rawFileTone } from './ui';
 
 const ACCEPT = '.edi,.x12,.txt';
@@ -16,6 +17,7 @@ interface UploadResult {
 
 export function IngestUploadPanel(): JSX.Element {
   const qc = useQueryClient();
+  const ingestPrefix = useTenantQueryKey('ingest');
   const inputRef = useRef<HTMLInputElement>(null);
   const [dragOver, setDragOver] = useState(false);
   const [uploading, setUploading] = useState(false);
@@ -46,8 +48,8 @@ export function IngestUploadPanel(): JSX.Element {
     }
     setResults((prev) => [...batch, ...prev].slice(0, 20));
     setUploading(false);
-    await qc.invalidateQueries({ queryKey: ['ingest'] });
-  }, [qc]);
+    await qc.invalidateQueries({ queryKey: ingestPrefix });
+  }, [qc, ingestPrefix]);
 
   function onDrop(e: React.DragEvent): void {
     e.preventDefault();

@@ -12,6 +12,7 @@
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type UserRole } from '../lib/api.ts';
 import { RequireRole, useMe } from '../lib/useRole.tsx';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -28,14 +29,15 @@ export function UsersPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
   const { me } = useMe();
-  const q = useQuery({ queryKey: ['users'], queryFn: () => api.users.list() });
+  const usersKey = useTenantQueryKey('users');
+  const q = useQuery({ queryKey: usersKey, queryFn: () => api.users.list() });
 
   const update = useMutation({
     mutationFn: (input: { id: string; role: UserRole }) =>
       api.users.update(input.id, { role: input.role }),
     onSuccess: () => {
       toast.success('Role updated');
-      void qc.invalidateQueries({ queryKey: ['users'] });
+      void qc.invalidateQueries({ queryKey: usersKey });
     },
     onError: (err) => {
       toast.error('Could not update role', { description: err instanceof Error ? err.message : 'Server returned an error.' });
@@ -45,7 +47,7 @@ export function UsersPage(): JSX.Element {
     mutationFn: (id: string) => api.users.remove(id),
     onSuccess: () => {
       toast.success('User access revoked');
-      void qc.invalidateQueries({ queryKey: ['users'] });
+      void qc.invalidateQueries({ queryKey: usersKey });
     },
     onError: (err) => {
       toast.error('Could not remove user', { description: err instanceof Error ? err.message : 'Server returned an error.' });

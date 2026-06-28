@@ -13,6 +13,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import type { RejectionRateRow } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -43,8 +44,9 @@ function ratePct(rate: number): string {
 export function MetricsPage(): JSX.Element {
   const [days, setDays] = useState<number>(30);
   const from = windowFrom(days);
+  const rateKey = useTenantQueryKey('rejection-rate', days);
   const q = useQuery({
-    queryKey: ['rejection-rate', days],
+    queryKey: rateKey,
     queryFn: () => api.rejectionRate({ from }),
   });
 

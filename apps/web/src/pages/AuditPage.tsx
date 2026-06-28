@@ -4,6 +4,7 @@
 import { useState, Fragment } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { AuditDiffPanel } from '../components/AuditDiffPanel.tsx';
 import { PageHeader, Card, DataTable, FormField, Input, ErrorState, Skeleton, Pagination } from '../components/ui';
 
@@ -14,8 +15,9 @@ export function AuditPage(): JSX.Element {
   const [offset, setOffset] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
+  const auditKey = useTenantQueryKey('audit', action, offset);
   const q = useQuery({
-    queryKey: ['audit', action, offset],
+    queryKey: auditKey,
     queryFn: () => api.audit.list({ action: action || undefined, limit: PAGE_SIZE, offset }),
   });
 

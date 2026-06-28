@@ -3,11 +3,22 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
 import { PartnersConfigPage } from '../src/pages/PartnersConfigPage.tsx';
+import { MeProvider } from '../src/lib/useRole.tsx';
 
 interface FakeResponse { ok: boolean; status: number; json: () => Promise<unknown> }
 function jsonResponse(body: unknown, status = 200): Promise<FakeResponse> {
   return Promise.resolve({ ok: status < 400, status, json: () => Promise.resolve(body) });
 }
+
+const ADMIN_ME = {
+  id: 'u-admin',
+  email: 'admin@test.com',
+  displayName: 'Admin',
+  role: 'admin' as const,
+  clerkUserId: 'user_admin',
+  createdAt: '2026-01-01T00:00:00Z',
+  updatedAt: '2026-01-01T00:00:00Z',
+};
 
 const SAMPLE_LIST = {
   items: [
@@ -41,6 +52,7 @@ const SAMPLE_LIST = {
 
 function fakeFetch(input: unknown): Promise<FakeResponse> {
   const url = String(input);
+  if (url.endsWith('/me')) return jsonResponse(ADMIN_ME);
   if (url.includes('/partners-config')) return jsonResponse(SAMPLE_LIST);
   return jsonResponse({});
 }
@@ -50,7 +62,9 @@ function renderPage() {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter>
-        <PartnersConfigPage />
+        <MeProvider orgId="test-org">
+          <PartnersConfigPage />
+        </MeProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );

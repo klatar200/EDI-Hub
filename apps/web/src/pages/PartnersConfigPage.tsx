@@ -30,6 +30,8 @@ import {
   type SegmentLabelOverrides,
 } from '@edi/shared';
 import { ApiCallError, api } from '../lib/api.ts';
+import { RequireRole, useHasRole } from '../lib/useRole.tsx';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -181,7 +183,9 @@ function toInput(d: DraftState): PartnerConfigInput {
 export function PartnersConfigPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
-  const listQ = useQuery({ queryKey: ['partners-config'], queryFn: () => api.partnersConfig.list() });
+  const isAdmin = useHasRole('admin');
+  const partnersConfigKey = useTenantQueryKey('partners-config');
+  const listQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
   const [editing, setEditing] = useState<{ id: string | null; draft: DraftState } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -191,7 +195,7 @@ export function PartnersConfigPage(): JSX.Element {
         ? api.partnersConfig.update(payload.id, payload.input)
         : api.partnersConfig.create(payload.input),
     onSuccess: (_data, vars) => {
-      void qc.invalidateQueries({ queryKey: ['partners-config'] });
+      void qc.invalidateQueries({ queryKey: partnersConfigKey });
       setEditing(null);
       setErrorMsg(null);
       toast.success(vars.id ? 'Partner saved' : 'Partner created');
@@ -216,7 +220,7 @@ export function PartnersConfigPage(): JSX.Element {
     mutationFn: (id: string) => api.partnersConfig.remove(id),
     onSuccess: () => {
       toast.success('Partner deleted');
-      void qc.invalidateQueries({ queryKey: ['partners-config'] });
+      void qc.invalidateQueries({ queryKey: partnersConfigKey });
     },
     onError: (err) => {
       toast.error('Could not delete partner', { description: err instanceof Error ? err.message : 'Server returned an error.' });
@@ -237,16 +241,18 @@ export function PartnersConfigPage(): JSX.Element {
         title="Trading partners"
         subtitle="Identity, supported sets, lifecycle flow, ack overrides, SLA windows, and connectivity per partner."
         actions={
-          <button
-            type="button"
-            className="btn-primary"
-            onClick={() => setEditing({ id: null, draft: { ...EMPTY_DRAFT } })}
-          >
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
-            </svg>
-            New partner
-          </button>
+          <RequireRole role="admin">
+            <button
+              type="button"
+              className="btn-primary"
+              onClick={() => setEditing({ id: null, draft: { ...EMPTY_DRAFT } })}
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
+                <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
+              </svg>
+              New partner
+            </button>
+          </RequireRole>
         }
       />
 
@@ -261,7 +267,7 @@ export function PartnersConfigPage(): JSX.Element {
       ) : items.length === 0 ? (
         <EmptyState
           title="No partners configured yet"
-          description={`Click "New partner" to add one.`}
+          description={isAdmin ? 'Click "New partner" to add one.' : 'No partners are configured for this organization yet.'}
         />
       ) : (
         <DataTable>
@@ -273,7 +279,7 @@ export function PartnersConfigPage(): JSX.Element {
               <DataTable.Th>SLAs</DataTable.Th>
               <DataTable.Th>Channel</DataTable.Th>
               <DataTable.Th>Status</DataTable.Th>
-              <DataTable.Th className="text-right">Actions</DataTable.Th>
+              {isAdmin ? <DataTable.Th className="text-right">Actions</DataTable.Th> : null}
             </DataTable.Tr>
           </DataTable.Thead>
           <DataTable.Tbody>
@@ -305,24 +311,26 @@ export function PartnersConfigPage(): JSX.Element {
                       {p.status}
                     </StatusPill>
                   </DataTable.Td>
-                  <DataTable.Td className="text-right">
-                    <button
-                      type="button"
-                      className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
-                      onClick={() => setEditing({ id: p.id, draft: fromRecord(p) })}
-                    >
-                      Edit
-                    </button>
-                    <button
-                      type="button"
-                      className="ml-3 text-sm text-[var(--color-error-700)] hover:underline"
-                      onClick={() => {
-                        if (window.confirm(`Delete partner "${p.displayName}"?`)) deleteM.mutate(p.id);
-                      }}
-                    >
-                      Delete
-                    </button>
-                  </DataTable.Td>
+                  {isAdmin ? (
+                    <DataTable.Td className="text-right">
+                      <button
+                        type="button"
+                        className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                        onClick={() => setEditing({ id: p.id, draft: fromRecord(p) })}
+                      >
+                        Edit
+                      </button>
+                      <button
+                        type="button"
+                        className="ml-3 text-sm text-[var(--color-error-700)] hover:underline"
+                        onClick={() => {
+                          if (window.confirm(`Delete partner "${p.displayName}"?`)) deleteM.mutate(p.id);
+                        }}
+                      >
+                        Delete
+                      </button>
+                    </DataTable.Td>
+                  ) : null}
                 </DataTable.Tr>
               );
             })}
@@ -330,7 +338,7 @@ export function PartnersConfigPage(): JSX.Element {
         </DataTable>
       )}
 
-      {editing ? (
+      {isAdmin && editing ? (
         <Card className="mt-6">
           <form
             onSubmit={handleSubmit}

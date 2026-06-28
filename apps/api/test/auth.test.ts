@@ -111,6 +111,9 @@ test('invalid token → 401 UNAUTHENTICATED', async () => {
   const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 401);
   assert.equal(res.json().error.code, 'UNAUTHENTICATED');
+  const msg = (res.json() as { error: { message: string } }).error.message;
+  assert.equal(msg, 'Authentication failed.');
+  assert.doesNotMatch(msg, /expired/i);
   await app.close();
 });
 
@@ -258,7 +261,10 @@ test('viewer is rejected with 403 FORBIDDEN on POST /partners-config', async () 
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
   assert.equal(res.statusCode, 403);
-  assert.equal(res.json().error.code, 'FORBIDDEN');
+  const body = res.json() as { error: { code: string; message: string } };
+  assert.equal(body.error.code, 'FORBIDDEN');
+  assert.equal(body.error.message, 'You do not have permission to perform this action.');
+  assert.doesNotMatch(body.error.message, /viewer/i);
   await app.close();
 });
 
@@ -270,7 +276,10 @@ test('ops is rejected with 403 FORBIDDEN on POST /partners-config (admin only)',
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
   assert.equal(res.statusCode, 403);
-  assert.equal(res.json().error.code, 'FORBIDDEN');
+  const body = res.json() as { error: { code: string; message: string } };
+  assert.equal(body.error.code, 'FORBIDDEN');
+  assert.equal(body.error.message, 'You do not have permission to perform this action.');
+  assert.doesNotMatch(body.error.message, /ops/i);
   await app.close();
 });
 
