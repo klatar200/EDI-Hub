@@ -2,13 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useParams } from 'react-router-dom';
 import type { InterpretedTransaction, LineItem } from '@edi/edi-parser';
 import { api, type TransactionDetail } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { StatusBadge } from '../components/StatusBadge.tsx';
 import { RawParsedView } from '../components/RawParsedView.tsx';
 import { StageBadge, StageTimeline } from '../components/OutboundStage.tsx';
 
 export function TransactionDetailPage(): JSX.Element {
   const { id = '' } = useParams();
-  const q = useQuery({ queryKey: ['transaction', id], queryFn: () => api.transaction(id) });
+  const txKey = useTenantQueryKey('transaction', id);
+  const q = useQuery({ queryKey: txKey, queryFn: () => api.transaction(id) });
 
   if (q.isLoading) return <p className="text-sm text-[var(--color-fg-muted)]">Loading…</p>;
   if (q.isError || !q.data) {

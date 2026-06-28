@@ -9,6 +9,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { RawFileRecord, TransactionSummary, LifecycleSearchHit } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -40,7 +41,8 @@ function entryHint(lc: LifecycleSearchHit): string | null {
 export function SearchPage(): JSX.Element {
   const [sp] = useSearchParams();
   const q = sp.get('q') ?? '';
-  const query = useQuery({ queryKey: ['search', q], queryFn: () => api.search(q), enabled: q.length > 0 });
+  const searchKey = useTenantQueryKey('search', q);
+  const query = useQuery({ queryKey: searchKey, queryFn: () => api.search(q), enabled: q.length > 0 });
 
   const lifecycles = query.data?.lifecycles ?? [];
   const transactions = query.data?.transactions ?? [];

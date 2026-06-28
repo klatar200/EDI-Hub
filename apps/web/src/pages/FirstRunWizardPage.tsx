@@ -13,6 +13,7 @@ import { CLERK_DASHBOARD_URL } from '@edi/shared';
 import { Card } from '../components/ui/Card.tsx';
 import { FormField, Input } from '../components/ui/forms.tsx';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
 const STEPS = ['Welcome', 'Clerk', 'Drop folder', 'Partner', 'Telemetry'] as const;
 
@@ -48,15 +49,16 @@ export function FirstRunWizardPage(): JSX.Element {
     staleTime: 60_000,
   });
 
+  const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({
-    queryKey: ['setup'],
+    queryKey: setupKey,
     queryFn: () => api.setup.get(),
     staleTime: 5_000,
   });
 
   const patchSetup = useMutation({
     mutationFn: (input: Parameters<typeof api.setup.patch>[0]) => api.setup.patch(input),
-    onSuccess: () => void qc.invalidateQueries({ queryKey: ['setup'] }),
+    onSuccess: () => void qc.invalidateQueries({ queryKey: setupKey }),
   });
 
   const verifyAuth = useMutation({
@@ -125,7 +127,7 @@ export function FirstRunWizardPage(): JSX.Element {
     setTelemetryError(null);
     try {
       await patchSetup.mutateAsync({ telemetryEnabled, firstRunComplete: true });
-      await qc.invalidateQueries({ queryKey: ['setup'] });
+      await qc.invalidateQueries({ queryKey: setupKey });
       navigate('/', { replace: true });
     } catch {
       setTelemetryError('Could not save your choice. Try again.');

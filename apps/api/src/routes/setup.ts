@@ -110,6 +110,15 @@ export async function setupRoutes(
     if (!isDesktopHubMode()) {
       return reply.code(200).send({ ok: true });
     }
+    if (!request.auth?.clerkUserId) {
+      const body: ApiErrorResponse = {
+        error: {
+          code: 'CLERK_NOT_VERIFIED',
+          message: 'Sign in with Clerk before verifying authentication.',
+        },
+      };
+      return reply.code(400).send(body);
+    }
     writeHubConfig({ clerkRedirectVerified: true });
     return reply.code(200).send({ ok: true });
   });

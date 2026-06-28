@@ -4,12 +4,14 @@
 import { useQuery } from '@tanstack/react-query';
 import type { LifecycleEvent } from '@edi/shared';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
 const DIRECTION_LABEL = { inbound: 'Inbound', outbound: 'Outbound', unknown: 'Unknown' } as const;
 
 function CompareColumn({ event }: { event: LifecycleEvent }): JSX.Element {
+  const rawKey = useTenantQueryKey('raw', event.rawFileId);
   const rawQ = useQuery({
-    queryKey: ['raw', event.rawFileId],
+    queryKey: rawKey,
     queryFn: () => api.rawContent(event.rawFileId!),
     staleTime: 60_000,
     enabled: Boolean(event.rawFileId),

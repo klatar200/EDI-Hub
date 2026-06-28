@@ -45,7 +45,7 @@ function MissingClerkKey(): JSX.Element {
 
 const root = createRoot(document.getElementById('root')!);
 
-if (!clerkKey || clerkKey.startsWith('pk_test_...') || clerkKey === 'pk_test_...') {
+if (!clerkKey || clerkKey.startsWith('REPLACE_ME') || clerkKey === 'pk_test_...') {
   // Catch both "unset" and "still placeholder" with one guard. The
   // placeholder check matches the value we ship in the .env template.
   root.render(<MissingClerkKey />);

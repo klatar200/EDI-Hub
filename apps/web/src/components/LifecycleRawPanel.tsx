@@ -1,10 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
 /** Lazy-loaded raw EDI viewer for lifecycle timeline events. */
 export function LifecycleRawPanel({ rawFileId }: { rawFileId: string }): JSX.Element {
+  const rawKey = useTenantQueryKey('raw', rawFileId);
   const rawQ = useQuery({
-    queryKey: ['raw', rawFileId],
+    queryKey: rawKey,
     queryFn: () => api.rawContent(rawFileId),
     staleTime: 60_000,
   });

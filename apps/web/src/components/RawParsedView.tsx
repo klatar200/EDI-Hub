@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type TransactionDetail, type DetailSegment } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
 type Mode = 'split' | 'parsed' | 'raw';
 
@@ -16,8 +17,9 @@ export function RawParsedView({ detail }: { detail: TransactionDetail }): JSX.El
   const elementSep = detail.delimiters?.element ?? '*';
   const segmentSep = detail.delimiters?.segment ?? '~';
 
+  const rawKey = useTenantQueryKey('raw', detail.rawFileId);
   const rawQ = useQuery({
-    queryKey: ['raw', detail.rawFileId],
+    queryKey: rawKey,
     queryFn: () => api.rawContent(detail.rawFileId as string),
     enabled: Boolean(detail.rawFileId),
   });

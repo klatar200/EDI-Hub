@@ -21,24 +21,34 @@ interface MeContextValue {
   me: UserRecord | null;
   isLoading: boolean;
   isError: boolean;
+  orgId?: string;
 }
 
 const MeContext = createContext<MeContextValue>({
   me: null,
   isLoading: true,
   isError: false,
+  orgId: undefined,
 });
 
-export function MeProvider({ children }: { children: ReactNode }): JSX.Element {
+export function MeProvider({
+  children,
+  orgId,
+}: {
+  children: ReactNode;
+  /** Active Clerk organization id — scopes the /me cache per tenant. */
+  orgId?: string;
+}): JSX.Element {
   const q = useQuery({
-    queryKey: ['me'],
+    queryKey: ['me', orgId],
     queryFn: () => api.me(),
     retry: false,
-    staleTime: 60_000, // role rarely changes mid-session
+    staleTime: 60_000,
+    enabled: !!orgId,
   });
   return (
     <MeContext.Provider
-      value={{ me: q.data ?? null, isLoading: q.isLoading, isError: q.isError }}
+      value={{ me: q.data ?? null, isLoading: q.isLoading, isError: q.isError, orgId }}
     >
       {children}
     </MeContext.Provider>

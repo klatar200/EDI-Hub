@@ -192,3 +192,20 @@ test('PATCH /api/setup persists ourIsaIds on the tenant', async () => {
     await rm(dir, { recursive: true, force: true });
   }
 });
+
+test('POST /api/setup/verify-auth rejects dev-fallback without Clerk session', async () => {
+  const dir = await mkdtemp(join(tmpdir(), 'edi-setup-verify-'));
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  process.env.EDI_HUB_USER_DATA_DIR = dir;
+  const app = await buildTestApp();
+  try {
+    const res = await app.inject({ method: 'POST', url: '/api/setup/verify-auth' });
+    assert.equal(res.statusCode, 400);
+    assert.equal((res.json() as { error: { code: string } }).error.code, 'CLERK_NOT_VERIFIED');
+  } finally {
+    await closeTestApp(app);
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+    else delete process.env.EDI_HUB_USER_DATA_DIR;
+    await rm(dir, { recursive: true, force: true });
+  }
+});

@@ -14,6 +14,7 @@ import { useQuery } from '@tanstack/react-query';
 import { Link, useSearchParams } from 'react-router-dom';
 import type { TransactionSummary } from '@edi/shared';
 import { api, type TransactionFilters } from '../lib/api.ts';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -48,8 +49,10 @@ const DIRECTION_LABEL: Record<string, string> = {
 
 export function TransactionsPage(): JSX.Element {
   const [sp, setSp] = useSearchParams();
-  const partnersQ = useQuery({ queryKey: ['partners'], queryFn: () => api.partners() });
-  const partnersConfigQ = useQuery({ queryKey: ['partners-config'], queryFn: () => api.partnersConfig.list() });
+  const partnersKey = useTenantQueryKey('partners');
+  const partnersConfigKey = useTenantQueryKey('partners-config');
+  const partnersQ = useQuery({ queryKey: partnersKey, queryFn: () => api.partners() });
+  const partnersConfigQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
 
   const offset = Math.max(Number.parseInt(sp.get('offset') ?? '0', 10) || 0, 0);
   const filters: TransactionFilters = {
@@ -64,7 +67,8 @@ export function TransactionsPage(): JSX.Element {
     limit: PAGE_SIZE,
     offset,
   };
-  const txQ = useQuery({ queryKey: ['transactions', filters], queryFn: () => api.transactions(filters) });
+  const txKey = useTenantQueryKey('transactions', filters);
+  const txQ = useQuery({ queryKey: txKey, queryFn: () => api.transactions(filters) });
 
   function setFilter(key: string, value: string | undefined): void {
     const next = new URLSearchParams(sp);

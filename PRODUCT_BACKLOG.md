@@ -1,7 +1,7 @@
 # EDI Data Hub — Product Backlog (historical)
 
 **Status:** All approved features **shipped** as of **PB-8** (2026-06-25).  
-**Live matrix:** [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) · **Active roadmap:** [`BUILD_PLAN.md`](BUILD_PLAN.md) §3
+**Live matrix:** [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) · **Active roadmap:** [`BUILD_PLAN.md`](BUILD_PLAN.md) §3.1 (local dev)
 
 **North Star:** Lifecycle-centric monitoring — PO/conversation as the primary unit.
 

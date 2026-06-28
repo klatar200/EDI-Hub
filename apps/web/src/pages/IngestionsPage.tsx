@@ -14,6 +14,7 @@ import type { RawFileRecord } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { IngestUploadPanel } from '../components/IngestUploadPanel.tsx';
 import { RequireRole, useHasRole } from '../lib/useRole.tsx';
+import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useToast } from '../lib/useToast.tsx';
 import {
   PageHeader,
@@ -46,12 +47,14 @@ export function IngestionsPage(): JSX.Element {
     to: sp.get('to') ?? undefined,
     limit: 50,
   };
-  const q = useQuery({ queryKey: ['ingest', filters], queryFn: () => api.ingest(filters) });
+  const ingestKey = useTenantQueryKey('ingest', filters);
+  const ingestPrefix = useTenantQueryKey('ingest');
+  const q = useQuery({ queryKey: ingestKey, queryFn: () => api.ingest(filters) });
   const reparseM = useMutation({
     mutationFn: (id: string) => api.reparseRaw(id),
     onSuccess: () => {
       toast.success('Re-parse queued');
-      void qc.invalidateQueries({ queryKey: ['ingest'] });
+      void qc.invalidateQueries({ queryKey: ingestPrefix });
     },
     onError: (err) => {
       toast.error('Re-parse failed', { description: err instanceof Error ? err.message : undefined });

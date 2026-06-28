@@ -23,7 +23,6 @@ import type { FastifyInstance, FastifyPluginOptions, FastifyRequest } from 'fast
 import fp from 'fastify-plugin';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { verifyBearerToken, type AuthOutcome } from '../services/auth.js';
-import { isDesktopHubMode } from '../services/hub-config.js';
 
 // Phase 10 Sprint 1.3 — `/readiness` + `/internal/metrics` join the
 // allowlist. They run before the API has fully booted (readiness probes
@@ -76,7 +75,7 @@ async function tenantPluginImpl(
     );
 
     if (outcome.kind === 'dev-fallback') {
-      if (app.config.nodeEnv === 'production' && !isDesktopHubMode()) {
+      if (app.config.nodeEnv === 'production') {
         return reply.code(500).send({
           error: {
             code: 'AUTH_MISCONFIGURED',
@@ -96,8 +95,9 @@ async function tenantPluginImpl(
     }
 
     if (outcome.kind === 'invalid') {
+      request.log.warn({ reason: outcome.reason }, 'auth: token rejected');
       return reply.code(401).send({
-        error: { code: 'UNAUTHENTICATED', message: outcome.reason },
+        error: { code: 'UNAUTHENTICATED', message: 'Authentication failed.' },
       });
     }
 
@@ -128,6 +128,14 @@ async function tenantPluginImpl(
         error: {
           code: 'TENANT_NOT_PROVISIONED',
           message: 'Organization exists in Clerk but is not yet provisioned in the hub. Check webhook delivery.',
+        },
+      });
+    }
+    if (lookup.tenant.deletedAt != null) {
+      return reply.code(403).send({
+        error: {
+          code: 'TENANT_SUSPENDED',
+          message: 'This organization has been deactivated.',
         },
       });
     }
@@ -180,11 +188,20 @@ async function tenantPluginImpl(
       requiredRole?: 'viewer' | 'ops' | 'admin';
     };
     const required = config.requiredRole;
+    if (required && !request.auth) {
+      if (app.config.nodeEnv === 'production') {
+        reply.code(401).send({
+          error: { code: 'UNAUTHENTICATED', message: 'Authentication required.' },
+        });
+        done();
+        return;
+      }
+    }
     if (required && request.auth && ROLE_RANK[request.auth.role] < ROLE_RANK[required]) {
       reply.code(403).send({
         error: {
           code: 'FORBIDDEN',
-          message: `This action requires the '${required}' role. Your role is '${request.auth.role}'.`,
+          message: 'You do not have permission to perform this action.',
         },
       });
       done();

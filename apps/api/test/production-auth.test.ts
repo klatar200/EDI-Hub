@@ -60,12 +60,13 @@ test('assertProductionAuthConfig is a no-op outside production', () => {
   );
 });
 
-test('assertProductionAuthConfig is a no-op for desktop hub mode in production', () => {
+test('assertProductionAuthConfig throws for desktop hub mode when Clerk secrets are missing', () => {
   const prev = process.env.EDI_HUB_USER_DATA_DIR;
   process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
   try {
-    assert.doesNotThrow(() =>
-      assertProductionAuthConfig(prodConfig({ clerk: { secretKey: '', webhookSecret: '', publishableKey: '' } })),
+    assert.throws(
+      () => assertProductionAuthConfig(prodConfig({ clerk: { secretKey: '', webhookSecret: '', publishableKey: '' } })),
+      /Production boot refused.*CLERK_SECRET_KEY/,
     );
   } finally {
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
@@ -110,7 +111,7 @@ test('production + dev-fallback returns 500 AUTH_MISCONFIGURED on authenticated 
   await app.close();
 });
 
-test('production desktop hub + dev-fallback does not return AUTH_MISCONFIGURED', async () => {
+test('production desktop hub + dev-fallback returns AUTH_MISCONFIGURED', async () => {
   const prev = process.env.EDI_HUB_USER_DATA_DIR;
   process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
   try {
@@ -126,7 +127,8 @@ test('production desktop hub + dev-fallback does not return AUTH_MISCONFIGURED',
     });
 
     const res = await app.inject({ method: 'GET', url: '/api/partners-config' });
-    assert.notEqual(res.json()?.error?.code, 'AUTH_MISCONFIGURED');
+    assert.equal(res.statusCode, 500);
+    assert.equal(res.json().error.code, 'AUTH_MISCONFIGURED');
     await app.close();
   } finally {
     if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;

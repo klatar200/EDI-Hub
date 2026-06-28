@@ -21,9 +21,9 @@ import {
   useOrganization,
 } from '@clerk/react';
 import { Layout } from './components/Layout.tsx';
-import { AuthBridge } from './components/AuthBridge.tsx';
-import { MeProvider } from './lib/useRole.tsx';
-import { UsersPage } from './pages/UsersPage.tsx';
+import { AuthBridge, AuthReadyGate } from './components/AuthBridge.tsx';
+import { OrgCacheReset } from './components/OrgCacheReset.tsx';
+import { MeProvider, RequireRole, useHasRole } from './lib/useRole.tsx';
 import { LifecyclesPage } from './pages/LifecyclesPage.tsx';
 import { TransactionsPage } from './pages/TransactionsPage.tsx';
 import { TransactionDetailPage } from './pages/TransactionDetailPage.tsx';
@@ -40,9 +40,10 @@ import { AuditPage } from './pages/AuditPage.tsx';
 import { TransactionSetsHelpPage } from './pages/TransactionSetsHelpPage.tsx';
 import { HelpPage } from './pages/HelpPage.tsx';
 import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
+import { UsersPage } from './pages/UsersPage.tsx';
 import { useQuery } from '@tanstack/react-query';
 import { api } from './lib/api.ts';
-import { useHasRole } from './lib/useRole.tsx';
+import { useTenantQueryKey } from './lib/useTenantQuery.ts';
 
 function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element {
   return (
@@ -54,8 +55,9 @@ function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element 
 
 function SetupGate(): JSX.Element {
   const isAdmin = useHasRole('admin');
+  const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({
-    queryKey: ['setup'],
+    queryKey: setupKey,
     queryFn: () => api.setup.get(),
     retry: false,
     staleTime: 10_000,
@@ -99,7 +101,7 @@ function SetupGate(): JSX.Element {
         <Route path="/channels" element={<ChannelsPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/help/transaction-sets" element={<TransactionSetsHelpPage />} />
-        <Route path="/admin/audit" element={<AuditPage />} />
+        <Route path="/admin/audit" element={<RequireRole role="admin"><AuditPage /></RequireRole>} />
         <Route path="/users" element={<UsersPage />} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Route>
@@ -127,7 +129,11 @@ function OrgGate(): JSX.Element {
       </CenteredCard>
     );
   }
-  return <SetupGate />;
+  return (
+    <MeProvider orgId={organization.id}>
+      <SetupGate />
+    </MeProvider>
+  );
 }
 
 export function App(): JSX.Element {
@@ -137,13 +143,11 @@ export function App(): JSX.Element {
         <CenteredCard><SignIn routing="hash" /></CenteredCard>
       </Show>
       <Show when="signed-in">
-        {/* AuthBridge installs the Clerk token getter into api.ts before any
-            data fetch fires. Must live INSIDE the signed-in branch so Clerk
-            has a session. */}
         <AuthBridge />
-        <MeProvider>
+        <OrgCacheReset />
+        <AuthReadyGate>
           <OrgGate />
-        </MeProvider>
+        </AuthReadyGate>
       </Show>
     </>
   );

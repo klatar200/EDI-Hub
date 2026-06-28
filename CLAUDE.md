@@ -4,7 +4,9 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-EDI Data Hub — an EDI observability platform. Ingests inbound and outbound X12 EDI transactions, decomposes them into structured data, and presents a single hub for monitoring, searching, troubleshooting, and alerting. Read `BUILD_PLAN.md` for the active roadmap; `README.md` for shipped features; `FUTURE_FEATURES.md` for optional/deferred work.
+EDI Data Hub — an EDI observability platform. Ingests inbound and outbound X12 EDI transactions, decomposes them into structured data, and presents a single hub for monitoring, searching, troubleshooting, and alerting.
+
+**Development mode:** **Local-first, zero cloud cost** until go-live — [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md). Cursor rule: `.cursor/rules/local-first-zero-cost.mdc`. Do not suggest paid AWS/services until the owner opts in.
 
 **North Star:** Transaction lifecycle stitching — pull up a PO number and see the 850, 855, 856, 810, and all 997s in one chronological view.
 
@@ -21,7 +23,7 @@ EDI Data Hub — an EDI observability platform. Ingests inbound and outbound X12
 | Database | PostgreSQL via Prisma ORM |
 | Raw file storage | AWS S3 (or Cloudflare R2) |
 | Background jobs | BullMQ (Redis-backed) |
-| Infrastructure | AWS (ECS, RDS, S3, SES), Terraform |
+| Infrastructure | AWS (ECS, RDS, S3, SES), Terraform — **deferred until go-live**; local = Docker + MinIO |
 | Auth | Clerk (or Auth0) |
 | CI/CD | GitHub Actions |
 
@@ -84,9 +86,9 @@ Core tables:
 
 ## Commands
 
-> Commands will be added here as the project is scaffolded. Below are the intended patterns.
+> **Local terminal:** the project owner uses **PowerShell in VS Code on Windows**. User-facing CLI in docs and chat must use PowerShell (`$env:VAR = '...'`, `Copy-Item`, etc.) — see `.cursor/rules/powershell-cli.mdc` and `infra/WINDOWS.md` for deploy steps.
 
-```bash
+```powershell
 # Install dependencies (from repo root)
 npm install
 

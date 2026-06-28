@@ -2,19 +2,24 @@
 
 **Purpose:** Nice-to-have and deferred-not-rejected items. **Not on the active roadmap** — product backlog (F1–F62) is complete.
 
-**Active roadmap:** [`BUILD_PLAN.md`](BUILD_PLAN.md) §3 · **Shipped features:** [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md)
+**Active roadmap:** [`BUILD_PLAN.md`](BUILD_PLAN.md) §3.1 (local dev, $0) · **Shipped features:** [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md)
+
+**Cost policy:** Paid cloud (AWS staging, domains, Clerk Hobby+) is **deferred until go-live** — see [`BUILD_PLAN.md` §9](BUILD_PLAN.md#9-deploy-track--go-live-gate--deferred). Do not add items here that require AWS spend during local development.
 
 Review items here when planning post-launch sprints. Each entry should serve monitoring, troubleshooting, alerting, or stability — or belong in Phase 11+ commercial/enterprise tier.
 
 ---
 
-## Architecture & infrastructure
+## Architecture & infrastructure (go-live gate — paid)
+
+> Deferred until owner opts in. Reference Terraform in `infra/`; do not `terraform apply` during local-only development.
 
 | Feature | Notes |
 |---|---|
-| **BullMQ + Redis scheduler** | Today: sync ingestion + cron/Task Scheduler for detection/retention. Add when sub-minute cadence or queue observability justifies Redis. See BUILD_PLAN §8 W3.1. |
+| **AWS staging / production** | RDS + ALB + ECS + S3 + Route 53 — ~$40–60+/mo minimum. [`infra/WINDOWS.md`](../infra/WINDOWS.md) |
+| **BullMQ + Redis scheduler** | Today: sync ingestion + cron/Task Scheduler for detection/retention. Add when sub-minute cadence or queue observability justifies Redis. Deferred per [ADR 0001](docs/adr/0001-w3.1-synchronous-ingestion-with-reconcile.md). |
 | **Per-tenant `OUR_ISA_IDS`** | Verify at deploy; may already be tenant-scoped. |
-| **CORS / split-origin** | Only if production uses separate `app.` and `api.` hosts without a reverse proxy. See BUILD_PLAN §8 W3.2. |
+| **CORS / split-origin** | Only when production deliberately uses separate `app.` and `api.` hosts. Default is same-origin per [ADR 0002](docs/adr/0002-w3.2-same-origin-default-cors-escape-hatch.md). |
 | **WAF on ALB** | Revisit if abuse appears post-launch. |
 | **Multi-region failover** | Phase 12+ enterprise tier. |
 | **APM / distributed tracing** | OpenTelemetry or Datadog when the call graph goes multi-service. |

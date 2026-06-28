@@ -1,0 +1,47 @@
+---
+description: Pre-go-live development is local-only and zero-cost — do not suggest paid AWS or other billable services until the owner opts in.
+alwaysApply: true
+---
+
+# Local-first, zero-cost until go-live (mandatory)
+
+The project owner develops on **Windows PowerShell in VS Code** and is **not** provisioning paid cloud infrastructure until the app is ready to go live.
+
+## Default mode: local ($0)
+
+All active development, testing, and demos use:
+
+| Need | Use (free) | Do not use (paid) |
+|------|------------|-------------------|
+| Database | Docker Postgres (`docker compose`) | AWS RDS |
+| Object storage | MinIO (`docker compose`) | AWS S3 |
+| API + web | `npm run dev:api` + `npm run dev:web` | ECS, ALB, ECR |
+| Auth | Clerk **Free** + `pk_test_` in `.env`, or API **dev-fallback** | Clerk Hobby/Live, production keys |
+| TLS / domain | `localhost` (Vite proxy) | Route 53, ACM, custom domain |
+| Background jobs | Postgres `Job` table + local cron scripts | BullMQ, ElastiCache |
+| IaC apply | **Do not run** `terraform apply` | AWS billable resources |
+
+Canonical guide: [`docs/LOCAL_DEV.md`](../docs/LOCAL_DEV.md) · Roadmap: [`BUILD_PLAN.md`](../BUILD_PLAN.md) §3.1.
+
+## Forbidden until go-live (unless owner explicitly asks)
+
+Do **not** proactively suggest, plan, or implement:
+
+- AWS account setup, `terraform apply`, RDS, ALB, ECS, Route 53, domains, Secrets Manager
+- Paid Clerk tiers (Hobby/Pro) or `pk_live_` / `sk_live_` keys
+- Redis/ElastiCache, BullMQ hosting, Datadog, PagerDuty, paid monitoring
+- “Next step: staging deploy” as the default recommendation
+
+`infra/` Terraform and [`infra/WINDOWS.md`](../infra/WINDOWS.md) are **reference only** — tagged **go-live gate** in `BUILD_PLAN.md` §9.
+
+## When the owner says they are ready for go-live
+
+Only then may agents suggest paid services, with explicit cost callouts (ALB ~$16+/mo, RDS ~$25+/mo, domain ~$10+/yr, etc.) and point to `BUILD_PLAN.md` §9–§10 and `infra/WINDOWS.md`.
+
+## Agent execution environment
+
+Cloud Agents may run CI on GitHub (free for public repos). That is not “owner staging deploy.” Do not conflate CI with billing the owner’s AWS account.
+
+## CLI format
+
+User-facing commands remain **PowerShell** per `.cursor/rules/powershell-cli.mdc`.

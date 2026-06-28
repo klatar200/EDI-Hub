@@ -50,8 +50,8 @@ const okS3 = {
 /** Build a Prisma fake parameterized by which tenant + user (if any) the
  *  auth plugin should be able to look up. */
 function makePrisma(opts: {
-  tenant?: { id: string; clerkOrgId: string } | null;
-  user?: { id: string; role: 'admin' | 'ops' | 'viewer' } | null;
+  tenant?: { id: string; clerkOrgId: string; deletedAt?: Date | null } | null;
+  user?: { id: string; role: 'admin' | 'ops' | 'viewer'; clerkUserId?: string; tenantId?: string } | null;
 } = {}): PrismaClient {
   const tenant = opts.tenant ?? null;
   const user = opts.user ?? null;
@@ -59,14 +59,24 @@ function makePrisma(opts: {
     rawFile: { async count() { return 0; } },
     tenant: {
       async findUnique({ where }: { where: { clerkOrgId?: string; id?: string } }) {
-        if (tenant && where.clerkOrgId === tenant.clerkOrgId) return tenant;
-        if (tenant && where.id === tenant.id) return tenant;
+        if (tenant && where.clerkOrgId === tenant.clerkOrgId) {
+          return { ...tenant, deletedAt: tenant.deletedAt ?? null };
+        }
+        if (tenant && where.id === tenant.id) {
+          return { ...tenant, deletedAt: tenant.deletedAt ?? null };
+        }
         return null;
       },
     },
     user: {
       async findUnique({ where }: { where: { tenantId_clerkUserId?: { tenantId: string; clerkUserId: string } } }) {
-        if (user && where.tenantId_clerkUserId) return user;
+        if (user && where.tenantId_clerkUserId) {
+          return {
+            ...user,
+            clerkUserId: user.clerkUserId ?? where.tenantId_clerkUserId.clerkUserId,
+            tenantId: user.tenantId ?? where.tenantId_clerkUserId.tenantId,
+          };
+        }
         return null;
       },
     },
@@ -101,6 +111,9 @@ test('invalid token → 401 UNAUTHENTICATED', async () => {
   const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 401);
   assert.equal(res.json().error.code, 'UNAUTHENTICATED');
+  const msg = (res.json() as { error: { message: string } }).error.message;
+  assert.equal(msg, 'Authentication failed.');
+  assert.doesNotMatch(msg, /expired/i);
   await app.close();
 });
 
@@ -139,6 +152,26 @@ test('verified org but no user row → 403 USER_NOT_PROVISIONED', async () => {
   const res = await app.inject({ method: 'GET', url: '/api/partners' });
   assert.equal(res.statusCode, 403);
   assert.equal(res.json().error.code, 'USER_NOT_PROVISIONED');
+  await app.close();
+});
+
+test('soft-deleted tenant → 403 TENANT_SUSPENDED', async () => {
+  const verifyAuth = async (): Promise<AuthOutcome> => ({
+    kind: 'verified',
+    auth: { clerkUserId: 'user_a', orgId: 'org_known' },
+  });
+  const app = await buildServer({
+    config: makeConfig(),
+    s3: okS3,
+    prisma: makePrisma({
+      tenant: { id: PILOT_TENANT_ID, clerkOrgId: 'org_known', deletedAt: new Date() },
+      user: { id: 'u-1', role: 'admin', clerkUserId: 'user_a', tenantId: PILOT_TENANT_ID },
+    }),
+    verifyAuth,
+  });
+  const res = await app.inject({ method: 'GET', url: '/api/partners' });
+  assert.equal(res.statusCode, 403);
+  assert.equal(res.json().error.code, 'TENANT_SUSPENDED');
   await app.close();
 });
 
@@ -228,7 +261,10 @@ test('viewer is rejected with 403 FORBIDDEN on POST /partners-config', async () 
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
   assert.equal(res.statusCode, 403);
-  assert.equal(res.json().error.code, 'FORBIDDEN');
+  const body = res.json() as { error: { code: string; message: string } };
+  assert.equal(body.error.code, 'FORBIDDEN');
+  assert.equal(body.error.message, 'You do not have permission to perform this action.');
+  assert.doesNotMatch(body.error.message, /viewer/i);
   await app.close();
 });
 
@@ -240,7 +276,10 @@ test('ops is rejected with 403 FORBIDDEN on POST /partners-config (admin only)',
     payload: JSON.stringify({ displayName: 'X', isaSenderIds: ['X'], isaReceiverIds: [] }),
   });
   assert.equal(res.statusCode, 403);
-  assert.equal(res.json().error.code, 'FORBIDDEN');
+  const body = res.json() as { error: { code: string; message: string } };
+  assert.equal(body.error.code, 'FORBIDDEN');
+  assert.equal(body.error.message, 'You do not have permission to perform this action.');
+  assert.doesNotMatch(body.error.message, /ops/i);
   await app.close();
 });
 
