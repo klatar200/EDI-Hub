@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Direct-to-main workflow (mandatory)
 
+> **Canonical:** [`AGENTS.md` §3](../AGENTS.md#3-git-workflow--direct-to-main)
+
 All Cursor agent work in this repository ships **directly to `main`**. Do not use pull requests or long-lived feature branches.
 
 ## Required workflow

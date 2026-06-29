@@ -336,4 +336,4 @@ Expect `HTTP/1.1 200`. Open the site in a browser and sign in with Clerk.
 | ACM cert stuck | DNS must point to Route 53; `public_domain` must match hosted zone |
 | Full apply fails on `api_image` | Push image to ECR; set real tag in tfvars |
 
-See also [`README.md`](README.md) and [`BUILD_PLAN.md`](../BUILD_PLAN.md) §9.
+See also [`README.md`](README.md) and [`BUILD_PLAN.md`](../BUILD_PLAN.md) §4.

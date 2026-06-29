@@ -2,6 +2,8 @@
 
 **Active track** until go-live. No AWS, no domain, no Terraform apply.
 
+**AI builder rules (scope, cost policy, CLI):** [`AGENTS.md`](../AGENTS.md) · **What's next:** [`BUILD_PLAN.md`](../BUILD_PLAN.md)
+
 Everything below runs on your machine using **Docker Desktop** (free for personal use) and **Node.js**.
 
 ---
@@ -135,7 +137,7 @@ npm run smoke --workspace=@edi/api
 - `terraform apply` / AWS RDS / S3 / ALB / ECS
 - Route 53 domain registration
 - Paid Clerk production keys
-- Staging deploy — see [`BUILD_PLAN.md`](../BUILD_PLAN.md) §9 (deferred)
+- Staging deploy — see [`BUILD_PLAN.md`](../BUILD_PLAN.md) §4 (deferred)
 
 When ready for production, say so explicitly — agents will then walk through [`infra/WINDOWS.md`](../infra/WINDOWS.md) with cost expectations.
 

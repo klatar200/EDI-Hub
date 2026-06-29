@@ -5,7 +5,7 @@
 **Mode:** Local-first / pre-go-live — findings include SaaS, desktop LAN, and infra assumptions  
 **Status:** SEC-1–4 **shipped** · SEC-5 **shipped** (2026-06-28) · SEC-3 infra at go-live
 
-**Related:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) §12 · [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) (redirect stub)
+**Related:** [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) · [`BUILD_PLAN.md`](../BUILD_PLAN.md) §4 · [`AGENTS.md`](../AGENTS.md) §8
 
 ---
 

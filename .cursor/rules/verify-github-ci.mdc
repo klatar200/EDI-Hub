@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Verify GitHub CI before moving on (mandatory)
 
+> **Canonical:** [`AGENTS.md` §4](../AGENTS.md#4-ci-verification-gate)
+
 Local `npm run test:ci` is necessary but **not sufficient**. Before finishing a task, starting the next backlog sprint, or telling the user work is done:
 
 1. **Push to `origin main`** (per direct-to-main workflow).

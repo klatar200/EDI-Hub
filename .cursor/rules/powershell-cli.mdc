@@ -5,6 +5,8 @@ alwaysApply: true
 
 # PowerShell CLI (mandatory for user-facing commands)
 
+> **Canonical:** [`AGENTS.md` §5](../AGENTS.md#5-powershell-cli-for-the-owner)
+
 The project owner **always uses PowerShell in VS Code on Windows**. When you give commands, setup steps, or copy-paste blocks in chat or docs **intended for the user to run locally**, use **PowerShell syntax only**.
 
 ## Required

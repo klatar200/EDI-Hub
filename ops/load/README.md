@@ -53,7 +53,7 @@ k6 run -e BASE_URL=https://app.staging.edihub.example.com \
 ```
 
 Confirm `rate.exceeded` appears in Admin → Audit log for the tenant. This
-is the BUILD_PLAN §10 “rate limit live” receipt alongside `rate-limit.test.ts`.
+is the BUILD_PLAN §4 Sprint A2 “rate limit live” receipt alongside `rate-limit.test.ts`.
 
 ## Tuning knobs
 

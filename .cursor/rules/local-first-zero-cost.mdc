@@ -5,6 +5,8 @@ alwaysApply: true
 
 # Local-first, zero-cost until go-live (mandatory)
 
+> **Canonical:** [`AGENTS.md` §2](../AGENTS.md#2-local-first-zero-cost-until-go-live)
+
 The project owner develops on **Windows PowerShell in VS Code** and is **not** provisioning paid cloud infrastructure until the app is ready to go live.
 
 ## Default mode: local ($0)

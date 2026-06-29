@@ -1,7 +1,8 @@
 # Infrastructure
 
-> 🔒 **Go-live gate — not active.** Owner develops **locally only** (`docs/LOCAL_DEV.md`) until ready for paid AWS.  
-> **Do not run `terraform apply`** during pre-launch development. When go-live: [`WINDOWS.md`](WINDOWS.md) · [`BUILD_PLAN.md`](../BUILD_PLAN.md) §9.
+> 🔒 **Go-live gate — not active.** Owner develops **locally only** (`docs/LOCAL_DEV.md`) until ready for paid AWS.
+> **Do not run `terraform apply`** during pre-launch development. When go-live: [`WINDOWS.md`](WINDOWS.md) · [`BUILD_PLAN.md`](../BUILD_PLAN.md) §4.
+> **AI builder rules:** [`AGENTS.md`](../AGENTS.md) §2.
 
 Local development uses `docker-compose.yml` at the repo root (Postgres + MinIO).
 This folder holds the **real-AWS** definitions, applied per environment **after go-live**.
@@ -30,7 +31,7 @@ Install **Terraform** (>= 1.5) and the **AWS CLI**, then configure AWS creds
 (`aws configure`).
 
 **Windows (PowerShell / VS Code):** see **[`WINDOWS.md`](WINDOWS.md)** — all operator commands
-use `$env:TF_VAR_*` (not `export`). Project Cursor rule: `.cursor/rules/powershell-cli.mdc`.
+use `$env:TF_VAR_*` (not `export`). **AI builder rules:** [`AGENTS.md`](../AGENTS.md) §5.
 
 **macOS/Linux (bash):** `export TF_VAR_db_master_password='...'` before apply.
 
@@ -149,7 +150,7 @@ aws s3api put-object --bucket edi-raw-files-prod --key test-no-sse \
 psql "host=<endpoint> user=edi_admin dbname=edi_hub sslmode=disable"
 # expect: FATAL: no pg_hba.conf entry / SSL connection is required
 
-# 6) Rate limit abuse — 429 + Retry-After (BUILD_PLAN §10)
+# 6) Rate limit abuse — 429 + Retry-After (BUILD_PLAN §4 Sprint A2)
 k6 run -e BASE_URL=https://api.edihub.example.com -e BEARER=<jwt> \
   ops/load/k6/abuse-rate-limit.js
 ```
@@ -159,7 +160,7 @@ k6 run -e BASE_URL=https://api.edihub.example.com -e BEARER=<jwt> \
 The API enforces per-tenant token buckets in-process (`apps/api/src/plugins/rate-limit.ts`).
 With multiple ECS tasks behind the ALB, effective limits are **N × configured
 per-minute** (one bucket per task). That is acceptable for v1; see
-`FUTURE_FEATURES.md` for Redis-backed shared buckets or ALB WAF if organized
+[`BUILD_PLAN.md` §5](../BUILD_PLAN.md#5-future--optional-features) for Redis-backed shared buckets or ALB WAF if organized
 abuse appears post-launch.
 
 `trustProxy: true` in `server.ts` means rate-limit keys and logs use the
