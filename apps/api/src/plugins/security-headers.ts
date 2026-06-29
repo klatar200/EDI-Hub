@@ -11,20 +11,9 @@
  * are cheap to add and reduce browser-side attack surface for the UI's
  * cached responses.
  */
+import { CONTENT_SECURITY_POLICY } from '@edi/shared/csp';
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
 import fp from 'fastify-plugin';
-
-/** CSP for HTML responses when the API serves the production SPA (desktop / bundled). */
-const CONTENT_SECURITY_POLICY = [
-  "default-src 'self'",
-  "script-src 'self'",
-  "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob: https://img.clerk.com",
-  "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.accounts.com https://api.clerk.com https://frontend-api.clerk.com",
-  "frame-src https://*.clerk.accounts.dev https://*.clerk.accounts.com",
-  "font-src 'self'",
-  "worker-src 'self' blob:",
-].join('; ');
 
 /** 6 months — long enough to be useful, short enough to back out if needed. */
 const HSTS_MAX_AGE_SECONDS = 60 * 60 * 24 * 180;

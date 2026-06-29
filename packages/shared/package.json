@@ -13,6 +13,10 @@
     "./server-address": {
       "types": "./dist/server-address.d.ts",
       "default": "./dist/server-address.js"
+    },
+    "./csp": {
+      "types": "./dist/csp.d.ts",
+      "default": "./dist/csp.js"
     }
   },
   "scripts": {

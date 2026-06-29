@@ -390,6 +390,13 @@ async function openMainWindow(): Promise<void> {
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   mainWindow.once('closed', () => { mainWindow = null; });
+  mainWindow.webContents.on('console-message', (_event, level, message, line, sourceId) => {
+    const tag = level === 3 ? 'error' : level === 2 ? 'warn' : 'log';
+    console.log(`[edi-hub] renderer:${tag}`, message, { line, sourceId });
+  });
+  mainWindow.webContents.on('did-fail-load', (_event, code, description, url) => {
+    console.error('[edi-hub] renderer:did-fail-load', { code, description, url });
+  });
   // D4 Sprint 3 — close the splash and report S10.1 the moment the
   // renderer has the dashboard painted. did-finish-load fires after
   // the React bundle has executed and the initial route has rendered;
