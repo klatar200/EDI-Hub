@@ -7,7 +7,7 @@ import type { PrismaClient } from '@prisma/client';
 import type { S3Client } from '@aws-sdk/client-s3';
 import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import { getLifecycle, summarizeLifecycleEvents } from '../src/services/lifecycle.js';
-import { listLifecycles, expectedWarningsFromEvents } from '../src/services/lifecycles.js';
+import { listLifecycles, expectedWarningsFromEvents, summaryNeedsAttention } from '../src/services/lifecycles.js';
 import { buildServer } from '../src/server.js';
 import type { AppConfig } from '../src/config.js';
 
@@ -240,6 +240,17 @@ test('listLifecycles filters hasAlerts=true', async () => {
 
   assert.equal(result.items.length, 1);
   assert.equal(result.items[0]!.po, 'PO-100');
+});
+
+test('summaryNeedsAttention flags problems and ignores healthy POs', () => {
+  assert.equal(
+    summaryNeedsAttention({ missing: 0, rejected: 0, openAlertCount: 0, hasParseError: false }),
+    false,
+  );
+  assert.equal(summaryNeedsAttention({ missing: 1, rejected: 0, openAlertCount: 0, hasParseError: false }), true);
+  assert.equal(summaryNeedsAttention({ missing: 0, rejected: 2, openAlertCount: 0, hasParseError: false }), true);
+  assert.equal(summaryNeedsAttention({ missing: 0, rejected: 0, openAlertCount: 3, hasParseError: false }), true);
+  assert.equal(summaryNeedsAttention({ missing: 0, rejected: 0, openAlertCount: 0, hasParseError: true }), true);
 });
 
 test('listLifecycles filters partnerId', async () => {

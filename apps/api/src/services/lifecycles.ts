@@ -17,6 +17,18 @@ export function expectedWarningsFromEvents(
     .map((e) => `${e.transactionSetId} (${e.direction}) expected — not yet received`);
 }
 
+/** A PO "needs attention" when something is wrong or outstanding: an expected
+ *  document is still missing (a gap), a document was rejected, an alert is
+ *  open, or a file failed to parse. Drives the triage filter on the list. */
+export function summaryNeedsAttention(s: {
+  missing: number;
+  rejected: number;
+  openAlertCount: number;
+  hasParseError: boolean;
+}): boolean {
+  return s.missing > 0 || s.rejected > 0 || s.openAlertCount > 0 || s.hasParseError;
+}
+
 interface PoRow {
   po: string;
   started_at: Date;
@@ -123,6 +135,17 @@ export async function listLifecycles(
 
     if (filters.hasAlerts === true && openAlertCount === 0) continue;
     if (filters.hasParseError === true && !hasParseError) continue;
+    if (
+      filters.needsAttention === true &&
+      !summaryNeedsAttention({
+        missing: counts.missing,
+        rejected: counts.rejected,
+        openAlertCount,
+        hasParseError,
+      })
+    ) {
+      continue;
+    }
     if (filters.flow && lc.flow !== filters.flow) continue;
     if (filters.partnerId && lc.partner?.id !== filters.partnerId) continue;
     if (filters.setId) {

@@ -298,6 +298,9 @@ export interface LifecycleListFilters {
   to?: string;
   hasAlerts?: boolean;
   hasParseError?: boolean;
+  /** Triage — keep only POs that need a human: a gap (missing doc), a
+   *  rejection, an open alert, or a parse error. */
+  needsAttention?: boolean;
   flow?: LifecycleFlow;
   /** PS-2 — filter to POs containing this set (optionally with direction). */
   setId?: string;

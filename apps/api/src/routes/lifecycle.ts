@@ -29,6 +29,7 @@ function parseLifecycleListQuery(q: Record<string, string | undefined>): Lifecyc
     to: q.to || undefined,
     hasAlerts: q.hasAlerts === 'true' ? true : q.hasAlerts === 'false' ? false : undefined,
     hasParseError: q.hasParseError === 'true' ? true : q.hasParseError === 'false' ? false : undefined,
+    needsAttention: q.needsAttention === 'true' ? true : undefined,
     flow: q.flow === 'standard' || q.flow === 'grocery' || q.flow === 'unknown' ? q.flow : undefined,
     setId: q.setId || undefined,
     setDirection:

@@ -358,6 +358,7 @@ export function LifecyclesPage(): JSX.Element {
     to: sp.get('to') ?? undefined,
     hasAlerts: sp.get('hasAlerts') === 'true' ? true : undefined,
     hasParseError: sp.get('hasParseError') === 'true' ? true : undefined,
+    needsAttention: sp.get('needsAttention') === 'true' ? true : undefined,
     flow: (sp.get('flow') as LifecycleFlow | null) ?? undefined,
     setId: sp.get('setId') ?? undefined,
     setDirection: sp.get('setDirection') as 'inbound' | 'outbound' | undefined,
@@ -407,7 +408,7 @@ export function LifecyclesPage(): JSX.Element {
   const viewQuery = filtersToViewQuery(sp);
   const hasAnyFilter = Boolean(
     filters.partnerId || filters.from || filters.to || filters.hasAlerts
-    || filters.hasParseError || filters.flow || filters.setId || filters.setDirection
+    || filters.hasParseError || filters.needsAttention || filters.flow || filters.setId || filters.setDirection
     || pinnedOnly,
   );
   const partners = partnersConfigQ.data?.items ?? [];
@@ -459,6 +460,19 @@ export function LifecyclesPage(): JSX.Element {
 
       <Card className="mb-3">
         <div className="flex flex-wrap items-end gap-3 p-3">
+          <button
+            type="button"
+            data-testid="filter-needs-attention"
+            aria-pressed={Boolean(filters.needsAttention)}
+            onClick={() => setFilter('needsAttention', filters.needsAttention ? undefined : 'true')}
+            className={`self-end rounded-md border px-3 py-1.5 text-sm font-medium transition ${
+              filters.needsAttention
+                ? 'border-[var(--color-warn-500)] bg-[var(--color-warn-50)] text-[var(--color-warn-800)]'
+                : 'border-[var(--color-surface-border)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-muted)]'
+            }`}
+          >
+            Needs attention
+          </button>
           <FormField label="Partner">
             <Select
               size="sm"
@@ -559,6 +573,7 @@ export function LifecyclesPage(): JSX.Element {
         {filters.to ? <FilterChip key="to" label="To" value={filters.to} onRemove={() => setFilter('to', undefined)} /> : null}
         {filters.hasAlerts ? <FilterChip key="hasAlerts" label="Alerts" value="Open" onRemove={() => setFilter('hasAlerts', undefined)} /> : null}
         {filters.hasParseError ? <FilterChip key="hasParseError" label="Parse" value="Errors" onRemove={() => setFilter('hasParseError', undefined)} /> : null}
+        {filters.needsAttention ? <FilterChip key="needsAttention" label="Triage" value="Needs attention" onRemove={() => setFilter('needsAttention', undefined)} /> : null}
         {pinnedOnly ? <FilterChip key="pinnedOnly" label="Pinned" value="Only" onRemove={() => setFilter('pinnedOnly', undefined)} /> : null}
       </FilterChipRow>
 
