@@ -1,7 +1,6 @@
 /**
  * PS-11 F57 / PB-6 F58 — build a ZIP of lifecycle exports (txt/csv/pdf + optional raw EDI).
  */
-import { createRequire } from 'node:module';
 import { PassThrough } from 'node:stream';
 import type { Archiver } from 'archiver';
 import type { PrismaClient } from '@prisma/client';
@@ -10,8 +9,17 @@ import type { StorageAdapter } from '../storage/interface.js';
 import { getLifecycle } from './lifecycle.js';
 import { lifecycleToCsv, lifecycleToPdf, lifecycleToTxt } from './lifecycle-export-format.js';
 
-const require = createRequire(import.meta.url);
-const archiver = require('archiver') as (format: 'zip', options?: { zlib?: { level: number } }) => Archiver;
+/** archiver v8+ is ESM-only; lazy-load so desktop API boot (CJS require graph) does not crash. */
+type ArchiverFactory = (format: 'zip', options?: { zlib?: { level: number } }) => Archiver;
+
+async function createZipArchiver(): Promise<Archiver> {
+  const mod = (await import('archiver')) as unknown;
+  const archiver =
+    typeof mod === 'function'
+      ? (mod as ArchiverFactory)
+      : (mod as { default: ArchiverFactory }).default;
+  return archiver('zip', { zlib: { level: 9 } });
+}
 
 function safePoName(po: string): string {
   return po.replace(/[^\w.-]+/g, '_');
@@ -95,7 +103,7 @@ export async function buildLifecycleExportZip(
   options: BuildLifecycleExportZipOptions,
 ): Promise<Buffer> {
   const { prisma, pos, ourIsaIds, formats, includeRaw, storage } = options;
-  const archive = archiver('zip', { zlib: { level: 9 } });
+  const archive = await createZipArchiver();
   const done = new Promise<Buffer>((resolve, reject) => {
     const chunks: Buffer[] = [];
     const stream = new PassThrough();

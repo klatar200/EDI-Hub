@@ -283,6 +283,7 @@ async function runMigrations(databaseUrl: string): Promise<void> {
 
 let apiChild: ChildProcess | null = null;
 let restartedOnce = false;
+let bootComplete = false;
 let currentApiEnv: Record<string, string> | null = null;
 
 async function startApiChild(env: Record<string, string>): Promise<void> {
@@ -295,22 +296,24 @@ async function startApiChild(env: Record<string, string>): Promise<void> {
   }
   apiChild = spawn(process.execPath, [entry], {
     env: { ...process.env, ...env },
-    stdio: 'inherit',
+    stdio: ['ignore', 'pipe', 'pipe'],
     windowsHide: true,
   });
+  apiChild.stdout?.on('data', (chunk) => console.log(chunk.toString()));
+  apiChild.stderr?.on('data', (chunk) => console.error(chunk.toString()));
 
   apiChild.once('exit', (code, signal) => {
     const prior = apiChild;
     apiChild = null;
-    // Only restart on UNEXPECTED exits after the window is open. A SIGTERM
-    // from our own shutdown path is expected.
+    // Only restart on UNEXPECTED exits after the main window is open. The
+    // splash screen is also a BrowserWindow — do not restart during boot.
     if (signal === 'SIGTERM' || signal === 'SIGINT') return;
     console.error(`API child exited unexpectedly (code=${code}, signal=${signal})`);
-    if (!restartedOnce && BrowserWindow.getAllWindows().length > 0) {
+    if (!restartedOnce && bootComplete) {
       restartedOnce = true;
       console.log('Restarting API child once...');
       void startApiChild(env).catch((err) => console.error('Restart failed:', err));
-    } else if (BrowserWindow.getAllWindows().length > 0) {
+    } else if (bootComplete) {
       dialog.showErrorBox('EDI Hub crashed', 'The API service exited and could not be restarted.');
     }
     void prior; // silence unused
@@ -477,6 +480,7 @@ async function boot(): Promise<void> {
   logBootPhase('window_start');
   updateSplash('window', 'running');
   await openMainWindow();
+  bootComplete = true;
 
   registerDesktopRuntime({
     userDataDir: userData,
