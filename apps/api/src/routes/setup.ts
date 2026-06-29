@@ -126,13 +126,6 @@ export async function setupRoutes(
   });
 
   app.patch('/setup', requiresRole('admin'), async (request, reply) => {
-    if (!isDesktopHubMode()) {
-      const body: ApiErrorResponse = {
-        error: { code: 'NOT_DESKTOP', message: 'Setup is only available in the desktop installer.' },
-      };
-      return reply.code(400).send(body);
-    }
-
     let patch: SetupPatchInput;
     try {
       patch = readPatch(request.body);
@@ -143,11 +136,43 @@ export async function setupRoutes(
       return reply.code(400).send(body);
     }
 
-    const completing = patch.firstRunComplete === true;
-    const cfg = writeHubConfig({
-      ...patch,
-      ...(completing ? { firstRunComplete: true } : {}),
-    });
+    const desktop = isDesktopHubMode();
+
+    // Drop folder, telemetry, Clerk LAN verification, and first-run completion
+    // live in the on-disk hub config and have no meaning in hosted SaaS mode.
+    // `ourIsaIds`, by contrast, is a tenant column that drives inbound/outbound
+    // classification and is editable in BOTH modes (Settings page in SaaS,
+    // first-run wizard on desktop).
+    if (!desktop) {
+      const hasDesktopOnlyField =
+        patch.dropFolderPath !== undefined ||
+        patch.telemetryEnabled !== undefined ||
+        patch.clerkRedirectVerified !== undefined ||
+        patch.firstRunComplete !== undefined;
+      if (hasDesktopOnlyField) {
+        const body: ApiErrorResponse = {
+          error: {
+            code: 'NOT_DESKTOP',
+            message:
+              'Drop folder, telemetry, and first-run setup are only available in the desktop installer.',
+          },
+        };
+        return reply.code(400).send(body);
+      }
+    }
+
+    if (desktop) {
+      const completing = patch.firstRunComplete === true;
+      const cfg = writeHubConfig({
+        ...patch,
+        ...(completing ? { firstRunComplete: true } : {}),
+      });
+      if (completing && cfg.dropFolderPath && app.channels) {
+        await app.channels.ensureDesktopDropFolder(cfg.dropFolderPath);
+      } else if (patch.dropFolderPath && cfg.firstRunComplete && app.channels) {
+        await app.channels.ensureDesktopDropFolder(patch.dropFolderPath);
+      }
+    }
 
     if (patch.ourIsaIds !== undefined && request.tenantId) {
       const tenantId = tenantContext.requireTenantId();
@@ -175,12 +200,6 @@ export async function setupRoutes(
           after: { ourIsaIds: row.ourIsaIds },
         }),
       );
-    }
-
-    if (completing && cfg.dropFolderPath && app.channels) {
-      await app.channels.ensureDesktopDropFolder(cfg.dropFolderPath);
-    } else if (patch.dropFolderPath && cfg.firstRunComplete && app.channels) {
-      await app.channels.ensureDesktopDropFolder(patch.dropFolderPath);
     }
 
     const status = await buildStatus(app, request.tenantId);

@@ -198,6 +198,47 @@ test('PATCH /api/setup persists ourIsaIds on the tenant', async () => {
   }
 });
 
+test('PATCH /api/setup persists ourIsaIds in SaaS mode', async () => {
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  delete process.env.EDI_HUB_USER_DATA_DIR;
+  const app = await buildTestApp();
+  try {
+    const patch = await app.inject({
+      method: 'PATCH',
+      url: '/api/setup',
+      headers: { 'content-type': 'application/json' },
+      payload: { ourIsaIds: ['WEBSENDER01'] },
+    });
+    assert.equal(patch.statusCode, 200);
+    const body = patch.json() as { ourIsaIds: string[]; desktopMode: boolean };
+    assert.equal(body.desktopMode, false);
+    assert.deepEqual(body.ourIsaIds, ['WEBSENDER01']);
+  } finally {
+    await closeTestApp(app);
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+  }
+});
+
+test('PATCH /api/setup rejects desktop-only fields in SaaS mode', async () => {
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  delete process.env.EDI_HUB_USER_DATA_DIR;
+  const app = await buildTestApp();
+  try {
+    const res = await app.inject({
+      method: 'PATCH',
+      url: '/api/setup',
+      headers: { 'content-type': 'application/json' },
+      payload: { dropFolderPath: '/tmp/whatever' },
+    });
+    assert.equal(res.statusCode, 400);
+    const body = res.json() as { error: { code: string } };
+    assert.equal(body.error.code, 'NOT_DESKTOP');
+  } finally {
+    await closeTestApp(app);
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+  }
+});
+
 test('POST /api/setup/verify-auth rejects dev-fallback without Clerk session', async () => {
   const dir = await mkdtemp(join(tmpdir(), 'edi-setup-verify-'));
   const prev = process.env.EDI_HUB_USER_DATA_DIR;
