@@ -42,14 +42,37 @@ function getClerkClient(secretKey: string, publishableKey?: string): ClerkClient
   return clerk;
 }
 
+/** Clerk treats `localhost` and `127.0.0.1` as different `azp` values. The
+ *  desktop shell historically loaded `127.0.0.1` while releases bundled only
+ *  `localhost` in CLERK_AUTHORIZED_PARTIES — mirror loopback aliases. */
+export function expandAuthorizedPartyOrigins(origins: string[]): string[] {
+  const out = new Set(origins);
+  for (const origin of origins) {
+    try {
+      const url = new URL(origin);
+      if (url.hostname === 'localhost') {
+        url.hostname = '127.0.0.1';
+        out.add(url.origin);
+      } else if (url.hostname === '127.0.0.1') {
+        url.hostname = 'localhost';
+        out.add(url.origin);
+      }
+    } catch {
+      // ignore malformed entries
+    }
+  }
+  return [...out];
+}
+
 /** Origins Clerk should accept as `azp` claim values. In dev the web app
  *  runs on :5173 (Vite) and may also be reached on :3000 via the proxy,
  *  so we allow both. Production sets `CLERK_AUTHORIZED_PARTIES` explicitly. */
 function authorizedPartiesFor(envValue: string): string[] {
-  if (envValue.trim().length > 0) {
-    return envValue.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
-  }
-  return ['http://localhost:5173', 'http://localhost:3000'];
+  const base =
+    envValue.trim().length > 0
+      ? envValue.split(',').map((s) => s.trim()).filter((s) => s.length > 0)
+      : ['http://localhost:5173', 'http://localhost:3000'];
+  return expandAuthorizedPartyOrigins(base);
 }
 
 /** Result categories:

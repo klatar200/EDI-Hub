@@ -15,7 +15,9 @@ const payload = {
   publishableKey: process.env.VITE_CLERK_PUBLISHABLE_KEY?.trim() ?? '',
   secretKey: process.env.CLERK_SECRET_KEY?.trim() ?? '',
   webhookSecret: process.env.CLERK_WEBHOOK_SECRET?.trim() ?? '',
-  authorizedParties: process.env.CLERK_AUTHORIZED_PARTIES?.trim() ?? 'http://localhost:3000',
+  authorizedParties:
+    process.env.CLERK_AUTHORIZED_PARTIES?.trim()
+    ?? 'http://localhost:3000,http://127.0.0.1:3000',
 };
 
 mkdirSync(outDir, { recursive: true });

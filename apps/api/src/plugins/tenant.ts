@@ -74,6 +74,14 @@ async function tenantPluginImpl(
       return; // health + webhooks handle context themselves.
     }
 
+    // Desktop hub serves the React shell + assets at `/`; only `/api/*` needs
+    // a JWT. Without this, a stale session cookie on GET / returns 401 JSON
+    // instead of index.html (seen when azp mismatched 127.0.0.1 vs localhost).
+    const pathOnly = request.url.split('?')[0] ?? '/';
+    if (isDesktopHubMode() && !pathOnly.startsWith('/api')) {
+      return;
+    }
+
     const outcome = await verify(
       request,
       app.config.clerk.secretKey,

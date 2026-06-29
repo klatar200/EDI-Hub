@@ -305,3 +305,33 @@ test('dev-fallback bypasses RBAC (implicit admin for local iteration)', async ()
   assert.notEqual(res.statusCode, 403, 'dev-fallback should not produce 403');
   await app.close();
 });
+
+test('desktop hub serves SPA shell without JWT but still protects /api', async () => {
+  const prev = process.env.EDI_HUB_USER_DATA_DIR;
+  process.env.EDI_HUB_USER_DATA_DIR = 'C:\\Users\\test\\AppData\\Roaming\\EDI Hub';
+  const verifyAuth = async (): Promise<AuthOutcome> => ({
+    kind: 'invalid',
+    reason: 'token-invalid-authorized-parties',
+  });
+  try {
+    const app = await buildServer({
+      config: {
+        ...makeConfig('sk_test_present'),
+        nodeEnv: 'production',
+        webStatic: { dir: '' },
+      },
+      s3: okS3,
+      prisma: makePrisma(),
+      verifyAuth,
+    });
+    const shell = await app.inject({ method: 'GET', url: '/' });
+    assert.notEqual(shell.statusCode, 401, 'GET / must not require JWT in desktop hub mode');
+
+    const api = await app.inject({ method: 'GET', url: '/api/partners-config' });
+    assert.equal(api.statusCode, 401);
+    await app.close();
+  } finally {
+    if (prev) process.env.EDI_HUB_USER_DATA_DIR = prev;
+    else delete process.env.EDI_HUB_USER_DATA_DIR;
+  }
+});

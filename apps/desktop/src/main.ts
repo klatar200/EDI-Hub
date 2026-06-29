@@ -132,7 +132,9 @@ function resolveWebUrl(): string {
   // override path is documented in apps/desktop/README.md.
   const override = process.env.EDI_DESKTOP_RENDERER_URL;
   if (override && override.length > 0) return override;
-  return `http://127.0.0.1:${API_PORT}`;
+  // Use localhost (not 127.0.0.1) so Clerk session `azp` matches the bundled
+  // CLERK_AUTHORIZED_PARTIES default in clerk-runtime.json.
+  return `http://localhost:${API_PORT}`;
 }
 
 /**
