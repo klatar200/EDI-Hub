@@ -1,0 +1,35 @@
+# EDI Data Hub — line-ending normalization.
+#
+# Without this file the repo had no normalization policy, so a Windows
+# checkout reported every tracked file as "modified" (pure CRLF churn).
+# Policy: store text as LF in the repo; check out LF everywhere except the
+# Windows-only scripts that must stay CRLF. EDI fixtures are byte-sensitive
+# and are never touched.
+
+# Default: treat as text, normalize to LF in the repository.
+* text=auto eol=lf
+
+# Windows-only scripts — keep CRLF on checkout.
+*.ps1  text eol=crlf
+*.bat  text eol=crlf
+*.cmd  text eol=crlf
+
+# EDI fixtures: exact bytes matter (segment terminators, CRLF cases the
+# parser is tested against). Never normalize.
+*.edi  -text
+*.x12  -text
+
+# Explicit binaries — never normalize, never diff as text.
+*.png  binary
+*.jpg  binary
+*.jpeg binary
+*.gif  binary
+*.ico  binary
+*.webp binary
+*.pdf  binary
+*.zip  binary
+*.gz   binary
+*.woff  binary
+*.woff2 binary
+*.ttf  binary
+*.eot  binary
