@@ -12,7 +12,7 @@ import { dirname, join } from 'node:path';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..');
 
-function run(cmd: string, args: string[]): void {
+function run(cmd, args) {
   const r = spawnSync(cmd, args, { cwd: root, stdio: 'inherit', shell: process.platform === 'win32' });
   if (r.status !== 0) process.exit(r.status ?? 1);
 }

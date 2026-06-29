@@ -74,7 +74,7 @@ async function main(): Promise<void> {
   const { body, contentType } = buildMultipart(fileBuffer, 'sample_850.edi');
   const res = await app.inject({
     method: 'POST',
-    url: '/ingest/upload',
+    url: '/api/ingest/upload',
     payload: body,
     headers: { 'content-type': contentType },
   });
