@@ -9,6 +9,7 @@ import type { LifecycleListFilters, LifecycleFlow, LifecycleSummary } from '@edi
 import { api } from '../lib/api.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
 import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
+import { OnboardingChecklist } from '../components/OnboardingChecklist.tsx';
 import {
   PinButton,
   SavedViewsBar,
@@ -334,6 +335,13 @@ export function LifecyclesPage(): JSX.Element {
     enabled: apiReady,
     retry: false,
   });
+  const setupKey = useTenantQueryKey('setup');
+  const setupQ = useQuery({
+    queryKey: setupKey,
+    queryFn: () => api.setup.get(),
+    enabled: apiReady,
+    retry: false,
+  });
   const slaCountdownEnabled = settingsQ.data?.settings?.slaCountdownEnabled ?? false;
   const pinnedPos = preferencesQ.data?.preferences.pinnedPos ?? [];
   const { togglePin, isPending: pinPending } = usePinToggle(preferencesQ.data?.preferences);
@@ -403,6 +411,9 @@ export function LifecyclesPage(): JSX.Element {
     || pinnedOnly,
   );
   const partners = partnersConfigQ.data?.items ?? [];
+  const partnerDone = partners.length > 0;
+  const ingestDone = setupQ.data?.hasIngested ?? false;
+  const showOnboarding = !hasAnyFilter && (!partnerDone || !ingestDone);
 
   return (
     <div>
@@ -560,15 +571,19 @@ export function LifecyclesPage(): JSX.Element {
           action={<button type="button" className="btn" onClick={() => listQ.refetch()}>Retry</button>}
         />
       ) : items.length === 0 ? (
-        <EmptyState
-          title={hasAnyFilter ? 'No conversations match these filters' : 'No PO conversations yet'}
-          description={
-            hasAnyFilter
-              ? 'Try widening the filters above or clear them entirely.'
-              : 'Once partners send EDI through the configured channels, PO lifecycles will appear here.'
-          }
-          action={hasAnyFilter ? <button type="button" className="btn" onClick={clearAll}>Clear filters</button> : null}
-        />
+        showOnboarding ? (
+          <OnboardingChecklist partnerDone={partnerDone} ingestDone={ingestDone} />
+        ) : (
+          <EmptyState
+            title={hasAnyFilter ? 'No conversations match these filters' : 'No PO conversations yet'}
+            description={
+              hasAnyFilter
+                ? 'Try widening the filters above or clear them entirely.'
+                : 'Once partners send EDI through the configured channels, PO lifecycles will appear here.'
+            }
+            action={hasAnyFilter ? <button type="button" className="btn" onClick={clearAll}>Clear filters</button> : null}
+          />
+        )
       ) : (
         <>
           <DataTable>
