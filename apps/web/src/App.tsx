@@ -1,19 +1,10 @@
 /**
  * Phase 9 Sprint 2 (revised) — Auth gate + routes.
- *
- * Three states, gated by Clerk:
- *   - Signed out          → centered <SignIn /> card.
- *   - Signed in, no org   → centered <OrganizationList /> so the user picks
- *                           or creates an org. Without an active org the API
- *                           would 403 on every data request.
- *   - Signed in + active  → normal app shell.
- *
- * Desktop LAN mode (no Clerk key) → see DesktopLanRoot.tsx.
  */
 import {
   OrganizationList,
-  Show,
   SignIn,
+  useAuth,
   useOrganization,
 } from '@clerk/react';
 import { AuthBridge, AuthReadyGate } from './components/AuthBridge.tsx';
@@ -57,18 +48,31 @@ function OrgGate(): JSX.Element {
 }
 
 export function App(): JSX.Element {
+  const { isLoaded, isSignedIn } = useAuth();
+
+  if (!isLoaded) {
+    return (
+      <CenteredCard>
+        <p className="text-sm text-[var(--color-fg-muted)]">Loading session…</p>
+      </CenteredCard>
+    );
+  }
+
+  if (!isSignedIn) {
+    return (
+      <CenteredCard>
+        <SignIn routing="hash" />
+      </CenteredCard>
+    );
+  }
+
   return (
     <>
-      <Show when="signed-out">
-        <CenteredCard><SignIn routing="hash" /></CenteredCard>
-      </Show>
-      <Show when="signed-in">
-        <AuthBridge />
-        <OrgCacheReset />
-        <AuthReadyGate>
-          <OrgGate />
-        </AuthReadyGate>
-      </Show>
+      <AuthBridge />
+      <OrgCacheReset />
+      <AuthReadyGate>
+        <OrgGate />
+      </AuthReadyGate>
     </>
   );
 }

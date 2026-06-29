@@ -133,6 +133,7 @@ async function tenantPluginImpl(
     }
 
     if (outcome.kind === 'no-org') {
+      request.log.warn('auth: signed in without active organization');
       return reply.code(403).send({
         error: {
           code: 'SELECT_ORGANIZATION',
@@ -155,6 +156,7 @@ async function tenantPluginImpl(
     });
 
     if (!lookup.tenant) {
+      request.log.warn({ orgId }, 'auth: tenant not provisioned for Clerk org');
       return reply.code(403).send({
         error: {
           code: 'TENANT_NOT_PROVISIONED',
@@ -171,6 +173,7 @@ async function tenantPluginImpl(
       });
     }
     if (!lookup.user) {
+      request.log.warn({ orgId, clerkUserId }, 'auth: user not provisioned for Clerk org');
       return reply.code(403).send({
         error: {
           code: 'USER_NOT_PROVISIONED',

@@ -12,7 +12,7 @@
 import { NavLink, Outlet } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { OrganizationSwitcher, UserButton } from '@clerk/react';
-import { RequireRole } from '../lib/useRole.tsx';
+import { RequireRole, useApiReady } from '../lib/useRole.tsx';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { SearchBox } from './SearchBox.tsx';
@@ -41,6 +41,7 @@ function navClass({ isActive }: { isActive: boolean }): string {
 }
 
 export function Layout(): JSX.Element {
+  const apiReady = useApiReady();
   // Unread badge — refreshed every 30s; falls back silently when the API is down.
   const alertsBadgeKey = useTenantQueryKey('alerts', 'active', 'unread-badge');
   const activeAlerts = useQuery({
@@ -48,6 +49,7 @@ export function Layout(): JSX.Element {
     queryFn: () => api.alerts.list({ status: 'active' }),
     refetchInterval: 30_000,
     retry: false,
+    enabled: apiReady,
   });
   const unread = activeAlerts.data?.items.length ?? 0;
 
@@ -57,6 +59,7 @@ export function Layout(): JSX.Element {
     queryFn: () => api.setup.get(),
     refetchInterval: 30_000,
     retry: false,
+    enabled: apiReady,
   });
   const showDropBanner =
     setupQ.data?.desktopMode === true &&

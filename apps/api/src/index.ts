@@ -28,6 +28,8 @@ import {
   type EmailDigestPayload,
 } from './jobs/handlers/email-digest.js';
 import { reconcileStuckReceived } from './services/parsing.js';
+import { createClerkClient } from '@clerk/backend';
+import { bootstrapDesktopClerk } from './services/clerk-desktop-bootstrap.js';
 
 async function main(): Promise<void> {
   // Phase 9 Sprint 4 — load env config first, then overlay secrets from
@@ -109,6 +111,30 @@ async function main(): Promise<void> {
   ).catch((err) => {
     app.log.warn({ err }, 'Email digest bootstrap failed (non-fatal)');
   });
+
+  // Desktop hub — Clerk webhooks cannot reach localhost; sync on every boot.
+  if (isDesktopHubMode() && app.config.clerk.secretKey.trim()) {
+    void tenantContext.bypass(async () => {
+      const clerk = createClerkClient({
+        secretKey: app.config.clerk.secretKey,
+        publishableKey: app.config.clerk.publishableKey,
+      });
+      const result = await bootstrapDesktopClerk(
+        app.prisma,
+        clerk as Parameters<typeof bootstrapDesktopClerk>[1],
+      );
+      app.log.info(
+        {
+          pilotAttached: result.pilotAttached,
+          tenantsUpserted: result.reconcile.tenantsUpserted,
+          usersUpserted: result.reconcile.usersUpserted,
+        },
+        'Desktop Clerk bootstrap complete',
+      );
+    }).catch((err) => {
+      app.log.warn({ err }, 'Desktop Clerk bootstrap failed (non-fatal)');
+    });
+  }
 
   // PS-5 — startup reconcile for RECEIVED rows stuck after a crash.
   void tenantContext.bypass(async () => {

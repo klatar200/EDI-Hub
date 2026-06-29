@@ -16,7 +16,7 @@ import {
   sortWithPinnedPos,
   usePinToggle,
 } from '../components/LifecyclePreferencesBar.tsx';
-import { useHasRole } from '../lib/useRole.tsx';
+import { useApiReady, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
   PageHeader,
@@ -309,15 +309,31 @@ function LifecycleRow({
 }
 
 export function LifecyclesPage(): JSX.Element {
+  const apiReady = useApiReady();
   const [sp, setSp] = useSearchParams();
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [includeRawInZip, setIncludeRawInZip] = useState(false);
   const partnersConfigKey = useTenantQueryKey('partners-config');
   const settingsKey = useTenantQueryKey('settings');
   const preferencesKey = useTenantQueryKey('preferences');
-  const partnersConfigQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
-  const settingsQ = useQuery({ queryKey: settingsKey, queryFn: () => api.settings.get() });
-  const preferencesQ = useQuery({ queryKey: preferencesKey, queryFn: () => api.preferences.get() });
+  const partnersConfigQ = useQuery({
+    queryKey: partnersConfigKey,
+    queryFn: () => api.partnersConfig.list(),
+    enabled: apiReady,
+    retry: false,
+  });
+  const settingsQ = useQuery({
+    queryKey: settingsKey,
+    queryFn: () => api.settings.get(),
+    enabled: apiReady,
+    retry: false,
+  });
+  const preferencesQ = useQuery({
+    queryKey: preferencesKey,
+    queryFn: () => api.preferences.get(),
+    enabled: apiReady,
+    retry: false,
+  });
   const slaCountdownEnabled = settingsQ.data?.settings?.slaCountdownEnabled ?? false;
   const pinnedPos = preferencesQ.data?.preferences.pinnedPos ?? [];
   const { togglePin, isPending: pinPending } = usePinToggle(preferencesQ.data?.preferences);
@@ -345,6 +361,8 @@ export function LifecyclesPage(): JSX.Element {
   const listQ = useQuery({
     queryKey: lifecyclesKey,
     queryFn: () => api.lifecycles(filters),
+    enabled: apiReady,
+    retry: false,
   });
 
   function setFilter(key: string, value: string | undefined): void {

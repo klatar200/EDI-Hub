@@ -3,6 +3,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
 import { LifecyclesPage } from '../src/pages/LifecyclesPage.tsx';
+import { MeProvider } from '../src/lib/useRole.tsx';
 
 interface FakeResponse { ok: boolean; status: number; json: () => Promise<unknown> }
 function jsonResponse(body: unknown): Promise<FakeResponse> {
@@ -55,6 +56,15 @@ const TIMELINE = {
 
 function fakeFetch(input: unknown): Promise<FakeResponse> {
   const url = String(input);
+  if (url.includes('/me')) {
+    return jsonResponse({
+      id: 'u-1',
+      email: 'ops@test.local',
+      displayName: 'Ops',
+      role: 'admin',
+      clerkUserId: 'user_test',
+    });
+  }
   if (url.includes('/lifecycles/') && url.includes('/notes')) {
     return jsonResponse({ items: [] });
   }
@@ -91,7 +101,9 @@ function renderPage(initialPath = '/') {
   return render(
     <QueryClientProvider client={qc}>
       <MemoryRouter initialEntries={[initialPath]}>
-        <LifecyclesPage />
+        <MeProvider orgId="test-org">
+          <LifecyclesPage />
+        </MeProvider>
       </MemoryRouter>
     </QueryClientProvider>,
   );

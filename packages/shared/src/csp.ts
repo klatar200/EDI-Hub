@@ -9,7 +9,7 @@
  */
 export const CONTENT_SECURITY_POLICY = [
   "default-src 'self'",
-  "script-src 'self' https://*.clerk.accounts.dev https://*.clerk.accounts.com https://challenges.cloudflare.com",
+  "script-src 'self' 'unsafe-inline' https://*.clerk.accounts.dev https://*.clerk.accounts.com https://challenges.cloudflare.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "img-src 'self' data: blob: https://img.clerk.com",
   "connect-src 'self' https://*.clerk.accounts.dev https://*.clerk.accounts.com https://api.clerk.com https://frontend-api.clerk.com https://clerk-telemetry.com https://*.clerk-telemetry.com",

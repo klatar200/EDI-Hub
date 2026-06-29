@@ -119,9 +119,16 @@ function qs(params: Record<string, string | number | boolean | string[] | undefi
 
 async function get<T>(path: string): Promise<T> {
   const res = await fetch(`${BASE}${path}`, { headers: await authHeaders() });
+  const json: unknown = await res.json().catch(() => ({}));
   if (res.status === 401) notifyUnauthorized(401);
-  if (!res.ok) throw new Error(`API request failed (${res.status}) for ${path}`);
-  return (await res.json()) as T;
+  if (!res.ok) {
+    throw new ApiCallError(
+      `API request failed (${res.status}) for ${path}`,
+      res.status,
+      json,
+    );
+  }
+  return json as T;
 }
 
 /** Like `get`, but maps an explicit 404 to `null` instead of throwing. Used
@@ -140,6 +147,16 @@ export class ApiCallError extends Error {
   constructor(message: string, public readonly status: number, public readonly body: unknown) {
     super(message);
     this.name = 'ApiCallError';
+  }
+
+  errorCode(): string | undefined {
+    const body = this.body as { error?: { code?: string } } | undefined;
+    return body?.error?.code;
+  }
+
+  errorMessage(): string | undefined {
+    const body = this.body as { error?: { message?: string } } | undefined;
+    return body?.error?.message;
   }
 }
 

@@ -4,7 +4,7 @@
 import { Navigate, Route, Routes } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from './components/Layout.tsx';
-import { RequireRole, useHasRole } from './lib/useRole.tsx';
+import { RequireRole, useApiReady, useHasRole } from './lib/useRole.tsx';
 import { LifecyclesPage } from './pages/LifecyclesPage.tsx';
 import { TransactionsPage } from './pages/TransactionsPage.tsx';
 import { TransactionDetailPage } from './pages/TransactionDetailPage.tsx';
@@ -35,12 +35,14 @@ function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element 
 
 export function AppRoutes(): JSX.Element {
   const isAdmin = useHasRole('admin');
+  const apiReady = useApiReady();
   const setupKey = useTenantQueryKey('setup');
   const setupQ = useQuery({
     queryKey: setupKey,
     queryFn: () => api.setup.get(),
     retry: false,
     staleTime: 10_000,
+    enabled: apiReady,
   });
 
   if (setupQ.isLoading) {
