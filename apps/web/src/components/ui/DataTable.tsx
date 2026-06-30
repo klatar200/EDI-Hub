@@ -35,11 +35,24 @@ interface DataTableProps {
 }
 
 export function DataTable({ className = '', children }: DataTableProps): JSX.Element {
+  // T5 — sticky header support.
+  //
+  // Two scroll-container traps to avoid:
+  //   1. The outer wrapper used to be `overflow-hidden`, which clips the
+  //      rounded corners but ALSO establishes a sticky-scroll context — sticky
+  //      children resolve against that wrapper instead of the viewport, so
+  //      they never engage with page scroll. `overflow-clip` clips the
+  //      corners without creating a scroll/sticky container.
+  //   2. The inner wrapper still uses `overflow-x-auto` below `lg` so wide
+  //      tables can scroll horizontally on narrow viewports. At `lg+` we
+  //      switch to `overflow-x-visible` so the inner div is NOT a scroll
+  //      container, and sticky resolves against the viewport. Mobile sticky
+  //      is left to AC2's card-view fallback.
   return (
     <div
-      className={`overflow-hidden rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs ${className}`}
+      className={`overflow-clip rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs ${className}`}
     >
-      <div className="overflow-x-auto">
+      <div className="overflow-x-auto lg:overflow-x-visible">
         <table className="w-full text-sm">{children}</table>
       </div>
     </div>
@@ -47,8 +60,12 @@ export function DataTable({ className = '', children }: DataTableProps): JSX.Ele
 }
 
 DataTable.Thead = function Thead({ children }: { children: ReactNode }): JSX.Element {
+  // `top-12` (48px) lands the sticky header just below the layout's sticky
+  // navigation bar (`Layout.tsx` header is py-2.5 + content ≈ 46px). The
+  // nav uses `z-30`, so the thead's `z-10` would tuck it BEHIND the nav at
+  // `top-0`; offsetting keeps the column labels visible while scrolling.
   return (
-    <thead className="sticky top-0 z-10 bg-[var(--color-surface-muted)]/95 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--color-fg-muted)] backdrop-blur">
+    <thead className="sticky top-12 z-10 bg-[var(--color-surface-muted)]/95 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--color-fg-muted)] backdrop-blur">
       {children}
     </thead>
   );
