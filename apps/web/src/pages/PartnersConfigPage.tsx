@@ -266,9 +266,27 @@ export function PartnersConfigPage(): JSX.Element {
           action={<button className="btn" onClick={() => listQ.refetch()}>Retry</button>}
         />
       ) : items.length === 0 ? (
+        // S2 — partners has no filters, so the only empty state is "no rows
+        // configured yet." Admins get the same `New partner` CTA inline so
+        // the next action is one click, not a hunt to the page header.
+        // Viewers see a quieter explanation since they can't add partners.
         <EmptyState
           title="No partners configured yet"
-          description={isAdmin ? 'Click "New partner" to add one.' : 'No partners are configured for this organization yet.'}
+          description={
+            isAdmin
+              ? 'Add the trading partners you exchange EDI with. Each partner carries its supported sets, SLA windows, and connectivity.'
+              : 'No partners are configured for this organization yet. Ask an admin to add one.'
+          }
+          action={isAdmin ? (
+            <button
+              type="button"
+              className="btn-primary"
+              data-testid="empty-new-partner"
+              onClick={() => setEditing({ id: null, draft: { ...EMPTY_DRAFT } })}
+            >
+              Add partner
+            </button>
+          ) : null}
         />
       ) : (
         <DataTable>

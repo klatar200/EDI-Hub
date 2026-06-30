@@ -28,7 +28,7 @@ import {
   Select,
   Input,
 } from '../components/ui';
-import { RequireRole } from '../lib/useRole.tsx';
+import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useToast } from '../lib/useToast.tsx';
 
@@ -141,6 +141,7 @@ const SEVERITY_BAR: Record<AlertSeverity, string> = {
 export function AlertsPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
+  const isOps = useHasRole('ops');
   const [status, setStatus] = useState<AlertStatus | ''>('active');
   const [type, setType] = useState<AlertType | ''>('');
   const [partnerName, setPartnerName] = useState('');
@@ -205,6 +206,10 @@ export function AlertsPage(): JSX.Element {
 
   const items = sortAlerts(alertsQ.data?.items ?? [], sortBy);
   const activeCount = items.filter((a) => a.status === 'active').length;
+  // S2 — "did the operator filter down to nothing?" The Status dropdown is a
+  // navigational pivot (Active / Acknowledged / Snoozed tabs), not narrowing.
+  // Type and Partner are the actual filters.
+  const hasNarrowingFilter = type !== '' || partnerName.trim() !== '';
 
   return (
     <div>
@@ -273,10 +278,53 @@ export function AlertsPage(): JSX.Element {
           action={<button className="btn" onClick={() => alertsQ.refetch()}>Retry</button>}
         />
       ) : items.length === 0 ? (
-        <EmptyState
-          title="No alerts match these filters"
-          description="Use Run detection above to scan for missing acks, rejection spikes, and stale traffic."
-        />
+        // S2 — branched empty state.
+        //   * Narrowed: the operator filtered down to nothing → offer a
+        //     Clear-filters action and stop pushing "Run detection" at them.
+        //   * Default (status=active, no type, no partnerName): this is the
+        //     healthy state. Friendly copy; offer Run-detection for ops.
+        //   * Non-default but not "active": e.g. "Acknowledged" tab — show
+        //     a quiet "nothing here" so it doesn't read like a problem.
+        hasNarrowingFilter ? (
+          <EmptyState
+            title="No alerts match these filters"
+            description="Try widening Status, Type, or Partner — or clear the filters entirely."
+            action={
+              <button
+                type="button"
+                className="btn"
+                onClick={() => {
+                  setStatus('active');
+                  setType('');
+                  setPartnerName('');
+                }}
+              >
+                Clear filters
+              </button>
+            }
+          />
+        ) : status === 'active' ? (
+          <EmptyState
+            title="No active alerts"
+            description="You're caught up. Run detection to scan for missing acks, rejection spikes, and stale traffic."
+            action={isOps ? (
+              <button
+                type="button"
+                className="btn"
+                data-testid="empty-run-detection"
+                disabled={detectM.isPending}
+                onClick={() => detectM.mutate()}
+              >
+                {detectM.isPending ? 'Running…' : 'Run detection'}
+              </button>
+            ) : null}
+          />
+        ) : (
+          <EmptyState
+            title={status === 'acknowledged' ? 'No acknowledged alerts' : status === 'resolved' ? 'No resolved alerts' : 'No alerts'}
+            description="Switch back to Active to see what's open."
+          />
+        )
       ) : (
         <ol className="space-y-2">
           {items.map((a) => (
