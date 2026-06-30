@@ -65,6 +65,8 @@ export function SettingsPage(): JSX.Element {
         <ThemeToggle />
       </Card>
 
+      <DefaultLandingCard />
+
       <EdiIdentityCard canEdit={canEdit} />
 
       <Card className="p-4 space-y-4">
@@ -169,6 +171,45 @@ export function SettingsPage(): JSX.Element {
         ) : null}
       </Card>
     </div>
+  );
+}
+
+/** UI-1 — personal default landing page (Monitoring vs Lifecycles). Stored in
+ *  user preferences; any user can set their own. */
+function DefaultLandingCard(): JSX.Element {
+  const qc = useQueryClient();
+  const toast = useToast();
+  const prefsKey = useTenantQueryKey('preferences');
+  const q = useQuery({ queryKey: prefsKey, queryFn: () => api.preferences.get() });
+  const current = q.data?.preferences.defaultLanding ?? 'dashboard';
+  const save = useMutation({
+    mutationFn: (landing: 'dashboard' | 'lifecycles') =>
+      api.preferences.patch({ ...(q.data?.preferences ?? {}), defaultLanding: landing }),
+    onSuccess: () => {
+      void qc.invalidateQueries({ queryKey: prefsKey });
+      toast.success('Default landing saved');
+    },
+    onError: () => toast.error('Could not save default landing'),
+  });
+  return (
+    <Card className="p-4 space-y-3" data-testid="default-landing-card">
+      <div>
+        <h2 className="text-sm font-semibold">Default landing page</h2>
+        <p className="mt-0.5 text-sm text-[var(--color-fg-muted)]">
+          Where you land when you open the hub. Personal to your account.
+        </p>
+      </div>
+      <FormField label="Landing page">
+        <Select
+          value={current}
+          disabled={q.isLoading || save.isPending}
+          onChange={(e) => save.mutate(e.target.value === 'lifecycles' ? 'lifecycles' : 'dashboard')}
+        >
+          <option value="dashboard">Monitoring (Dashboard)</option>
+          <option value="lifecycles">Lifecycles</option>
+        </Select>
+      </FormField>
+    </Card>
   );
 }
 
