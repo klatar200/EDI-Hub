@@ -358,7 +358,7 @@ Keep planning docs **split by purpose** so “what’s next?” stays small and 
 2. **When planning new optional/future work** → add to [`BUILD_PLAN.md` §5](BUILD_PLAN.md#5-future--optional-features) only.
 3. **Do not recreate** completed sprint tables or F1–F62 matrices in `BUILD_PLAN.md`.
 4. **Security sign-off** → [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) stays separate; do not merge into `BUILD_PLAN.md`.
-5. **Redirect stubs** (`FUTURE_FEATURES.md`, `PRODUCT_BACKLOG.md`, `docs/FEATURE_STATUS.md`, etc.) point at canonical locations — update the target doc, not the stub.
+5. **Redirect stubs** (e.g. `docs/FEATURE_STATUS.md`) point at canonical locations — update the target doc, not the stub.
 
 ### Do not duplicate
 
@@ -384,3 +384,4 @@ This file absorbed builder rules from the locations below. **Do not duplicate th
 | Planning doc split (`BUILD_PLAN` / `SHIPPED` / `WIKI`) | §11 |
 
 **Cursor still loads `.cursor/rules/*.mdc` automatically** (`alwaysApply: true`). Those files are kept in sync with this document; if they diverge, **update `AGENTS.md` first**, then mirror to `.mdc`.
+                                             

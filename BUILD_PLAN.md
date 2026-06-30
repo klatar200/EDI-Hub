@@ -220,11 +220,12 @@ Stripe self-serve, marketing site, per-tenant quotas, Linux desktop (AppImage).
 | Completed sprints, F1–F62, phases | [`docs/SHIPPED.md`](docs/SHIPPED.md) |
 | North Star, principles, doc guide | [`docs/WIKI.md`](docs/WIKI.md) |
 | Clerk setup steps | [`CLERK_SETUP.md`](CLERK_SETUP.md) |
-| [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) | [§6](#6-future--optional-features) |
+| Future / optional features | [§6](#6-future--optional-features) |
 | [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) | [`docs/SHIPPED.md` §6](docs/SHIPPED.md#6-feature-matrix-f1f62) |
-| [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) | [`docs/SHIPPED.md` §7](docs/SHIPPED.md#7-product-backlog-history) |
+| Product backlog (historical) | [`docs/SHIPPED.md` §7](docs/SHIPPED.md#7-product-backlog-history) |
 | UI Build Plan (complete) | [`docs/SHIPPED.md` §4.1](docs/SHIPPED.md#41-ui-build-plan-refresh--u0u5) · [`docs/UI_BUILD_PLAN.md`](docs/UI_BUILD_PLAN.md) (archive) |
 | UI responsiveness (UR0–UR7) | [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) |
 | Security sign-off | [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) |
 
 **Do not add completed work to this file** — append to `docs/SHIPPED.md` when a sprint ships.
+                              
