@@ -770,6 +770,10 @@ export interface TenantSettings {
   emailDigestEnabled: boolean;
   /** Hour (0–23 UTC) to send digest. */
   emailDigestHourUtc: number;
+  /** Noise control — alert types whose notifications are muted. Muted alerts
+   *  are still recorded and shown on the Alerts page; they just don't deliver
+   *  email/Slack notifications. */
+  mutedAlertTypes: AlertType[];
 }
 
 export interface TenantSettingsResponse {
