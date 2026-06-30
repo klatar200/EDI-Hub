@@ -19,9 +19,9 @@ import type { ReactNode } from 'react';
 type Size = 'sm' | 'md' | 'lg';
 
 const SIZE_CLASS: Record<Size, string> = {
-  sm: 'max-w-sm',
-  md: 'max-w-lg',
-  lg: 'max-w-3xl',
+  sm: 'sm:max-w-sm',
+  md: 'sm:max-w-lg',
+  lg: 'sm:max-w-3xl',
 };
 
 interface ModalProps {
@@ -82,7 +82,7 @@ export function Modal({
       role="dialog"
       aria-modal="true"
       aria-label={typeof title === 'string' ? title : undefined}
-      className={`w-full ${SIZE_CLASS[size]} rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-0 text-[var(--color-fg)] shadow-lg backdrop:bg-black/40 backdrop:backdrop-blur-sm`}
+      className={`m-0 w-[calc(100vw-1.5rem)] max-h-[90dvh] overflow-y-auto ${SIZE_CLASS[size]} rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-0 text-[var(--color-fg)] shadow-lg backdrop:bg-black/40 backdrop:backdrop-blur-sm sm:w-full`}
     >
       {/* Header — title + close button. Suppress when no title AND
           hideClose so callers can render their own header. */}

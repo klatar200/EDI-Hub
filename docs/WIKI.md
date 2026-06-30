@@ -51,6 +51,7 @@ Read **only what the task needs** — avoids context bloat and wrong edits.
 | What should I build next? | [`BUILD_PLAN.md`](../BUILD_PLAN.md) |
 | Was feature X already built? | [`docs/SHIPPED.md`](SHIPPED.md) or [`README.md` § Features](../README.md#features) |
 | Was the UI Build Plan (U0–U5) finished? | [`docs/SHIPPED.md` §4.1](SHIPPED.md#41-ui-build-plan-refresh--u0u5) |
+| UI responsiveness plan / decisions | [`docs/UI_RESPONSIVE_PLAN.md`](UI_RESPONSIVE_PLAN.md) |
 | What are the coding / git / CI rules? | [`AGENTS.md`](../AGENTS.md) |
 | How do I run locally? | [`docs/LOCAL_DEV.md`](LOCAL_DEV.md) |
 | Security sign-off item? | [`SECURITY_CHECKLIST.md`](../SECURITY_CHECKLIST.md) |

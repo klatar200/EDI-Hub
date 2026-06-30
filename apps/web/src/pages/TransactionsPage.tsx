@@ -21,7 +21,7 @@ import {
   type TableColumnDef,
 } from '../components/TableDisplayMenu.tsx';
 import { TransactionMobileCards } from '../components/MobileTableCards.tsx';
-import { useMaxMd } from '../lib/useMediaQuery.ts';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -30,6 +30,7 @@ import {
   Pagination,
   FilterChip,
   FilterChipRow,
+  FilterToolbar,
   ErrorState,
   EmptyState,
   Skeleton,
@@ -124,13 +125,21 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
     filters.set || filters.partner || filters.status || filters.po
     || filters.invoice || filters.direction || filters.from || filters.to,
   );
+  const secondaryFilterCount = [
+    filters.direction,
+    filters.partner,
+    filters.po,
+    filters.invoice,
+    filters.from,
+    filters.to,
+  ].filter(Boolean).length;
 
   // Partner option list — configured names first, then any "raw" ISA ids
   // that aren't yet claimed by a configured partner.
   const configured = partnersConfigQ.data?.items ?? [];
   const claimed = new Set(configured.flatMap((p) => [...p.isaSenderIds, ...p.isaReceiverIds]));
   const inferred = (partnersQ.data?.partners ?? []).filter((id) => !claimed.has(id));
-  const preferMobileCards = useMaxMd();
+  const preferMobileCards = usePreferMobileCards();
 
   return (
     <div>
@@ -152,59 +161,70 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
 
       {/* Filter controls — selects + PO input, in a Card-shaped strip. */}
       <Card className="mb-3">
-        <div className="flex flex-wrap items-end justify-between gap-3 p-3">
-          <div className="flex flex-wrap items-end gap-3">
-          <FormField label="Type">
-            <Select size="sm" value={filters.set ?? ''} onChange={(e) => setFilter('set', e.target.value || undefined)}>
-              <option value="">All</option>
-              {SETS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="Direction">
-            <Select size="sm" value={filters.direction ?? ''} onChange={(e) => setFilter('direction', e.target.value || undefined)}>
-              <option value="">All</option>
-              {DIRECTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="Partner">
-            <Select size="sm" value={filters.partner ?? ''} onChange={(e) => setFilter('partner', e.target.value || undefined)}>
-              <option value="">All</option>
-              {configured
-                .filter((p) => p.isaSenderIds[0] || p.isaReceiverIds[0])
-                .map((p) => {
-                  const v = p.isaSenderIds[0] ?? p.isaReceiverIds[0]!;
-                  return <option key={p.id} value={v}>{p.displayName}</option>;
-                })}
-              {inferred.length > 0 && configured.length > 0 ? <option disabled>──────</option> : null}
-              {inferred.map((id) => <option key={id} value={id}>{id}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="Status">
-            <Select size="sm" value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value || undefined)}>
-              <option value="">All</option>
-              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="PO number">
-            <Input size="sm" placeholder="PO-…" value={filters.po ?? ''} onChange={(e) => setFilter('po', e.target.value || undefined)} />
-          </FormField>
-          <FormField label="Invoice">
-            <Input size="sm" placeholder="INV-…" value={filters.invoice ?? ''} onChange={(e) => setFilter('invoice', e.target.value || undefined)} />
-          </FormField>
-          <FormField label="From">
-            <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
-          </FormField>
-          <FormField label="To">
-            <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
-          </FormField>
-          </div>
-          {preferencesQ.data ? (
-            <TableDisplayMenu
-              tableKey="transactions"
-              preferences={preferencesQ.data.preferences}
-              columns={TRANSACTION_COLUMNS}
-            />
-          ) : null}
+        <div className="p-3">
+          <FilterToolbar
+            activeSecondaryCount={secondaryFilterCount}
+            inline={
+              <>
+                <FormField label="Type">
+                  <Select size="sm" value={filters.set ?? ''} onChange={(e) => setFilter('set', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {SETS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="Status">
+                  <Select size="sm" value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </Select>
+                </FormField>
+              </>
+            }
+            secondary={
+              <>
+                <FormField label="Direction">
+                  <Select size="sm" value={filters.direction ?? ''} onChange={(e) => setFilter('direction', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {DIRECTIONS.map((d) => <option key={d.value} value={d.value}>{d.label}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="Partner">
+                  <Select size="sm" value={filters.partner ?? ''} onChange={(e) => setFilter('partner', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {configured
+                      .filter((p) => p.isaSenderIds[0] || p.isaReceiverIds[0])
+                      .map((p) => {
+                        const v = p.isaSenderIds[0] ?? p.isaReceiverIds[0]!;
+                        return <option key={p.id} value={v}>{p.displayName}</option>;
+                      })}
+                    {inferred.length > 0 && configured.length > 0 ? <option disabled>──────</option> : null}
+                    {inferred.map((id) => <option key={id} value={id}>{id}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="PO number">
+                  <Input size="sm" placeholder="PO-…" value={filters.po ?? ''} onChange={(e) => setFilter('po', e.target.value || undefined)} />
+                </FormField>
+                <FormField label="Invoice">
+                  <Input size="sm" placeholder="INV-…" value={filters.invoice ?? ''} onChange={(e) => setFilter('invoice', e.target.value || undefined)} />
+                </FormField>
+                <FormField label="From">
+                  <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
+                </FormField>
+                <FormField label="To">
+                  <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
+                </FormField>
+              </>
+            }
+            trailing={
+              preferencesQ.data ? (
+                <TableDisplayMenu
+                  tableKey="transactions"
+                  preferences={preferencesQ.data.preferences}
+                  columns={TRANSACTION_COLUMNS}
+                />
+              ) : null
+            }
+          />
         </div>
       </Card>
 
@@ -318,6 +338,7 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
         offset={offset}
         limit={PAGE_SIZE}
         count={items.length}
+        stickyMobile={preferMobileCards}
         onChange={setOffset}
       />
     </div>

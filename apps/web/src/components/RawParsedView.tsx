@@ -57,7 +57,7 @@ export function RawParsedView({ detail }: { detail: TransactionDetail }): JSX.El
         </div>
       </div>
 
-      <div className={`grid gap-4 ${mode === 'split' ? 'md:grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`grid gap-4 ${mode === 'split' ? 'grid-cols-1 lg:grid-cols-2' : 'grid-cols-1'}`}>
         {showParsed && (
           <div className="overflow-hidden rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs">
             <div className="border-b border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] px-3 py-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">

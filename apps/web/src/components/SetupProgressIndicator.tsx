@@ -61,9 +61,22 @@ export function SetupProgressIndicator(): JSX.Element | null {
           type="button"
           data-testid="setup-progress-trigger"
           aria-label={`Setup progress: ${status.doneCount} of ${status.total} complete`}
-          className="hidden items-center gap-1.5 rounded-md border border-[var(--color-warn-500)]/40 bg-[var(--color-warn-50)] px-2 py-1 text-xs font-medium text-[var(--color-warn-800)] transition hover:bg-[var(--color-warn-50)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex"
+          className="inline-flex h-9 shrink-0 items-center gap-1.5 rounded-md border border-[var(--color-warn-500)]/40 bg-[var(--color-warn-50)] px-2 py-1 text-xs font-medium text-[var(--color-warn-800)] transition hover:bg-[var(--color-warn-50)]/80 focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30"
         >
-          Setup: {status.doneCount}/{status.total}
+          <svg
+            aria-hidden
+            viewBox="0 0 20 20"
+            className="h-4 w-4 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.75"
+          >
+            <path d="M10 2v4M10 14v4M4.93 4.93l2.83 2.83M12.24 12.24l2.83 2.83M2 10h4M14 10h4M4.93 15.07l2.83-2.83M12.24 7.76l2.83-2.83" strokeLinecap="round" />
+          </svg>
+          <span className="hidden lg:inline">Setup: </span>
+          <span className="tabular-nums">
+            {status.doneCount}/{status.total}
+          </span>
         </button>
       </Popover.Trigger>
       <Popover.Content align="start" className="w-64 p-0">

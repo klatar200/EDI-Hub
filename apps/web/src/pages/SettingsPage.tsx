@@ -114,7 +114,7 @@ export function SettingsPage(): JSX.Element {
             ))}
           </Select>
         </FormField>
-        <div className="grid gap-3 sm:grid-cols-2">
+        <div className="grid gap-3 md:grid-cols-2">
           <FormField label="Quiet hours start (UTC)">
             <Input
               placeholder="22:00"

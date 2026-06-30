@@ -8,6 +8,8 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { TableDensity, UserPreferences } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { useMaxLg, useMaxMd } from '../lib/useMediaQuery.ts';
+import { mergeResponsiveHiddenColumns } from '../lib/responsiveTableColumns.ts';
 import { Popover } from './ui';
 
 export interface TableColumnDef {
@@ -39,9 +41,12 @@ export function useTableDisplayPrefs(
     onSuccess: () => void qc.invalidateQueries({ queryKey: preferencesKey }),
   });
 
+  const belowLg = useMaxLg();
+  const belowMd = useMaxMd();
   const tablePrefs = preferences?.tablePrefs?.[tableKey];
-  const density: TableDensity = tablePrefs?.density ?? 'comfortable';
-  const hiddenColumns = new Set(tablePrefs?.hiddenColumns ?? []);
+  const userHidden = tablePrefs?.hiddenColumns ?? [];
+  const hiddenColumns = mergeResponsiveHiddenColumns(tableKey, userHidden, belowLg);
+  const density: TableDensity = tablePrefs?.density ?? (belowMd ? 'compact' : 'comfortable');
   const requiredIds = new Set(columns.filter((c) => c.required).map((c) => c.id));
 
   function patchTablePrefs(nextEntry: { density?: TableDensity; hiddenColumns?: string[] }): void {
@@ -57,12 +62,12 @@ export function useTableDisplayPrefs(
 
   function toggleColumn(id: string, visible: boolean): void {
     if (requiredIds.has(id) || !preferences) return;
-    const next = new Set(hiddenColumns);
-    if (visible) next.delete(id);
-    else next.add(id);
+    const userOnly = new Set(userHidden);
+    if (visible) userOnly.delete(id);
+    else userOnly.add(id);
     patchTablePrefs({
-      density,
-      hiddenColumns: [...next],
+      density: tablePrefs?.density,
+      hiddenColumns: [...userOnly],
     });
   }
 
@@ -70,7 +75,7 @@ export function useTableDisplayPrefs(
     if (!preferences || next === density) return;
     patchTablePrefs({
       density: next,
-      hiddenColumns: [...hiddenColumns],
+      hiddenColumns: [...userHidden],
     });
   }
 
@@ -97,11 +102,12 @@ export function TableDisplayMenu({
   preferences: UserPreferences;
   columns: readonly TableColumnDef[];
 }): JSX.Element {
-  const { density, hiddenColumns, toggleColumn, setDensity, isPending } = useTableDisplayPrefs(
+  const { density, toggleColumn, setDensity, isPending } = useTableDisplayPrefs(
     tableKey,
     preferences,
     columns,
   );
+  const userHidden = new Set(preferences?.tablePrefs?.[tableKey]?.hiddenColumns ?? []);
 
   return (
     <div className="flex flex-wrap items-center gap-2" data-testid={`table-display-${tableKey}`}>
@@ -157,7 +163,7 @@ export function TableDisplayMenu({
           </p>
           <ul className="space-y-1">
             {columns.map((col) => {
-              const checked = !hiddenColumns.has(col.id);
+              const checked = !userHidden.has(col.id);
               return (
                 <li key={col.id}>
                   <label

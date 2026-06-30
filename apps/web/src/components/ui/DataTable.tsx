@@ -1,77 +1,122 @@
 /**
  * UI Phase Sprint 2.1 — DataTable primitive.
  *
- * Composable, token-aware table. Replaces the ad-hoc <Th>/<Td> helpers
- * each page rolls itself. Sticky header by default (so a long table
- * scrolls under the column labels), hover state on rows, optional zebra
- * striping, and a sort-indicator helper for sortable columns.
- *
- * Usage:
- *   <DataTable>
- *     <DataTable.Thead>
- *       <DataTable.Tr>
- *         <DataTable.Th sortable sortDirection="asc">Set</DataTable.Th>
- *         <DataTable.Th>PO</DataTable.Th>
- *       </DataTable.Tr>
- *     </DataTable.Thead>
- *     <DataTable.Tbody>
- *       <DataTable.Tr onClick={() => navigate(...)}>
- *         <DataTable.Td mono>850</DataTable.Td>
- *         <DataTable.Td>{row.po}</DataTable.Td>
- *       </DataTable.Tr>
- *     </DataTable.Tbody>
- *   </DataTable>
+ * UR2 — horizontal scroll affordance; sticky header at `lg+` only (cards below).
  */
-import type { ReactNode, ThHTMLAttributes, TdHTMLAttributes, HTMLAttributes } from 'react';
+import {
+  createContext,
+  useContext,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type ReactNode,
+  type ThHTMLAttributes,
+  type TdHTMLAttributes,
+  type HTMLAttributes,
+} from 'react';
 
 export type SortDirection = 'asc' | 'desc' | null;
 
+interface DataTableContextValue {
+  stickyHeader: boolean;
+}
+
+const DataTableContext = createContext<DataTableContextValue>({ stickyHeader: true });
+
 interface DataTableProps {
   className?: string;
-  /** U4/T3 — row padding; compact tightens th/td spacing. */
   density?: 'comfortable' | 'compact';
-  /** When true, alternating rows get a subtle muted background. Off by default;
-   *  the hover state usually gives enough row separation. */
   zebra?: boolean;
+  /** UR2/R45 — disable sticky thead (e.g. embedded mini-tables). Default true. */
+  stickyHeader?: boolean;
   children: ReactNode;
 }
 
-export function DataTable({ className = '', density = 'comfortable', children }: DataTableProps): JSX.Element {
-  const densityClass =
-    density === 'compact'
-      ? '[&_th]:px-3 [&_th]:py-1.5 [&_td]:px-3 [&_td]:py-1.5'
-      : '';
-  // T5 — sticky header support.
-  //
-  // Two scroll-container traps to avoid:
-  //   1. The outer wrapper used to be `overflow-hidden`, which clips the
-  //      rounded corners but ALSO establishes a sticky-scroll context — sticky
-  //      children resolve against that wrapper instead of the viewport, so
-  //      they never engage with page scroll. `overflow-clip` clips the
-  //      corners without creating a scroll/sticky container.
-  //   2. The inner wrapper still uses `overflow-x-auto` below `lg` so wide
-  //      tables can scroll horizontally on narrow viewports. At `lg+` we
-  //      switch to `overflow-x-visible` so the inner div is NOT a scroll
-  //      container, and sticky resolves against the viewport. Mobile sticky
-  //      is left to AC2's card-view fallback.
+function TableScrollRegion({ children }: { children: ReactNode }): JSX.Element {
+  const scrollRef = useRef<HTMLDivElement>(null);
+  const [hint, setHint] = useState({ left: false, right: false });
+
+  useLayoutEffect(() => {
+    const el = scrollRef.current;
+    if (!el || typeof ResizeObserver === 'undefined') return;
+
+    const sync = (): void => {
+      const overflow = el.scrollWidth > el.clientWidth + 2;
+      if (!overflow) {
+        setHint({ left: false, right: false });
+        return;
+      }
+      setHint({
+        left: el.scrollLeft > 4,
+        right: el.scrollLeft + el.clientWidth < el.scrollWidth - 4,
+      });
+    };
+
+    sync();
+    el.addEventListener('scroll', sync, { passive: true });
+    const ro = new ResizeObserver(sync);
+    ro.observe(el);
+    return () => {
+      el.removeEventListener('scroll', sync);
+      ro.disconnect();
+    };
+  }, []);
+
   return (
-    <div
-      className={`overflow-clip rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs ${className}`}
-    >
-      <div className="overflow-x-auto lg:overflow-x-visible">
-        <table className={`w-full text-sm ${densityClass}`}>{children}</table>
+    <div className="relative">
+      {hint.left ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 left-0 z-[1] w-8 bg-gradient-to-r from-[var(--color-surface-card)] to-transparent"
+        />
+      ) : null}
+      {hint.right ? (
+        <div
+          aria-hidden
+          className="pointer-events-none absolute inset-y-0 right-0 z-[1] w-8 bg-gradient-to-l from-[var(--color-surface-card)] to-transparent"
+        />
+      ) : null}
+      <div ref={scrollRef} className="overflow-x-auto lg:overflow-x-visible">
+        {children}
       </div>
     </div>
   );
 }
 
-DataTable.Thead = function Thead({ children }: { children: ReactNode }): JSX.Element {
-  // `top-12` (48px) lands the sticky header just below the layout's sticky
-  // navigation bar (`Layout.tsx` header is py-2.5 + content ≈ 46px). The
-  // nav uses `z-30`, so the thead's `z-10` would tuck it BEHIND the nav at
-  // `top-0`; offsetting keeps the column labels visible while scrolling.
+export function DataTable({
+  className = '',
+  density = 'comfortable',
+  stickyHeader = true,
+  children,
+}: DataTableProps): JSX.Element {
+  const densityClass =
+    density === 'compact'
+      ? '[&_th]:px-3 [&_th]:py-1.5 [&_td]:px-3 [&_td]:py-1.5'
+      : '';
+
   return (
-    <thead className="sticky top-12 z-10 bg-[var(--color-surface-muted)]/95 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--color-fg-muted)] backdrop-blur">
+    <DataTableContext.Provider value={{ stickyHeader }}>
+      <div
+        className={`overflow-clip rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs ${className}`}
+        data-testid="data-table"
+      >
+        <TableScrollRegion>
+          <table className={`w-full text-sm ${densityClass}`}>{children}</table>
+        </TableScrollRegion>
+      </div>
+    </DataTableContext.Provider>
+  );
+}
+
+DataTable.Thead = function Thead({ children }: { children: ReactNode }): JSX.Element {
+  const { stickyHeader } = useContext(DataTableContext);
+  const stickyClass = stickyHeader
+    ? 'sticky top-[var(--header-height)] z-10 backdrop-blur'
+    : '';
+  return (
+    <thead
+      className={`bg-[var(--color-surface-muted)]/95 text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--color-fg-muted)] ${stickyClass}`}
+    >
       {children}
     </thead>
   );
@@ -119,7 +164,6 @@ DataTable.Tr = function Tr({ className = '', children, onClick, ...rest }: TrPro
 interface ThProps extends Omit<ThHTMLAttributes<HTMLTableCellElement>, 'children'> {
   sortable?: boolean;
   sortDirection?: SortDirection;
-  /** Optional onClick when sortable; the chevron flips based on sortDirection. */
   onSort?: () => void;
   children: ReactNode;
 }
@@ -139,7 +183,6 @@ DataTable.Th = function Th({
       </th>
     );
   }
-  // aria-sort needs "ascending" / "descending" / "none" to be useful to AT.
   const ariaSort =
     sortDirection === 'asc' ? 'ascending'
     : sortDirection === 'desc' ? 'descending'
@@ -164,12 +207,8 @@ DataTable.Th = function Th({
 };
 
 interface TdProps extends Omit<TdHTMLAttributes<HTMLTableCellElement>, 'children'> {
-  /** Render the value in JetBrains Mono — for control numbers, ISA ids,
-   *  transaction set codes. */
   mono?: boolean;
-  /** Subdue the cell color (timestamps, secondary metadata). */
   muted?: boolean;
-  /** Right-align (numeric columns). */
   numeric?: boolean;
   children: ReactNode;
 }

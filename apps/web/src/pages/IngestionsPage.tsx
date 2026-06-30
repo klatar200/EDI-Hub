@@ -15,7 +15,7 @@ import { api } from '../lib/api.ts';
 import { buildParseErrorReport } from '../lib/parse-error-report.ts';
 import { IngestUploadPanel } from '../components/IngestUploadPanel.tsx';
 import { IngestionMobileCards } from '../components/MobileTableCards.tsx';
-import { useMaxMd } from '../lib/useMediaQuery.ts';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
 import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useToast } from '../lib/useToast.tsx';
@@ -33,6 +33,7 @@ import {
   Input,
   FilterChip,
   FilterChipRow,
+  FilterToolbar,
 } from '../components/ui';
 
 const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
@@ -70,7 +71,7 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
     },
   });
   const items = q.data?.items ?? [];
-  const preferMobileCards = useMaxMd();
+  const preferMobileCards = usePreferMobileCards();
 
   function setFilter(key: string, value: string | undefined): void {
     const next = new URLSearchParams(sp);
@@ -83,6 +84,7 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
   }
 
   const hasAnyFilter = Boolean(filters.source || filters.status || filters.from || filters.to);
+  const secondaryFilterCount = [filters.source, filters.from, filters.to].filter(Boolean).length;
 
   return (
     <div>
@@ -107,37 +109,48 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
       </RequireRole>
 
       <Card className="mb-3">
-        <div className="flex flex-wrap items-end gap-3 p-3">
-          <div className="flex flex-wrap gap-2 pb-1">
-            {(['PARSE_ERROR', 'FAILED', 'DUPLICATE'] as const).map((s) => (
-              <button
-                key={s}
-                type="button"
-                className="btn text-xs"
-                onClick={() => setFilter('status', filters.status === s ? undefined : s)}
-              >
-                {s}
-              </button>
-            ))}
-          </div>
-          <FormField label="Source">
-            <Select size="sm" value={filters.source ?? ''} onChange={(e) => setFilter('source', e.target.value || undefined)}>
-              <option value="">All</option>
-              {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="Status">
-            <Select size="sm" value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value || undefined)}>
-              <option value="">All</option>
-              {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="From">
-            <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
-          </FormField>
-          <FormField label="To">
-            <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
-          </FormField>
+        <div className="p-3">
+          <FilterToolbar
+            activeSecondaryCount={secondaryFilterCount}
+            inline={
+              <>
+                <div className="flex flex-wrap gap-2 pb-1">
+                  {(['PARSE_ERROR', 'FAILED', 'DUPLICATE'] as const).map((s) => (
+                    <button
+                      key={s}
+                      type="button"
+                      className="btn text-xs"
+                      onClick={() => setFilter('status', filters.status === s ? undefined : s)}
+                    >
+                      {s}
+                    </button>
+                  ))}
+                </div>
+                <FormField label="Status">
+                  <Select size="sm" value={filters.status ?? ''} onChange={(e) => setFilter('status', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {STATUSES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </Select>
+                </FormField>
+              </>
+            }
+            secondary={
+              <>
+                <FormField label="Source">
+                  <Select size="sm" value={filters.source ?? ''} onChange={(e) => setFilter('source', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {SOURCES.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="From">
+                  <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
+                </FormField>
+                <FormField label="To">
+                  <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
+                </FormField>
+              </>
+            }
+          />
         </div>
       </Card>
 

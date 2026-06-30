@@ -27,6 +27,7 @@ import {
   FormField,
   Select,
   Input,
+  FilterToolbar,
 } from '../components/ui';
 import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
@@ -210,6 +211,7 @@ export function AlertsPage(): JSX.Element {
   // navigational pivot (Active / Acknowledged / Snoozed tabs), not narrowing.
   // Type and Partner are the actual filters.
   const hasNarrowingFilter = type !== '' || partnerName.trim() !== '';
+  const secondaryFilterCount = (partnerName.trim() ? 1 : 0) + (type !== '' ? 1 : 0);
 
   return (
     <div>
@@ -217,33 +219,8 @@ export function AlertsPage(): JSX.Element {
         title="Alerts"
         subtitle="Missing acknowledgments + rejection-rate spikes against your configured partners."
         actions={
-          <div className="flex flex-wrap items-end gap-2">
-            <FormField label="Partner">
-              <Input
-                size="sm"
-                placeholder="Filter by name…"
-                value={partnerName}
-                onChange={(e) => setPartnerName(e.target.value)}
-                data-testid="partner-filter"
-              />
-            </FormField>
-            <FormField label="Sort">
-              <Select size="sm" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'sla' | 'recent')}>
-                <option value="sla">SLA breach first</option>
-                <option value="recent">Most recent</option>
-              </Select>
-            </FormField>
-            <FormField label="Status">
-              <Select size="sm" value={status} onChange={(e) => setStatus(e.target.value as AlertStatus | '')}>
-                {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </Select>
-            </FormField>
-            <FormField label="Type">
-              <Select size="sm" value={type} onChange={(e) => setType(e.target.value as AlertType | '')}>
-                {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </Select>
-            </FormField>
-            <RequireRole role="ops">
+          <RequireRole role="ops">
+            <div className="flex flex-wrap items-center gap-2">
               <button
                 type="button"
                 className="btn"
@@ -264,10 +241,51 @@ export function AlertsPage(): JSX.Element {
                   {bulkAckM.isPending ? 'Working…' : `Ack all (${activeCount})`}
                 </button>
               ) : null}
-            </RequireRole>
-          </div>
+            </div>
+          </RequireRole>
         }
       />
+
+      <Card className="mb-3">
+        <div className="p-3">
+          <FilterToolbar
+            activeSecondaryCount={secondaryFilterCount}
+            inline={
+              <>
+                <FormField label="Status">
+                  <Select size="sm" value={status} onChange={(e) => setStatus(e.target.value as AlertStatus | '')}>
+                    {STATUS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="Sort">
+                  <Select size="sm" value={sortBy} onChange={(e) => setSortBy(e.target.value as 'sla' | 'recent')}>
+                    <option value="sla">SLA breach first</option>
+                    <option value="recent">Most recent</option>
+                  </Select>
+                </FormField>
+              </>
+            }
+            secondary={
+              <>
+                <FormField label="Partner">
+                  <Input
+                    size="sm"
+                    placeholder="Filter by name…"
+                    value={partnerName}
+                    onChange={(e) => setPartnerName(e.target.value)}
+                    data-testid="partner-filter"
+                  />
+                </FormField>
+                <FormField label="Type">
+                  <Select size="sm" value={type} onChange={(e) => setType(e.target.value as AlertType | '')}>
+                    {TYPE_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                  </Select>
+                </FormField>
+              </>
+            }
+          />
+        </div>
+      </Card>
 
       {alertsQ.isLoading ? (
         <Skeleton.Table rows={4} columnWidths={['100%']} />

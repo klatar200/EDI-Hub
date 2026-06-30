@@ -83,6 +83,12 @@
   --duration-slow:  280ms;  /* drawer slide, full-page transitions */
   --ease-out:       cubic-bezier(0.16, 1, 0.3, 1);   /* deceleration, "settle" */
   --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);  /* symmetric, default */
+
+  /* Layout — UR0/R1–R3. Shell grows with viewport up to max; gutters scale
+     via :root breakpoints below. --header-height defaults until Layout syncs it. */
+  --layout-max-width: 100rem; /* 1600px */
+  --layout-gutter-x:  1rem;
+  --header-height:    3rem;
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -134,6 +140,17 @@
 @layer base {
   html {
     color-scheme: light;
+  }
+  /* UR0/R2 — responsive horizontal gutters (consumed by .layout-shell). */
+  @media (min-width: 640px) {
+    :root {
+      --layout-gutter-x: 1.5rem;
+    }
+  }
+  @media (min-width: 1024px) {
+    :root {
+      --layout-gutter-x: 2rem;
+    }
   }
   body {
     font-family: var(--font-sans);
@@ -197,6 +214,13 @@
 
 /* Compat utilities — kept until pages adopt typed primitives in later sprints. */
 @layer components {
+  /* UR0/R1–R3 — shared app shell width + gutters for header, main, banners. */
+  .layout-shell {
+    width: 100%;
+    max-width: var(--layout-max-width);
+    margin-inline: auto;
+    padding-inline: var(--layout-gutter-x);
+  }
   .input,
   .select {
     @apply block w-full rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] px-3 py-1.5 text-sm text-[var(--color-fg)] placeholder:text-[var(--color-fg-subtle)] shadow-xs transition focus:border-[var(--color-brand-500)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30;

@@ -42,7 +42,7 @@ export function ChannelsPage(): JSX.Element {
               <StatusPill tone={statusTone(ch.status)} size="sm">{ch.status}</StatusPill>
             </div>
             <p className="text-sm text-[var(--color-fg-muted)]">Source: {ch.source}</p>
-            {ch.error ? <p className="text-sm text-[var(--color-error-700)]">{ch.error}</p> : null}
+            {ch.error ? <p className="break-words text-sm text-[var(--color-error-700)]">{ch.error}</p> : null}
             {ch.detail ? (
               <dl className="text-xs text-[var(--color-fg-muted)]">
                 {Object.entries(ch.detail).map(([k, v]) => (

@@ -10,6 +10,11 @@ import { Link, useSearchParams } from 'react-router-dom';
 import type { RawFileRecord, TransactionSummary, LifecycleSearchHit } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
+import {
+  TransactionMobileCards,
+  SearchRawFileMobileCards,
+} from '../components/MobileTableCards.tsx';
 import {
   PageHeader,
   DataTable,
@@ -39,6 +44,7 @@ function entryHint(lc: LifecycleSearchHit): string | null {
 }
 
 export function SearchPage(): JSX.Element {
+  const preferMobileCards = usePreferMobileCards();
   const [sp] = useSearchParams();
   const q = sp.get('q') ?? '';
   const searchKey = useTenantQueryKey('search', q);
@@ -115,6 +121,9 @@ export function SearchPage(): JSX.Element {
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">
                 Transactions ({transactions.length})
               </h2>
+              {preferMobileCards ? (
+                <TransactionMobileCards items={transactions} />
+              ) : (
               <DataTable>
                 <DataTable.Tbody>
                   {transactions.map((t: TransactionSummary) => (
@@ -123,12 +132,13 @@ export function SearchPage(): JSX.Element {
                       <DataTable.Td>
                         <Link
                           to={`/transactions/${t.id}`}
-                          className="text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                          className="truncate text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                          title={t.poNumber ?? t.invoiceNumber ?? t.controlNumber}
                         >
                           {t.poNumber ?? t.invoiceNumber ?? t.controlNumber}
                         </Link>
                       </DataTable.Td>
-                      <DataTable.Td muted>
+                      <DataTable.Td muted className="max-w-[10rem] truncate" title={`${t.senderId} → ${t.receiverId}`}>
                         {t.senderId} → {t.receiverId}
                       </DataTable.Td>
                       <DataTable.Td>
@@ -142,6 +152,7 @@ export function SearchPage(): JSX.Element {
                   ))}
                 </DataTable.Tbody>
               </DataTable>
+              )}
             </section>
           )}
 
@@ -150,6 +161,9 @@ export function SearchPage(): JSX.Element {
               <h2 className="mb-2 text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">
                 Raw files ({rawFiles.length})
               </h2>
+              {preferMobileCards ? (
+                <SearchRawFileMobileCards items={rawFiles} />
+              ) : (
               <DataTable>
                 <DataTable.Tbody>
                   {rawFiles.map((r: RawFileRecord) => (
@@ -166,6 +180,7 @@ export function SearchPage(): JSX.Element {
                   ))}
                 </DataTable.Tbody>
               </DataTable>
+              )}
             </section>
           )}
         </>

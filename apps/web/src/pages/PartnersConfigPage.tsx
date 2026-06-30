@@ -33,6 +33,8 @@ import {
 import { ApiCallError, api } from '../lib/api.ts';
 import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { PartnerMobileCards } from '../components/MobileTableCards.tsx';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -269,6 +271,7 @@ export function PartnersConfigPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
   const isAdmin = useHasRole('admin');
+  const preferMobileCards = usePreferMobileCards();
   const partnersConfigKey = useTenantQueryKey('partners-config');
   const listQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
   const [editing, setEditing] = useState<{ id: string | null; draft: DraftState } | null>(null);
@@ -479,6 +482,17 @@ export function PartnersConfigPage(): JSX.Element {
           ) : null}
         />
       ) : (
+        <>
+          {preferMobileCards ? (
+            <PartnerMobileCards
+              items={items}
+              isAdmin={isAdmin}
+              onEdit={(p) => {
+                if (confirmDiscard()) setEditing({ id: p.id, draft: fromRecord(p) });
+              }}
+            />
+          ) : null}
+          {preferMobileCards ? null : (
         <DataTable>
           <DataTable.Thead>
             <DataTable.Tr>
@@ -563,6 +577,8 @@ export function PartnersConfigPage(): JSX.Element {
             })}
           </DataTable.Tbody>
         </DataTable>
+          )}
+        </>
       )}
 
       {isAdmin && editing ? (
@@ -937,9 +953,9 @@ function LifecycleFlowEditor({
     <>
       {flows.map((f, i) => (
         <div key={i} className="rounded border border-[var(--color-surface-border)] p-3">
-          <div className="grid grid-cols-12 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12">
             <input
-              className="input col-span-5"
+              className="input col-span-full md:col-span-3 lg:col-span-5"
               placeholder="Flow name (e.g. Sysco standard)"
               value={f.name}
               onChange={(e) => {
@@ -949,7 +965,7 @@ function LifecycleFlowEditor({
               }}
             />
             <input
-              className="input col-span-3 font-mono"
+              className="input col-span-full md:col-span-3 lg:col-span-3 font-mono"
               placeholder="Entry set (e.g. 850)"
               value={f.entrySetId}
               onChange={(e) => {
@@ -960,7 +976,7 @@ function LifecycleFlowEditor({
             />
             <button
               type="button"
-              className="col-span-2 text-xs text-[var(--color-error-700)] hover:underline"
+              className="col-span-full md:col-span-2 lg:col-span-2 text-xs text-[var(--color-error-700)] hover:underline"
               onClick={() => onChange(flows.filter((_, j) => j !== i))}
             >
               Remove flow
@@ -1007,9 +1023,9 @@ function FlowStepsEditor({ steps, onChange }: { steps: LifecycleFlowStep[]; onCh
   return (
     <div className="mt-2 space-y-1">
       {steps.map((st, i) => (
-        <div key={i} className="grid grid-cols-12 gap-2 text-xs">
+        <div key={i} className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12 text-xs">
           <input
-            className="input col-span-4 font-mono"
+            className="input col-span-full md:col-span-3 lg:col-span-4 font-mono"
             placeholder="Set ID"
             value={st.setId}
             onChange={(e) => {
@@ -1019,7 +1035,7 @@ function FlowStepsEditor({ steps, onChange }: { steps: LifecycleFlowStep[]; onCh
             }}
           />
           <select
-            className="select col-span-4"
+            className="select col-span-full md:col-span-3 lg:col-span-4"
             value={st.direction}
             onChange={(e) => {
               const next = [...steps];
@@ -1031,7 +1047,7 @@ function FlowStepsEditor({ steps, onChange }: { steps: LifecycleFlowStep[]; onCh
             <option value="outbound">outbound</option>
             <option value="unknown">unknown</option>
           </select>
-          <button type="button" className="col-span-2 text-[var(--color-error-700)] hover:underline" onClick={() => onChange(steps.filter((_, j) => j !== i))}>
+          <button type="button" className="col-span-full md:col-span-2 lg:col-span-2 text-[var(--color-error-700)] hover:underline" onClick={() => onChange(steps.filter((_, j) => j !== i))}>
             Remove
           </button>
         </div>
@@ -1063,9 +1079,9 @@ function AckOverridesEditor({
           <div key={field}>
             <div className="text-xs font-medium text-[var(--color-fg-muted)]">{field}</div>
             {Object.entries(map).map(([code, message]) => (
-              <div key={code} className="mt-1 grid grid-cols-12 gap-2">
+              <div key={code} className="mt-1 grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12">
                 <input
-                  className="input col-span-2 font-mono"
+                  className="input col-span-full md:col-span-2 lg:col-span-2 font-mono"
                   value={code}
                   onChange={(e) => {
                     const newCode = e.target.value;
@@ -1075,7 +1091,7 @@ function AckOverridesEditor({
                   }}
                 />
                 <input
-                  className="input col-span-9"
+                  className="input col-span-full md:col-span-6 lg:col-span-9"
                   value={message}
                   onChange={(e) => {
                     const next: AckCodeOverrides = { ...overrides, [field]: { ...map, [code]: e.target.value } };
@@ -1084,7 +1100,7 @@ function AckOverridesEditor({
                 />
                 <button
                   type="button"
-                  className="col-span-1 text-xs text-[var(--color-error-700)] hover:underline"
+                  className="col-span-full md:col-span-1 lg:col-span-1 text-xs text-[var(--color-error-700)] hover:underline"
                   onClick={() => {
                     const { [code]: _gone, ...rest } = map;
                     const next: AckCodeOverrides = { ...overrides, [field]: rest };
@@ -1119,9 +1135,9 @@ function SegmentLabelOverridesEditor({
   return (
     <div className="space-y-2" data-testid="segment-label-editor">
       {rows.map((row, i) => (
-        <div key={i} className="grid grid-cols-12 gap-2 text-xs">
+        <div key={i} className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12 text-xs">
           <input
-            className="input col-span-2 font-mono"
+            className="input col-span-full md:col-span-2 lg:col-span-2 font-mono"
             placeholder="Set"
             value={row.setId}
             onChange={(e) => {
@@ -1131,7 +1147,7 @@ function SegmentLabelOverridesEditor({
             }}
           />
           <input
-            className="input col-span-3 font-mono"
+            className="input col-span-full md:col-span-3 lg:col-span-3 font-mono"
             placeholder="Segment"
             value={row.segmentId}
             onChange={(e) => {
@@ -1141,7 +1157,7 @@ function SegmentLabelOverridesEditor({
             }}
           />
           <input
-            className="input col-span-6"
+            className="input col-span-full md:col-span-3 lg:col-span-6"
             placeholder="Display label"
             value={row.label}
             onChange={(e) => {
@@ -1152,7 +1168,7 @@ function SegmentLabelOverridesEditor({
           />
           <button
             type="button"
-            className="col-span-1 text-[var(--color-error-700)] hover:underline"
+            className="col-span-full md:col-span-1 lg:col-span-1 text-[var(--color-error-700)] hover:underline"
             onClick={() => onChange(rows.filter((_, j) => j !== i))}
           >
             ×
@@ -1180,9 +1196,9 @@ function SlaWindowsEditor({
   return (
     <div className="space-y-2">
       {rows.map((r, i) => (
-        <div key={i} className="grid grid-cols-12 gap-2 text-xs">
+        <div key={i} className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12 text-xs">
           <input
-            className="input col-span-2 font-mono"
+            className="input col-span-full md:col-span-2 lg:col-span-2 font-mono"
             placeholder="Set ID"
             value={r.setId}
             onChange={(e) => {
@@ -1192,7 +1208,7 @@ function SlaWindowsEditor({
             }}
           />
           <select
-            className="select col-span-2"
+            className="select col-span-full md:col-span-2 lg:col-span-2"
             value={r.direction}
             onChange={(e) => {
               const next = [...rows];
@@ -1205,7 +1221,7 @@ function SlaWindowsEditor({
             <option value="unknown">unknown</option>
           </select>
           <input
-            className="input col-span-3 font-mono"
+            className="input col-span-full md:col-span-3 lg:col-span-3 font-mono"
             placeholder="withinMinutes"
             type="number"
             min={1}
@@ -1217,7 +1233,7 @@ function SlaWindowsEditor({
             }}
           />
           <input
-            className="input col-span-4 font-mono"
+            className="input col-span-full md:col-span-3 lg:col-span-4 font-mono"
             placeholder="expected ack set (default 997)"
             value={r.expectedAckSetId ?? ''}
             onChange={(e) => {
@@ -1228,7 +1244,7 @@ function SlaWindowsEditor({
           />
           <button
             type="button"
-            className="col-span-1 text-[var(--color-error-700)] hover:underline"
+            className="col-span-full md:col-span-1 lg:col-span-1 text-[var(--color-error-700)] hover:underline"
             onClick={() => onChange(rows.filter((_, j) => j !== i))}
           >
             Remove
@@ -1257,9 +1273,9 @@ function ContactsEditor({
     <div className="space-y-3">
       {contacts.map((c, i) => (
         <div key={i} className="space-y-1 rounded border border-[var(--color-surface-border)] p-2">
-          <div className="grid grid-cols-12 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12">
             <input
-              className="input col-span-3"
+              className="input col-span-full md:col-span-3 lg:col-span-3"
               placeholder="Name"
               value={c.name}
               onChange={(e) => {
@@ -1269,7 +1285,7 @@ function ContactsEditor({
               }}
             />
             <input
-              className="input col-span-5 font-mono"
+              className="input col-span-full md:col-span-3 lg:col-span-5 font-mono"
               placeholder="email@partner.com"
               value={c.email}
               onChange={(e) => {
@@ -1279,7 +1295,7 @@ function ContactsEditor({
               }}
             />
             <input
-              className="input col-span-3"
+              className="input col-span-full md:col-span-3 lg:col-span-3"
               placeholder="Role"
               value={c.role}
               onChange={(e) => {
@@ -1290,15 +1306,15 @@ function ContactsEditor({
             />
             <button
               type="button"
-              className="col-span-1 text-xs text-[var(--color-error-700)] hover:underline"
+              className="col-span-full md:col-span-1 lg:col-span-1 text-xs text-[var(--color-error-700)] hover:underline"
               onClick={() => onChange(contacts.filter((_, j) => j !== i))}
             >
               Remove
             </button>
           </div>
-          <div className="grid grid-cols-12 gap-2">
+          <div className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12">
             <input
-              className="input col-span-8 font-mono"
+              className="input col-span-full md:col-span-6 lg:col-span-8 font-mono"
               placeholder="Slack incoming-webhook URL (optional)"
               value={c.slackWebhook ?? ''}
               onChange={(e) => {
@@ -1307,7 +1323,7 @@ function ContactsEditor({
                 onChange(next);
               }}
             />
-            <div className="col-span-4 flex flex-wrap items-center gap-2 text-xs">
+            <div className="col-span-full md:col-span-3 lg:col-span-4 flex flex-wrap items-center gap-2 text-xs">
               <span className="text-[var(--color-fg-muted)]">Alert types:</span>
               {(['MISSING_ACK', 'REJECTION_RATE_SPIKE', 'STALE_TRAFFIC', 'UNKNOWN_ISA'] as const).map((t) => {
                 const enabled = c.alertTypeOptIns?.includes(t) ?? true; // empty = all
@@ -1376,7 +1392,8 @@ function ConnectivityEditor({
   const channelChosen = value.channel !== '';
   return (
     <div className="space-y-3">
-      <div className="grid grid-cols-12 gap-2">
+      <div className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12">
+        <div className="col-span-full md:col-span-2 lg:col-span-2">
         <Field label="Channel" error={errors?.['connectivity.channel']}>
           <select
             className="input"
@@ -1394,7 +1411,8 @@ function ConnectivityEditor({
             ))}
           </select>
         </Field>
-        <div className="col-span-7">
+        </div>
+        <div className="col-span-full md:col-span-4 lg:col-span-7">
           <Field
             label="Endpoint"
             required={channelChosen}

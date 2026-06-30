@@ -51,7 +51,7 @@ export function TransactionDetailPage(): JSX.Element {
         {/* N5 — breadcrumb gives the page an explicit "up" path. The current
             page's label mirrors the h1 ("<set> · <control>"). The cross-link
             to the parent PO lifecycle stays on the right of the row. */}
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <Breadcrumbs
             items={[
               { to: '/transactions', label: 'Transactions', testId: 'breadcrumb-transactions' },
@@ -75,7 +75,7 @@ export function TransactionDetailPage(): JSX.Element {
             </Link>
           ) : null}
         </div>
-        <div className="mt-1 flex items-center gap-3">
+        <div className="mt-1 flex flex-wrap items-center gap-3">
           <h1 className="text-xl font-semibold text-[var(--color-fg)]">
             <EdiTerm term={t.transactionSetId} className="font-mono border-0" /> · {t.controlNumber}
           </h1>
@@ -131,7 +131,7 @@ export function TransactionDetailPage(): JSX.Element {
 
       <section className="rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4 shadow-xs">
         <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Header</h2>
-        <dl className="grid grid-cols-2 gap-x-8 gap-y-2 text-sm sm:grid-cols-3">
+        <dl className="grid grid-cols-1 gap-x-8 gap-y-2 text-sm sm:grid-cols-2 md:grid-cols-3">
           {header.map(([k, v]) => (
             <div key={k}>
               <dt className="text-[11px] font-semibold uppercase tracking-wide text-[var(--color-fg-subtle)]">{k}</dt>
@@ -146,7 +146,8 @@ export function TransactionDetailPage(): JSX.Element {
           <div className="border-b border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] px-4 py-2 text-sm font-semibold text-[var(--color-fg)]">
             Line items ({lineItems.length})
           </div>
-          <table className="w-full text-sm">
+          <div className="overflow-x-auto">
+          <table className="w-full min-w-[32rem] text-sm">
             <thead className="text-left text-[11px] font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">
               <tr>
                 <th className="px-4 py-2">#</th>
@@ -168,6 +169,7 @@ export function TransactionDetailPage(): JSX.Element {
               ))}
             </tbody>
           </table>
+          </div>
         </section>
       )}
 

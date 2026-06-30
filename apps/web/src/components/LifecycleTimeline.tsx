@@ -200,29 +200,31 @@ function TimelineRow({
                   via {event.partnerChannel}
                 </span>
               ) : null}
+            </div>
 
+            <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
               <span className="text-xs text-[var(--color-fg-muted)] tabular-nums">
                 {event.ingestedAt ? new Date(event.ingestedAt).toLocaleString() : '—'}
               </span>
 
               {event.controlNumber ? (
-                <span className="ml-auto font-mono text-[11px] text-[var(--color-fg-subtle)]">
+                <span className="font-mono text-[11px] text-[var(--color-fg-subtle)] sm:ml-auto">
                   ctrl <span className="text-[var(--color-fg-muted)]">{event.controlNumber}</span>
                 </span>
               ) : (
-                <span className="ml-auto text-xs italic text-[var(--color-warn-700)]">
+                <span className="text-xs italic text-[var(--color-warn-700)] sm:ml-auto">
                   expected — not received
                 </span>
               )}
 
               {event.headerSummary ? (
-                <span className="w-full text-xs text-[var(--color-fg-muted)]" data-testid="header-summary">
+                <span className="w-full text-xs text-[var(--color-fg-muted)] sm:order-last sm:basis-full" data-testid="header-summary">
                   {event.headerSummary}
                 </span>
               ) : null}
 
               {event.kind === 'transaction' && event.transactionId ? (
-                <span className="flex items-center gap-2 print:hidden">
+                <span className="flex flex-wrap items-center gap-2 print:hidden sm:ml-auto">
                   {showDownloadRaw && event.rawFileId ? (
                     <button
                       type="button"

@@ -78,7 +78,7 @@ export function DuplicateComparePanel({
       <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-brand-700)]">
         Compare {setId} {DIRECTION_LABEL[direction]} · {sorted.length} copies
       </h4>
-      <div className="mt-2 flex flex-col gap-3 lg:flex-row">
+      <div className="mt-2 flex flex-col gap-3 md:flex-row">
         {sorted.map((e) => (
           <CompareColumn key={e.transactionId ?? e.rawFileId} event={e} />
         ))}

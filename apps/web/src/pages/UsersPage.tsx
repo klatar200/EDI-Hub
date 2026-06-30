@@ -1,18 +1,12 @@
 /**
  * Phase 9 Sprint 3 — Users / team management.
- *
- * Admin-only page that lists every user in the active tenant and lets the
- * admin change roles (viewer / ops / admin). The page itself renders for
- * any signed-in user; the role dropdown is wrapped in <RequireRole>.
- *
- * UI Phase Sprint 6 — fully migrated to token-aware primitives. Test ids
- * `role-select-${id}` and `remove-user-${id}` preserved for the existing
- * UsersPage tests.
  */
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { api, type UserRole } from '../lib/api.ts';
 import { RequireRole, useMe } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { UserMobileCards } from '../components/MobileTableCards.tsx';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -29,6 +23,7 @@ export function UsersPage(): JSX.Element {
   const qc = useQueryClient();
   const toast = useToast();
   const { me } = useMe();
+  const preferMobileCards = usePreferMobileCards();
   const usersKey = useTenantQueryKey('users');
   const q = useQuery({ queryKey: usersKey, queryFn: () => api.users.list() });
 
@@ -76,6 +71,18 @@ export function UsersPage(): JSX.Element {
           title="No users in this tenant yet"
           description="Invite someone via the Clerk dashboard — they'll appear here after their organizationMembership.created webhook fires."
         />
+      ) : preferMobileCards ? (
+        <UserMobileCards
+          items={items}
+          selfId={me?.id}
+          rolePending={update.isPending}
+          onRoleChange={(id, role) => update.mutate({ id, role })}
+          onRemove={(id, email) => {
+            if (confirm(`Revoke ${email}'s access to this tenant?`)) {
+              remove.mutate(id);
+            }
+          }}
+        />
       ) : (
         <DataTable>
           <DataTable.Thead>
@@ -118,16 +125,11 @@ export function UsersPage(): JSX.Element {
                       {isSelf ? (
                         <span className="text-xs text-[var(--color-fg-subtle)]">(you)</span>
                       ) : (
-                        // T4 — Hide the destructive Remove action behind row hover
-                        // on devices that can hover; keep it visible on touch and
-                        // for keyboard focus (focus-within). Opacity-0 keeps it in
-                        // the a11y tree, so the existing remove-user-<id> testid
-                        // and screen-reader announcements are unchanged.
                         <span className="inline-flex justify-end opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
                           <button
                             type="button"
                             data-testid={`remove-user-${u.id}`}
-                            className="text-xs text-[var(--color-error-700)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--color-error-500)]/30 rounded"
+                            className="rounded text-xs text-[var(--color-error-700)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--color-error-500)]/30"
                             onClick={() => {
                               if (confirm(`Revoke ${u.email}'s access to this tenant?`)) {
                                 remove.mutate(u.id);

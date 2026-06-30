@@ -7,6 +7,11 @@ import { useQuery } from '@tanstack/react-query';
 import type { DashboardIngestWindow } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
+import {
+  DashboardFailureMobileCards,
+  DashboardPartnerHealthMobileCards,
+} from '../components/MobileTableCards.tsx';
 import {
   PageHeader,
   Card,
@@ -32,6 +37,7 @@ function formatWhen(iso: string | null): string {
 }
 
 export function DashboardPage(): JSX.Element {
+  const preferMobileCards = usePreferMobileCards();
   const [ingestWindow, setIngestWindow] = useState<DashboardIngestWindow>('24h');
   const [rejectionDays, setRejectionDays] = useState<7 | 30>(7);
 
@@ -167,6 +173,9 @@ export function DashboardPage(): JSX.Element {
           {d.recentFailures.length > 0 ? (
             <section data-testid="recent-failures">
               <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Recent ingest failures</h2>
+              {preferMobileCards ? (
+                <DashboardFailureMobileCards items={d.recentFailures} />
+              ) : (
               <DataTable>
                 <DataTable.Thead>
                   <DataTable.Tr>
@@ -181,12 +190,13 @@ export function DashboardPage(): JSX.Element {
                     <DataTable.Tr key={f.id}>
                       <DataTable.Td mono>{f.isaControlNumber ?? '—'}</DataTable.Td>
                       <DataTable.Td><StatusPill tone="error" size="sm">{f.status}</StatusPill></DataTable.Td>
-                      <DataTable.Td muted className="max-w-md truncate">{f.errorMessage ?? '—'}</DataTable.Td>
+                      <DataTable.Td muted className="max-w-md truncate" title={f.errorMessage ?? undefined}>{f.errorMessage ?? '—'}</DataTable.Td>
                       <DataTable.Td muted>{formatWhen(f.ingestedAt)}</DataTable.Td>
                     </DataTable.Tr>
                   ))}
                 </DataTable.Tbody>
               </DataTable>
+              )}
               <Link to="/ingestions?status=PARSE_ERROR" className="mt-2 inline-block text-xs text-[var(--color-brand-600)] hover:underline">
                 Open triage →
               </Link>
@@ -195,6 +205,9 @@ export function DashboardPage(): JSX.Element {
 
           <section>
             <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Partner health</h2>
+            {preferMobileCards ? (
+              <DashboardPartnerHealthMobileCards items={d.partnerHealth} />
+            ) : (
             <DataTable>
               <DataTable.Thead>
                 <DataTable.Tr>
@@ -242,6 +255,7 @@ export function DashboardPage(): JSX.Element {
                 ))}
               </DataTable.Tbody>
             </DataTable>
+            )}
           </section>
         </>
       )}

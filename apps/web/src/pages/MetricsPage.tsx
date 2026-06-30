@@ -14,6 +14,8 @@ import { useQuery } from '@tanstack/react-query';
 import type { RejectionRateRow } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
+import { MetricsMobileCards } from '../components/MobileTableCards.tsx';
 import {
   PageHeader,
   DataTable,
@@ -42,6 +44,7 @@ function ratePct(rate: number): string {
 }
 
 export function MetricsPage(): JSX.Element {
+  const preferMobileCards = usePreferMobileCards();
   const [days, setDays] = useState<number>(30);
   const from = windowFrom(days);
   const rateKey = useTenantQueryKey('rejection-rate', days);
@@ -84,6 +87,8 @@ export function MetricsPage(): JSX.Element {
           title="No 997s ingested in this window"
           description="As acknowledgments arrive, partners and rejection rates will appear here."
         />
+      ) : preferMobileCards ? (
+        <MetricsMobileCards rows={q.data.rows} />
       ) : (
         <DataTable>
           <DataTable.Thead>

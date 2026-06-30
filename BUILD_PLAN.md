@@ -21,12 +21,13 @@
 ## Table of contents
 
 1. [Snapshot](#1-snapshot)
-2. [Active track — local validation ($0)](#2-active-track--local-validation-0)
-3. [Architecture constraints (do not reopen)](#3-architecture-constraints-do-not-reopen)
-4. [Deploy track — go-live gate (deferred)](#4-deploy-track--go-live-gate-deferred)
-5. [Future & optional features](#5-future--optional-features)
-6. [Phase 11 & 12 — go to market](#6-phase-11--12--go-to-market)
-7. [Source map](#7-source-map)
+2. [Active track — UI responsiveness (UR0–UR7)](#2-active-track--ui-responsiveness-ur0ur7)
+3. [Local validation ($0)](#3-local-validation-0)
+4. [Architecture constraints (do not reopen)](#4-architecture-constraints-do-not-reopen)
+5. [Deploy track — go-live gate (deferred)](#5-deploy-track--go-live-gate-deferred)
+6. [Future & optional features](#6-future--optional-features)
+7. [Phase 11 & 12 — go to market](#7-phase-11--12--go-to-market)
+8. [Source map](#8-source-map)
 
 ---
 
@@ -37,15 +38,37 @@
 | Product (phases 0–10, desktop, PS/PB sprints) | ✅ Complete — [`docs/SHIPPED.md`](docs/SHIPPED.md) |
 | UI Build Plan (U0–U5) | ✅ Complete — [`docs/SHIPPED.md` §4.1](docs/SHIPPED.md#41-ui-build-plan-refresh--u0u5) · archive [`docs/UI_BUILD_PLAN.md`](docs/UI_BUILD_PLAN.md) |
 | Security remediation SEC-1–5 | ✅ — [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) |
-| **Active** | Local dev validation — [§2](#2-active-track--local-validation-0) |
-| **Deferred** | AWS staging, M5 ops proof, Phase 11–12 — [§4](#4-deploy-track--go-live-gate-deferred) |
+| **Active** | **UI responsiveness UR0–UR7** — [§2](#2-active-track--ui-responsiveness-ur0ur7) · catalog [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) |
+| Local validation | [§3](#3-local-validation-0) — parallel exit criteria |
+| **Deferred** | AWS staging, M5 ops proof, Phase 11–12 — [§5](#5-deploy-track--go-live-gate-deferred) |
 | Tests / CI | `npm run test:ci` green on `main` |
 
 **M5 in code ≠ M5 in production.** Restore drill, k6 baseline, runbook cold-read run at **go-live**, not during local-only dev.
 
 ---
 
-## 2. Active track — local validation ($0)
+## 2. Active track — UI responsiveness (UR0–UR7)
+
+**Goal:** Fluid shell, adaptive nav, responsive tables/forms across web + desktop (same React bundle).
+
+**Full catalog & decisions:** [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) — **R1–R60 approved** except **R6** declined.
+
+| Sprint | Focus | Key IDs | Status |
+|--------|--------|---------|--------|
+| **UR0** | Layout tokens + fluid shell | R1, R2, R3, R9 | ✅ |
+| **UR1** | Header wrap, drawer nav, PageHeader | R5, R7, R8, R10, R12, R38–R40 | ✅ |
+| **UR2** | Tables + pagination | R13–R17, R41–R45 | ✅ |
+| **UR3** | Forms, detail pages, filters | R18–R25, R46–R52 | ✅ |
+| **UR4** | Electron + overlays + a11y | R26–R32, R53–R56, R58 | ⏳ **Next** |
+| **UR5** | Ultra-wide layouts | R4, R33–R35 | ⏳ |
+| **UR6** | Playwright viewports + checklist | R36, R37 | ⏳ |
+| **UR7** | Polish | R57, R59, R60 | ⏳ |
+
+**Exit (responsiveness track):** All UR sprints ✅ · `npm run test:ci` green · parity snapshots updated at 375 / 768 / 1280 / 1920 (R36).
+
+---
+
+## 3. Local validation ($0)
 
 **Goal:** Full hub on your machine — no AWS, no `terraform apply`.
 
@@ -62,11 +85,11 @@
 
 ### Out of scope until go-live
 
-AWS, Terraform, Route 53, Clerk Hobby billing, k6 on staging, RDS restore drills — [§4](#4-deploy-track--go-live-gate-deferred).
+AWS, Terraform, Route 53, Clerk Hobby billing, k6 on staging, RDS restore drills — [§5](#5-deploy-track--go-live-gate-deferred).
 
 ---
 
-## 3. Architecture constraints (do not reopen)
+## 4. Architecture constraints (do not reopen)
 
 Accepted decisions — full rationale in ADRs; implementation in [`docs/SHIPPED.md` §5](docs/SHIPPED.md#5-remediation--adrs-accepted).
 
@@ -79,7 +102,7 @@ Accepted decisions — full rationale in ADRs; implementation in [`docs/SHIPPED.
 
 ---
 
-## 4. Deploy track — go-live gate (deferred)
+## 5. Deploy track — go-live gate (deferred)
 
 > 🔒 **NOT ACTIVE.** No paid cloud until owner opts in. ~**$40–60+/mo** minimum staging. Walkthrough: [`infra/WINDOWS.md`](infra/WINDOWS.md)
 
@@ -120,7 +143,7 @@ Complete before tag `m5-production-ready`:
 
 ---
 
-## 5. Future & optional features
+## 6. Future & optional features
 
 Not on the active roadmap. Each item should serve monitoring, troubleshooting, alerting, or stability — or Phase 11+.
 
@@ -159,9 +182,9 @@ Stripe self-serve, marketing site, per-tenant quotas, Linux desktop (AppImage).
 
 ---
 
-## 6. Phase 11 & 12 — go to market
+## 7. Phase 11 & 12 — go to market
 
-🔒 Deferred until [§4](#4-deploy-track--go-live-gate-deferred) staging is live.
+🔒 Deferred until [§5](#5-deploy-track--go-live-gate-deferred) staging is live.
 
 **Phase 11 — Commercialization:** Tiers, onboarding, customer docs, marketing, ToS/Privacy/DPA. Blockers: Gate 4 (Stripe vs direct sales), Q7, Q11.
 
@@ -169,17 +192,18 @@ Stripe self-serve, marketing site, per-tenant quotas, Linux desktop (AppImage).
 
 ---
 
-## 7. Source map
+## 8. Source map
 
 | Former location | Now |
 |-----------------|-----|
 | Completed sprints, F1–F62, phases | [`docs/SHIPPED.md`](docs/SHIPPED.md) |
 | North Star, principles, doc guide | [`docs/WIKI.md`](docs/WIKI.md) |
 | Clerk setup steps | [`CLERK_SETUP.md`](CLERK_SETUP.md) |
-| [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) | [§5](#5-future--optional-features) |
+| [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) | [§6](#6-future--optional-features) |
 | [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) | [`docs/SHIPPED.md` §6](docs/SHIPPED.md#6-feature-matrix-f1f62) |
 | [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) | [`docs/SHIPPED.md` §7](docs/SHIPPED.md#7-product-backlog-history) |
 | UI Build Plan (complete) | [`docs/SHIPPED.md` §4.1](docs/SHIPPED.md#41-ui-build-plan-refresh--u0u5) · [`docs/UI_BUILD_PLAN.md`](docs/UI_BUILD_PLAN.md) (archive) |
+| UI responsiveness (UR0–UR7) | [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) |
 | Security sign-off | [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) |
 
 **Do not add completed work to this file** — append to `docs/SHIPPED.md` when a sprint ships.

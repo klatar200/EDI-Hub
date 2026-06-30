@@ -48,19 +48,19 @@ export function DocumentsPage(): JSX.Element {
       <PageHeader
         title="Documents"
         subtitle={VIEW_COPY[view].subtitle}
-        actions={
-          <Tabs value={view} onValueChange={changeView} className="-mb-1">
-            <Tabs.List ariaLabel="Documents view">
-              <Tabs.Trigger value="parsed" testId="documents-view-parsed">
-                Parsed transactions
-              </Tabs.Trigger>
-              <Tabs.Trigger value="raw" testId="documents-view-raw">
-                Raw ingestions
-              </Tabs.Trigger>
-            </Tabs.List>
-          </Tabs>
-        }
       />
+      <div className="mb-4">
+        <Tabs value={view} onValueChange={changeView}>
+          <Tabs.List ariaLabel="Documents view">
+            <Tabs.Trigger value="parsed" testId="documents-view-parsed">
+              Parsed transactions
+            </Tabs.Trigger>
+            <Tabs.Trigger value="raw" testId="documents-view-raw">
+              Raw ingestions
+            </Tabs.Trigger>
+          </Tabs.List>
+        </Tabs>
+      </div>
 
       {view === 'parsed' ? (
         <TransactionsPage hideHeader />

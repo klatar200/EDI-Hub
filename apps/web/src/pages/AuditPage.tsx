@@ -6,11 +6,15 @@ import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { AuditDiffPanel } from '../components/AuditDiffPanel.tsx';
+import { AuditMobileCards } from '../components/MobileTableCards.tsx';
+import { usePreferMobileCards } from '../lib/useMediaQuery.ts';
+import { formatDateTime } from '../lib/formatDateTime.ts';
 import { PageHeader, Card, DataTable, FormField, Input, ErrorState, Skeleton, Pagination } from '../components/ui';
 
 const PAGE_SIZE = 50;
 
 export function AuditPage(): JSX.Element {
+  const preferMobileCards = usePreferMobileCards();
   const [action, setAction] = useState('');
   const [offset, setOffset] = useState(0);
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -42,48 +46,64 @@ export function AuditPage(): JSX.Element {
       ) : null}
       {q.data ? (
         <>
-          <DataTable>
-            <DataTable.Thead>
-              <DataTable.Tr>
-                <DataTable.Th aria-label="Expand"> </DataTable.Th>
-                <DataTable.Th>When</DataTable.Th>
-                <DataTable.Th>Action</DataTable.Th>
-                <DataTable.Th>Target</DataTable.Th>
-                <DataTable.Th>Actor</DataTable.Th>
-              </DataTable.Tr>
-            </DataTable.Thead>
-            <DataTable.Tbody>
-              {q.data.items.map((row) => (
-                <Fragment key={row.id}>
-                  <DataTable.Tr>
-                    <DataTable.Td>
-                      <button
-                        type="button"
-                        className="text-xs text-[var(--color-brand-600)]"
-                        aria-expanded={expandedId === row.id}
-                        data-testid={`audit-expand-${row.id}`}
-                        onClick={() => setExpandedId((id) => (id === row.id ? null : row.id))}
-                      >
-                        {expandedId === row.id ? '−' : '+'}
-                      </button>
-                    </DataTable.Td>
-                    <DataTable.Td muted>{new Date(row.createdAt).toLocaleString()}</DataTable.Td>
-                    <DataTable.Td><span className="font-mono text-xs">{row.action}</span></DataTable.Td>
-                    <DataTable.Td muted>{row.targetType} · {row.targetId.slice(0, 8)}…</DataTable.Td>
-                    <DataTable.Td muted>{row.actorId?.slice(0, 8) ?? 'system'}…</DataTable.Td>
-                  </DataTable.Tr>
-                  {expandedId === row.id ? (
-                    <DataTable.Tr key={`${row.id}-diff`}>
-                      <DataTable.Td colSpan={5} className="bg-[var(--color-surface-muted)]/40">
-                        <AuditDiffPanel row={row} />
+          {preferMobileCards ? (
+            <AuditMobileCards
+              items={q.data.items}
+              expandedId={expandedId}
+              onToggle={(id) => setExpandedId((cur) => (cur === id ? null : id))}
+            />
+          ) : (
+            <DataTable>
+              <DataTable.Thead>
+                <DataTable.Tr>
+                  <DataTable.Th aria-label="Expand"> </DataTable.Th>
+                  <DataTable.Th>When</DataTable.Th>
+                  <DataTable.Th>Action</DataTable.Th>
+                  <DataTable.Th>Target</DataTable.Th>
+                  <DataTable.Th>Actor</DataTable.Th>
+                </DataTable.Tr>
+              </DataTable.Thead>
+              <DataTable.Tbody>
+                {q.data.items.map((row) => (
+                  <Fragment key={row.id}>
+                    <DataTable.Tr>
+                      <DataTable.Td>
+                        <button
+                          type="button"
+                          className="text-xs text-[var(--color-brand-600)]"
+                          aria-expanded={expandedId === row.id}
+                          data-testid={`audit-expand-${row.id}`}
+                          onClick={() => setExpandedId((id) => (id === row.id ? null : row.id))}
+                        >
+                          {expandedId === row.id ? '−' : '+'}
+                        </button>
                       </DataTable.Td>
+                      <DataTable.Td muted>{formatDateTime(row.createdAt)}</DataTable.Td>
+                      <DataTable.Td><span className="font-mono text-xs">{row.action}</span></DataTable.Td>
+                      <DataTable.Td muted className="max-w-[12rem] truncate" title={row.targetId}>
+                        {row.targetType} · {row.targetId.slice(0, 8)}…
+                      </DataTable.Td>
+                      <DataTable.Td muted>{row.actorId?.slice(0, 8) ?? 'system'}…</DataTable.Td>
                     </DataTable.Tr>
-                  ) : null}
-                </Fragment>
-              ))}
-            </DataTable.Tbody>
-          </DataTable>
-          <Pagination count={q.data.total} limit={PAGE_SIZE} offset={offset} onChange={setOffset} />
+                    {expandedId === row.id ? (
+                      <DataTable.Tr key={`${row.id}-diff`}>
+                        <DataTable.Td colSpan={5} className="bg-[var(--color-surface-muted)]/40">
+                          <AuditDiffPanel row={row} />
+                        </DataTable.Td>
+                      </DataTable.Tr>
+                    ) : null}
+                  </Fragment>
+                ))}
+              </DataTable.Tbody>
+            </DataTable>
+          )}
+          <Pagination
+            count={q.data.total}
+            limit={PAGE_SIZE}
+            offset={offset}
+            stickyMobile={preferMobileCards}
+            onChange={setOffset}
+          />
         </>
       ) : null}
     </div>
