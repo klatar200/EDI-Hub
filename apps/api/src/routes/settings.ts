@@ -2,7 +2,8 @@
  * PS-6 — GET/PATCH /settings for tenant-level hub configuration.
  */
 import type { FastifyInstance, FastifyPluginOptions } from 'fastify';
-import type { ApiErrorResponse, TenantSettingsPatch, TenantSettingsResponse } from '@edi/shared';
+import { ALERT_TYPES } from '@edi/shared';
+import type { AlertType, ApiErrorResponse, TenantSettingsPatch, TenantSettingsResponse } from '@edi/shared';
 import { requiresRole } from '../plugins/rbac.js';
 import { withAudit } from '../services/audit.js';
 import {
@@ -28,6 +29,11 @@ function readPatch(body: unknown): TenantSettingsPatch {
   }
   if (typeof b.emailDigestEnabled === 'boolean') patch.emailDigestEnabled = b.emailDigestEnabled;
   if (b.emailDigestHourUtc !== undefined) patch.emailDigestHourUtc = Number(b.emailDigestHourUtc);
+  if (Array.isArray(b.mutedAlertTypes)) {
+    patch.mutedAlertTypes = b.mutedAlertTypes.filter(
+      (t): t is AlertType => typeof t === 'string' && (ALERT_TYPES as readonly string[]).includes(t),
+    );
+  }
   return patch;
 }
 

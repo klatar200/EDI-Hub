@@ -2,7 +2,8 @@
  * PS-6 — Tenant settings read/write with Zod validation.
  */
 import type { PrismaClient } from '@prisma/client';
-import type { TenantSettings, TenantSettingsPatch } from '@edi/shared';
+import { ALERT_TYPES } from '@edi/shared';
+import type { AlertType, TenantSettings, TenantSettingsPatch } from '@edi/shared';
 
 export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   staleTrafficWindowHours: 6,
@@ -11,6 +12,7 @@ export const DEFAULT_TENANT_SETTINGS: TenantSettings = {
   quietHoursEnd: null,
   emailDigestEnabled: false,
   emailDigestHourUtc: 8,
+  mutedAlertTypes: [],
 };
 
 function isObject(v: unknown): v is Record<string, unknown> {
@@ -39,6 +41,11 @@ export function parseTenantSettings(raw: unknown): TenantSettings {
   const digestHour = Number(raw.emailDigestHourUtc);
   if (Number.isFinite(digestHour) && digestHour >= 0 && digestHour <= 23) {
     base.emailDigestHourUtc = Math.floor(digestHour);
+  }
+  if (Array.isArray(raw.mutedAlertTypes)) {
+    base.mutedAlertTypes = raw.mutedAlertTypes.filter(
+      (t): t is AlertType => typeof t === 'string' && (ALERT_TYPES as readonly string[]).includes(t),
+    );
   }
   return base;
 }

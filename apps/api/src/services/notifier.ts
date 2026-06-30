@@ -147,6 +147,9 @@ export async function notify(
   const now = (deps.now ?? (() => new Date()))();
   try {
     const settings = await readTenantSettings(deps.prisma, tenantContext.requireTenantId());
+    if (settings.mutedAlertTypes.includes(alert.type)) {
+      return { recipients: [], delivered: false };
+    }
     if (isInQuietHours(now, settings.quietHoursStart, settings.quietHoursEnd)) {
       return { recipients: [], delivered: false };
     }

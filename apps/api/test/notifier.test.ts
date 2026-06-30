@@ -7,6 +7,7 @@ import type { PrismaClient } from '@prisma/client';
 import { notify, type SendEmailInput, type SlackPayload } from '../src/services/notifier.js';
 import type { NotifierConfig } from '../src/config.js';
 import type { AlertRecord, PartnerContact } from '@edi/shared';
+import { tenantContext, PILOT_TENANT_ID } from '@edi/db';
 
 function alertOf(over: Partial<AlertRecord> = {}): AlertRecord {
   return {
@@ -158,4 +159,34 @@ test('live email failure does not throw; logs and returns delivered=false when n
   // delivered=false. Critically the error didn't propagate.
   assert.equal(r.delivered, false);
   assert.equal(r.recipients.length, 2);
+});
+
+function settingsPrisma(muted: string[]) {
+  return {
+    tenant: { async findUnique() { return { settings: { mutedAlertTypes: muted } }; } },
+    alert: { async update() { return null; } },
+  } as unknown as PrismaClient;
+}
+
+test('muted alert types are not delivered (notification noise control)', async () => {
+  const r = await tenantContext.run({ tenantId: PILOT_TENANT_ID }, () =>
+    notify(
+      { prisma: settingsPrisma(['MISSING_ACK']), config: { ...baseConfig, mode: 'preview' } },
+      alertOf({ type: 'MISSING_ACK' }),
+      partnerOf([{ name: 'Jane', email: 'jane@sysco.com', role: 'ops' }]),
+    ),
+  );
+  assert.deepEqual(r.recipients, []);
+  assert.equal(r.delivered, false);
+});
+
+test('non-muted alert types still notify (mute is per-type)', async () => {
+  const r = await tenantContext.run({ tenantId: PILOT_TENANT_ID }, () =>
+    notify(
+      { prisma: settingsPrisma(['UNKNOWN_ISA']), config: { ...baseConfig, mode: 'preview' } },
+      alertOf({ type: 'MISSING_ACK' }),
+      partnerOf([{ name: 'Jane', email: 'jane@sysco.com', role: 'ops' }]),
+    ),
+  );
+  assert.equal(r.recipients.length, 1);
 });

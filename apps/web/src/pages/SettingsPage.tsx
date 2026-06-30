@@ -3,13 +3,21 @@
  */
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import type { TenantSettingsPatch } from '@edi/shared';
+import { ALERT_TYPES } from '@edi/shared';
+import type { AlertType, TenantSettingsPatch } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useTheme } from '../lib/useTheme.tsx';
 import { ThemeToggle } from '../components/ui/ThemeToggle.tsx';
 import { PageHeader, Card, FormField, Input, Select, ErrorState, Skeleton } from '../components/ui';
 import { useToast } from '../lib/useToast.tsx';
+
+const ALERT_TYPE_LABEL: Record<AlertType, string> = {
+  MISSING_ACK: 'Missing 997 acknowledgment',
+  REJECTION_RATE_SPIKE: 'Rejection-rate spike',
+  STALE_TRAFFIC: 'Stale traffic',
+  UNKNOWN_ISA: 'Unknown ISA sender',
+};
 
 export function SettingsPage(): JSX.Element {
   const qc = useQueryClient();
@@ -122,6 +130,40 @@ export function SettingsPage(): JSX.Element {
             />
           </FormField>
         </div>
+
+        <div className="border-t border-[var(--color-surface-border)] pt-3">
+          <h3 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">
+            Mute alert notifications
+          </h3>
+          <p className="mt-0.5 text-xs text-[var(--color-fg-subtle)]">
+            Muted types are still recorded and visible on the Alerts page — they just won&apos;t send
+            email or Slack notifications.
+          </p>
+          <div className="mt-2 flex flex-col gap-1.5">
+            {ALERT_TYPES.map((t) => {
+              const muted = s.mutedAlertTypes.includes(t);
+              return (
+                <label key={t} className="flex items-center gap-2 text-sm">
+                  <input
+                    type="checkbox"
+                    disabled={!canEdit}
+                    checked={muted}
+                    data-testid={`mute-${t}`}
+                    onChange={(e) =>
+                      update({
+                        mutedAlertTypes: e.target.checked
+                          ? [...s.mutedAlertTypes, t]
+                          : s.mutedAlertTypes.filter((x) => x !== t),
+                      })
+                    }
+                  />
+                  {ALERT_TYPE_LABEL[t]}
+                </label>
+              );
+            })}
+          </div>
+        </div>
+
         {!canEdit ? (
           <p className="text-xs text-[var(--color-fg-muted)]">Admin role required to change tenant settings.</p>
         ) : null}
