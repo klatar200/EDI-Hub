@@ -257,7 +257,11 @@ function LifecycleRow({
         <DataTable.Tr>
           <DataTable.Td colSpan={showSlaColumn ? 10 : 9} className="bg-[var(--color-surface-muted)]/40">
             {expandQ.isLoading ? (
-              <p className="py-3 text-sm text-[var(--color-fg-muted)]">Loading timeline…</p>
+              <div className="py-3" data-testid={`expand-loading-${row.po}`}>
+                <Skeleton.Row width="40%" />
+                <Skeleton.Row width="65%" className="mt-2" />
+                <Skeleton.Row width="55%" className="mt-2" />
+              </div>
             ) : expandQ.isError || !expandQ.data ? (
               <p className="py-3 text-sm text-[var(--color-fg-muted)]">Could not load timeline.</p>
             ) : (
@@ -468,7 +472,11 @@ export function LifecyclesPage(): JSX.Element {
               </>
             ) : null}
             <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
-              {listQ.isLoading ? 'Loading…' : `${total} conversation${total === 1 ? '' : 's'}`}
+              {listQ.isLoading ? (
+                <Skeleton.Row width="7rem" height="h-4" className="inline-block" />
+              ) : (
+                `${total} conversation${total === 1 ? '' : 's'}`
+              )}
             </span>
           </div>
         }

@@ -17,6 +17,8 @@ import { api } from '../lib/api.ts';
 import {
   PageHeader,
   StatusPill,
+  alertSeverityTone,
+  alertStatusTone,
   type StatusTone,
   ErrorState,
   EmptyState,
@@ -130,16 +132,6 @@ function ageVsSlaMeta(alert: AlertRecord): { label: string; tone: StatusTone; te
   return { label: formatAgeMinutes(alert.createdAt), tone: 'neutral', testId: 'alert-age' };
 }
 
-const SEVERITY_TONE: Record<AlertSeverity, StatusTone> = {
-  info: 'info',
-  warning: 'warn',
-  critical: 'error',
-};
-const STATUS_TONE: Record<AlertStatus, StatusTone> = {
-  active: 'error',
-  acknowledged: 'success',
-  resolved: 'neutral',
-};
 const SEVERITY_BAR: Record<AlertSeverity, string> = {
   info: 'bg-[var(--color-info-500)]',
   warning: 'bg-[var(--color-warn-500)]',
@@ -334,8 +326,8 @@ function AlertRow({
         <div className="pl-4">
           <Card.Content className="space-y-2">
             <div className="flex flex-wrap items-center gap-2">
-              <StatusPill tone={SEVERITY_TONE[alert.severity]} withDot>{alert.severity}</StatusPill>
-              <StatusPill tone={STATUS_TONE[alert.status]} size="sm">{alert.status}</StatusPill>
+              <StatusPill tone={alertSeverityTone(alert.severity)} withDot>{alert.severity}</StatusPill>
+              <StatusPill tone={alertStatusTone(alert.status)} size="sm">{alert.status}</StatusPill>
               {partner ? (
                 <span
                   data-testid="alert-partner"

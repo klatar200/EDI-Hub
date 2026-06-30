@@ -12,6 +12,7 @@ import type { PartnerConfigInput } from '@edi/shared';
 import { CLERK_DASHBOARD_URL } from '@edi/shared';
 import { Card } from '../components/ui/Card.tsx';
 import { FormField, Input } from '../components/ui/forms.tsx';
+import { Skeleton } from '../components/ui/Skeleton.tsx';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
@@ -158,7 +159,10 @@ export function FirstRunWizardPage(): JSX.Element {
                 (including other machines on your LAN):
               </p>
               {setupQ.isLoading ? (
-                <p className="text-sm text-[var(--color-fg-muted)]">Loading server addresses…</p>
+                <div role="status" aria-busy="true" aria-label="Loading server addresses" className="space-y-2 rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] p-3">
+                  <Skeleton.Row width="70%" height="h-3" />
+                  <Skeleton.Row width="55%" height="h-3" />
+                </div>
               ) : (
                 <ul className="rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] p-3 font-mono text-xs">
                   {redirectOrigins.map((origin) => (

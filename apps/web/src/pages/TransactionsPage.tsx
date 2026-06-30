@@ -106,7 +106,11 @@ export function TransactionsPage(): JSX.Element {
         subtitle="Every decoded EDI transaction across your trading partners."
         actions={
           <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
-            {txQ.isLoading ? 'Loading…' : `${items.length} shown`}
+            {txQ.isLoading ? (
+              <Skeleton.Row width="5rem" height="h-4" className="inline-block" />
+            ) : (
+              `${items.length} shown`
+            )}
           </span>
         }
       />

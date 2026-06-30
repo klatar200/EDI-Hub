@@ -9,7 +9,7 @@ import {
   preferredLanOrigin,
   RELEASES_URL,
 } from '@edi/shared';
-import { PageHeader, Card } from '../components/ui';
+import { PageHeader, Card, Skeleton } from '../components/ui';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 
@@ -63,7 +63,10 @@ export function HelpPage(): JSX.Element {
               ).
             </p>
             {setupQ.isLoading ? (
-              <p className="text-xs text-[var(--color-fg-muted)]">Loading server addresses…</p>
+              <div role="status" aria-busy="true" aria-label="Loading server addresses" className="space-y-1.5">
+                <Skeleton.Row width="60%" height="h-5" />
+                <Skeleton.Row width="45%" height="h-3" />
+              </div>
             ) : (
               <>
                 <p className="rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] px-3 py-2 font-mono text-sm">

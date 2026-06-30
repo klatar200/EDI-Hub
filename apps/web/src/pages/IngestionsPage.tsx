@@ -82,7 +82,11 @@ export function IngestionsPage(): JSX.Element {
         subtitle="Every raw EDI transmission received by the hub, newest first."
         actions={
           <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
-            {q.isLoading ? 'Loading…' : `${items.length} shown`}
+            {q.isLoading ? (
+              <Skeleton.Row width="5rem" height="h-4" className="inline-block" />
+            ) : (
+              `${items.length} shown`
+            )}
           </span>
         }
       />

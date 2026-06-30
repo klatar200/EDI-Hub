@@ -1,6 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { Skeleton } from './ui';
 
 /** Lazy-loaded raw EDI viewer for lifecycle timeline events. */
 export function LifecycleRawPanel({ rawFileId }: { rawFileId: string }): JSX.Element {
@@ -12,7 +13,18 @@ export function LifecycleRawPanel({ rawFileId }: { rawFileId: string }): JSX.Ele
   });
 
   if (rawQ.isLoading) {
-    return <p className="text-xs text-[var(--color-fg-muted)]">Loading raw EDI…</p>;
+    return (
+      <div
+        role="status"
+        aria-busy="true"
+        aria-label="Loading raw EDI"
+        className="space-y-1.5 py-1"
+      >
+        <Skeleton.Row width="80%" height="h-3" />
+        <Skeleton.Row width="70%" height="h-3" />
+        <Skeleton.Row width="85%" height="h-3" />
+      </div>
+    );
   }
   if (rawQ.isError) {
     return <p className="text-xs text-[var(--color-error-700)]">Could not load raw file.</p>;

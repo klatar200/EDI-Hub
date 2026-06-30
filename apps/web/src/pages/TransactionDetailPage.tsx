@@ -6,13 +6,24 @@ import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { StatusBadge } from '../components/StatusBadge.tsx';
 import { RawParsedView } from '../components/RawParsedView.tsx';
 import { StageBadge, StageTimeline } from '../components/OutboundStage.tsx';
+import { Skeleton } from '../components/ui';
 
 export function TransactionDetailPage(): JSX.Element {
   const { id = '' } = useParams();
   const txKey = useTenantQueryKey('transaction', id);
   const q = useQuery({ queryKey: txKey, queryFn: () => api.transaction(id) });
 
-  if (q.isLoading) return <p className="text-sm text-[var(--color-fg-muted)]">Loading…</p>;
+  if (q.isLoading) {
+    // S3 — one loading idiom. Shape mimics the eventual header (title + two
+    // meta lines) so the layout shift on resolve is minimal.
+    return (
+      <div className="space-y-3" role="status" aria-busy="true" aria-label="Loading transaction">
+        <Skeleton.Row width="35%" height="h-6" />
+        <Skeleton.Row width="60%" />
+        <Skeleton.Row width="50%" />
+      </div>
+    );
+  }
   if (q.isError || !q.data) {
     return (
       <div className="rounded-lg border border-[var(--color-error-500)]/30 bg-[var(--color-error-50)] p-6 text-sm text-[var(--color-error-700)]">

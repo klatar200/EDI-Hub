@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/react-query';
 import type { LifecycleEvent } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { Skeleton } from './ui';
 
 const DIRECTION_LABEL = { inbound: 'Inbound', outbound: 'Outbound', unknown: 'Unknown' } as const;
 
@@ -36,7 +37,11 @@ function CompareColumn({ event }: { event: LifecycleEvent }): JSX.Element {
       </div>
       <div className="max-h-64 overflow-auto p-2 font-mono text-[10px] leading-relaxed text-[var(--color-fg)]">
         {rawQ.isLoading ? (
-          <span className="text-[var(--color-fg-muted)]">Loading…</span>
+          <div role="status" aria-busy="true" aria-label="Loading raw EDI" className="space-y-1">
+            <Skeleton.Row width="70%" height="h-2.5" />
+            <Skeleton.Row width="60%" height="h-2.5" />
+            <Skeleton.Row width="75%" height="h-2.5" />
+          </div>
         ) : rawQ.isError ? (
           <span className="text-[var(--color-error-700)]">Could not load raw file.</span>
         ) : lines.length === 0 ? (

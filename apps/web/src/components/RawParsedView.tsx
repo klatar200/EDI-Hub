@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { api, type TransactionDetail, type DetailSegment } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
+import { Skeleton } from './ui';
 
 type Mode = 'split' | 'parsed' | 'raw';
 
@@ -103,7 +104,17 @@ export function RawParsedView({ detail }: { detail: TransactionDetail }): JSX.El
               Raw transmission
             </div>
             {rawQ.isLoading ? (
-              <div className="p-3 text-sm text-[var(--color-fg-muted)]">Loading raw bytes…</div>
+              <div
+                role="status"
+                aria-busy="true"
+                aria-label="Loading raw bytes"
+                className="space-y-1.5 p-3"
+              >
+                <Skeleton.Row width="85%" height="h-3" />
+                <Skeleton.Row width="75%" height="h-3" />
+                <Skeleton.Row width="80%" height="h-3" />
+                <Skeleton.Row width="60%" height="h-3" />
+              </div>
             ) : rawQ.isError ? (
               <div className="p-3 text-sm text-[var(--color-error-700)]">Could not load the raw file.</div>
             ) : (
