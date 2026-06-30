@@ -27,6 +27,7 @@ import { RequireRole, useApiReady, useHasRole } from '../lib/useRole.tsx';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { SearchBox } from './SearchBox.tsx';
+import { CommandPalette, useCommandPaletteHotkey } from './CommandPalette.tsx';
 import { DropdownMenu } from './ui';
 
 interface NavItem {
@@ -104,6 +105,9 @@ export function Layout(): JSX.Element {
   const apiReady = useApiReady();
   const navigate = useNavigate();
   const isAdmin = useHasRole('admin');
+  // U4/N4 — global Cmd-K palette. Mounted once at the Layout level so the
+  // hotkey works on every authenticated page.
+  const [paletteOpen, setPaletteOpen] = useCommandPaletteHotkey();
   // Unread badge — refreshed every 30s; falls back silently when the API is down.
   const alertsBadgeKey = useTenantQueryKey('alerts', 'active', 'unread-badge');
   const activeAlerts = useQuery({
@@ -247,6 +251,22 @@ export function Layout(): JSX.Element {
 
           {/* Search + identity on the right */}
           <div className="ml-auto flex items-center gap-3" data-testid="auth-controls">
+            {/* U4/N4 — Cmd-K hint button. Same opener as the keyboard
+                hotkey, surfaced for users who don't know the shortcut. */}
+            <button
+              type="button"
+              onClick={() => setPaletteOpen(true)}
+              data-testid="open-command-palette"
+              aria-label="Open command palette"
+              className="hidden items-center gap-2 rounded-md border border-[var(--color-surface-border)] px-2 py-1 text-xs text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex"
+            >
+              <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="11" cy="11" r="7" />
+                <path d="M21 21l-4.3-4.3" />
+              </svg>
+              <span className="hidden md:inline">Jump to…</span>
+              <kbd className="rounded border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] px-1 font-mono text-[10px]">⌘K</kbd>
+            </button>
             <SearchBox />
             <span aria-hidden className="hidden h-5 w-px bg-[var(--color-surface-border)] sm:block" />
             <OrganizationSwitcher
@@ -286,6 +306,10 @@ export function Layout(): JSX.Element {
           </details>
         </div>
       </header>
+
+      {/* U4/N4 — Global Cmd-K palette. Lives outside the header so its
+          <dialog> overlay isn't clipped by any header stacking context. */}
+      <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
 
       {showDropBanner ? (
         <div
