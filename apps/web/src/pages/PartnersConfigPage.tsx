@@ -16,6 +16,7 @@ import {
   CONNECTIVITY_CHANNELS,
   DEFAULT_GROCERY_FLOW,
   DEFAULT_STANDARD_FLOW,
+  partnerSetupStatus,
   type ConnectivityChannel,
   type LifecycleFlowDefinition,
   type LifecycleFlowStep,
@@ -277,6 +278,7 @@ export function PartnersConfigPage(): JSX.Element {
               <DataTable.Th>ISA senders</DataTable.Th>
               <DataTable.Th>Sets</DataTable.Th>
               <DataTable.Th>SLAs</DataTable.Th>
+              <DataTable.Th>Setup</DataTable.Th>
               <DataTable.Th>Channel</DataTable.Th>
               <DataTable.Th>Status</DataTable.Th>
               {isAdmin ? <DataTable.Th className="text-right">Actions</DataTable.Th> : null}
@@ -299,6 +301,9 @@ export function PartnersConfigPage(): JSX.Element {
                     )}
                   </DataTable.Td>
                   <DataTable.Td muted numeric>{p.slaWindows.length}</DataTable.Td>
+                  <DataTable.Td>
+                    <PartnerSetupCell partner={p} />
+                  </DataTable.Td>
                   <DataTable.Td>
                     {channel ? (
                       <StatusPill tone="brand" size="sm">{channel}</StatusPill>
@@ -355,6 +360,8 @@ export function PartnersConfigPage(): JSX.Element {
                   : 'Configure a new trading partner. Display name is required; everything else inherits sensible defaults.'}
               </p>
             </div>
+
+          <PartnerSetupBanner input={toInput(editing.draft)} />
 
           <Section title="Identity">
             <Field label="Display name">
@@ -484,6 +491,55 @@ export function PartnersConfigPage(): JSX.Element {
           </form>
         </Card>
       ) : null}
+    </div>
+  );
+}
+
+function PartnerSetupCell({ partner }: { partner: TradingPartnerRecord }): JSX.Element {
+  const setup = partnerSetupStatus(partner);
+  const title = setup.gaps.length
+    ? setup.gaps.map((g) => `• ${g.label}: ${g.hint}`).join('\n')
+    : 'All recommended settings are configured.';
+  return (
+    <span data-testid={`partner-setup-${partner.id}`} title={title}>
+      {setup.status === 'ready' ? (
+        <StatusPill tone="success" size="sm">Ready</StatusPill>
+      ) : (
+        <StatusPill
+          tone={setup.status === 'error' ? 'error' : setup.status === 'warn' ? 'warn' : 'info'}
+          size="sm"
+          withDot
+        >
+          {setup.gaps.length} gap{setup.gaps.length === 1 ? '' : 's'}
+        </StatusPill>
+      )}
+    </span>
+  );
+}
+
+function PartnerSetupBanner({ input }: { input: PartnerConfigInput }): JSX.Element {
+  const setup = partnerSetupStatus(input);
+  if (setup.status === 'ready') {
+    return (
+      <div
+        className="rounded-md border border-[var(--color-success-500)]/30 bg-[var(--color-success-50)] px-3 py-2 text-xs text-[var(--color-success-700)]"
+        data-testid="partner-setup-banner"
+      >
+        Setup complete — this partner is fully configured ({setup.total}/{setup.total}).
+      </div>
+    );
+  }
+  return (
+    <div
+      className="rounded-md border border-[var(--color-warn-500)]/30 bg-[var(--color-warn-50)] px-3 py-2 text-xs text-[var(--color-warn-800)]"
+      data-testid="partner-setup-banner"
+    >
+      <p className="font-medium">Setup: {setup.doneCount} of {setup.total} configured</p>
+      <ul className="mt-1 list-disc space-y-0.5 pl-5">
+        {setup.gaps.map((g) => (
+          <li key={g.id}><span className="font-medium">{g.label}:</span> {g.hint}</li>
+        ))}
+      </ul>
     </div>
   );
 }

@@ -168,3 +168,12 @@ test('editor shows segment label overrides from partner record', async () => {
   expect(within(editor).getByDisplayValue('Custom ZZ label')).toBeInTheDocument();
 });
 
+test('partners table flags setup gaps and readiness per partner', async () => {
+  renderPage();
+  await screen.findByText('Sysco');
+  // Sysco has no SLA windows and no contacts → setup gaps surfaced.
+  expect(screen.getByTestId('partner-setup-p1').textContent).toMatch(/gap/i);
+  // GFS has ISA sender + SLA + a contact → ready.
+  expect(screen.getByTestId('partner-setup-p2').textContent).toMatch(/ready/i);
+});
+

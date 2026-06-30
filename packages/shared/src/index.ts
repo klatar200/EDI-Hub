@@ -887,3 +887,76 @@ export {
   preferredLanOrigin,
   RELEASES_URL,
 } from './help-links.js';
+
+
+// ─────────────────────────────────────────────────────────────
+// Partner setup completeness — surfaces silent-configuration gaps
+// (e.g. a partner with no SLA windows is skipped by missing-ack detection).
+// ─────────────────────────────────────────────────────────────
+
+export type PartnerSetupSeverity = 'error' | 'warn' | 'info';
+
+export interface PartnerSetupCheck {
+  id: 'isaSenders' | 'slaWindows' | 'contacts';
+  label: string;
+  ok: boolean;
+  severity: PartnerSetupSeverity;
+  /** Shown when the check fails: what to do and why it matters. */
+  hint: string;
+}
+
+export interface PartnerSetupStatusResult {
+  /** 'ready' when every check passes; otherwise the worst failing severity. */
+  status: 'ready' | PartnerSetupSeverity;
+  checks: PartnerSetupCheck[];
+  /** Subset of checks that failed (ok === false), worst-first. */
+  gaps: PartnerSetupCheck[];
+  doneCount: number;
+  total: number;
+}
+
+/** Compute a partner's configuration completeness. Pure + UI-agnostic so it
+ *  powers the partners table, the editor banner, and tests alike. Accepts any
+ *  object exposing the three fields, so both TradingPartnerRecord and
+ *  PartnerConfigInput work. */
+export function partnerSetupStatus(p: {
+  isaSenderIds: readonly string[];
+  slaWindows: readonly unknown[];
+  contacts: readonly unknown[];
+}): PartnerSetupStatusResult {
+  const checks: PartnerSetupCheck[] = [
+    {
+      id: 'isaSenders',
+      label: 'ISA sender IDs',
+      ok: p.isaSenderIds.length > 0,
+      severity: 'error',
+      hint: 'Add at least one ISA sender ID so inbound files from this partner are recognized and classified.',
+    },
+    {
+      id: 'slaWindows',
+      label: 'SLA windows',
+      ok: p.slaWindows.length > 0,
+      severity: 'warn',
+      hint: 'Add an SLA window — without one, missing-acknowledgment alerts will never fire for this partner.',
+    },
+    {
+      id: 'contacts',
+      label: 'Escalation contacts',
+      ok: p.contacts.length > 0,
+      severity: 'info',
+      hint: 'Add an escalation contact so alerts reach a person (otherwise only the global webhook, if configured, is used).',
+    },
+  ];
+  const order: PartnerSetupSeverity[] = ['error', 'warn', 'info'];
+  const gaps = checks
+    .filter((c) => !c.ok)
+    .sort((a, b) => order.indexOf(a.severity) - order.indexOf(b.severity));
+  const worst = order.find((sev) => gaps.some((g) => g.severity === sev));
+  return {
+    status: worst ?? 'ready',
+    checks,
+    gaps,
+    doneCount: checks.length - gaps.length,
+    total: checks.length,
+  };
+}
