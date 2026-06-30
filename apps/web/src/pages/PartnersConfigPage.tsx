@@ -79,6 +79,75 @@ const EDITOR_TABS: { value: EditorTab; label: string }[] = [
   { value: 'notes',        label: 'Notes & contacts' },
 ];
 
+// FO2 — inline field errors. Keys mirror the server validator's `field`
+// path (apps/api/src/services/partners.ts → validatePartnerInput) so the
+// same map type holds both client- and server-derived errors.
+type FieldErrors = Partial<Record<
+  | 'displayName'
+  | 'isaSenderIds'
+  | 'isaReceiverIds'
+  | 'supportedSets'
+  | 'lifecycleFlows'
+  | 'slaWindows'
+  | 'connectivity.channel'
+  | 'connectivity.endpoint'
+  | 'connectivity.technicalContact'
+  | 'connectivity.notes'
+  | 'slackWebhook',
+  string
+>>;
+
+/** Map a field error key to the tab that hosts the offending control. Used
+ *  to (a) jump to the first errored tab on submit and (b) badge tab
+ *  triggers with an error count. */
+function tabForField(field: keyof FieldErrors): EditorTab {
+  if (field === 'displayName' || field === 'isaSenderIds' || field === 'isaReceiverIds') return 'identity';
+  if (field === 'supportedSets' || field === 'lifecycleFlows') return 'sets';
+  if (field === 'slaWindows') return 'slas';
+  if (field.startsWith('connectivity.')) return 'connectivity';
+  return 'notes'; // slackWebhook lives under Contacts (Notes & contacts).
+}
+
+/** Lightweight client-side mirror of the server validator. Catches the
+ *  common cases inline so the operator doesn't have to round-trip to the
+ *  API just to learn the display name is blank. The server still runs the
+ *  authoritative validator on save. */
+function validateDraft(draft: DraftState): FieldErrors {
+  const errors: FieldErrors = {};
+  if (!draft.displayName.trim()) {
+    errors.displayName = 'Display name is required.';
+  }
+  const senders = draft.isaSenderIds.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+  if (new Set(senders).size !== senders.length) {
+    errors.isaSenderIds = 'Each ISA sender ID must be unique on this partner.';
+  }
+  const receivers = draft.isaReceiverIds.split(',').map((s) => s.trim()).filter((s) => s.length > 0);
+  if (new Set(receivers).size !== receivers.length) {
+    errors.isaReceiverIds = 'Each ISA receiver ID must be unique on this partner.';
+  }
+  for (const w of draft.slaWindows) {
+    if (!w.setId.trim() || !Number.isInteger(w.withinMinutes) || w.withinMinutes <= 0) {
+      errors.slaWindows = 'Every SLA window needs a set ID and a positive minute count.';
+      break;
+    }
+  }
+  // Connectivity is optional — but if the operator picked a channel, the
+  // server requires endpoint + technicalContact (and the contact must look
+  // like an email).
+  const c = draft.connectivity;
+  if (c.channel) {
+    if (!c.endpoint.trim()) {
+      errors['connectivity.endpoint'] = 'Endpoint is required when a channel is set.';
+    }
+    if (!c.technicalContact.trim()) {
+      errors['connectivity.technicalContact'] = 'Technical contact is required when a channel is set.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(c.technicalContact.trim())) {
+      errors['connectivity.technicalContact'] = 'Technical contact must look like an email address.';
+    }
+  }
+  return errors;
+}
+
 interface DraftState {
   displayName: string;
   isaSenderIds: string;
@@ -207,9 +276,31 @@ export function PartnersConfigPage(): JSX.Element {
   // FO1 — editor is broken into 5 tabs. Reset to Identity whenever the
   // operator opens or switches between partners.
   const [editorTab, setEditorTab] = useState<EditorTab>('identity');
+  // FO2 — inline field errors. Reset whenever the editor opens for a
+  // different partner so a stale error from a previous edit doesn't
+  // bleed into the next.
+  const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
   useEffect(() => {
-    if (editing) setEditorTab('identity');
+    if (editing) {
+      setEditorTab('identity');
+      setFieldErrors({});
+    }
   }, [editing?.id]);
+
+  /** FO2 — replace a draft field and clear its inline error if any. Keeps
+   *  the editor responsive: as soon as the operator types into an errored
+   *  field, the red text disappears. */
+  function updateDraft(patch: Partial<DraftState>, clearFields: (keyof FieldErrors)[] = []): void {
+    if (!editing) return;
+    setEditing({ ...editing, draft: { ...editing.draft, ...patch } });
+    if (clearFields.length > 0) {
+      setFieldErrors((prev) => {
+        const next = { ...prev };
+        for (const f of clearFields) delete next[f];
+        return next;
+      });
+    }
+  }
 
   const saveM = useMutation({
     mutationFn: async (payload: { id: string | null; input: PartnerConfigInput }) =>
@@ -224,13 +315,29 @@ export function PartnersConfigPage(): JSX.Element {
     },
     onError: (err: unknown) => {
       if (err instanceof ApiCallError) {
-        const body = err.body as { error?: { code?: string; message?: string } } | null;
+        const body = err.body as {
+          error?: { code?: string; message?: string; field?: string };
+        } | null;
         if (body?.error?.code === 'ISA_OVERLAP') {
+          // Cross-field conflict — keep at the top banner since it points
+          // at a different partner's data, not this draft's field shape.
           setErrorMsg('One or more ISA IDs already belong to another partner. Resolve the overlap and try again.');
           return;
         }
-        if (body?.error?.message) {
-          setErrorMsg(body.error.message);
+        // FO2 — if the server points at a specific field, surface it inline
+        // and jump to the tab that hosts it. Falls back to the banner when
+        // the error has no field path.
+        const field = body?.error?.field;
+        const message = body?.error?.message;
+        if (field && message) {
+          const knownField = field as keyof FieldErrors;
+          setFieldErrors((prev) => ({ ...prev, [knownField]: message }));
+          setEditorTab(tabForField(knownField));
+          setErrorMsg(null);
+          return;
+        }
+        if (message) {
+          setErrorMsg(message);
           return;
         }
       }
@@ -252,7 +359,28 @@ export function PartnersConfigPage(): JSX.Element {
   function handleSubmit(ev: FormEvent<HTMLFormElement>): void {
     ev.preventDefault();
     if (!editing) return;
+    // FO2 — run the client-side validator first. If anything fails, surface
+    // inline errors, jump to the first errored tab, and skip the API call.
+    const errors = validateDraft(editing.draft);
+    const errorKeys = Object.keys(errors) as (keyof FieldErrors)[];
+    if (errorKeys.length > 0) {
+      setFieldErrors(errors);
+      setErrorMsg(null);
+      // Visit tabs in canonical order so we land on the earliest one with
+      // an error — that matches the operator's left-to-right scan.
+      const firstTab = EDITOR_TABS.find((t) => errorKeys.some((k) => tabForField(k) === t.value));
+      if (firstTab) setEditorTab(firstTab.value);
+      return;
+    }
+    setFieldErrors({});
     saveM.mutate({ id: editing.id, input: toInput(editing.draft) });
+  }
+
+  /** FO2 — count errors per tab so triggers can show a badge. */
+  function errorCountForTab(tab: EditorTab): number {
+    return (Object.keys(fieldErrors) as (keyof FieldErrors)[])
+      .filter((k) => fieldErrors[k] && tabForField(k) === tab)
+      .length;
   }
 
   const items = listQ.data?.items ?? [];
@@ -416,44 +544,59 @@ export function PartnersConfigPage(): JSX.Element {
                 across switches without lifting fields. */}
             <Tabs value={editorTab} onValueChange={(v) => setEditorTab(v as EditorTab)} className="mt-4">
               <Tabs.List ariaLabel="Partner editor sections" className="px-4">
-                {EDITOR_TABS.map((t) => (
-                  <Tabs.Trigger key={t.value} value={t.value} testId={`editor-tab-${t.value}`}>
-                    {t.label}
-                  </Tabs.Trigger>
-                ))}
+                {EDITOR_TABS.map((t) => {
+                  const count = errorCountForTab(t.value);
+                  return (
+                    <Tabs.Trigger key={t.value} value={t.value} testId={`editor-tab-${t.value}`}>
+                      {t.label}
+                      {/* FO2 — error-count badge surfaces inline-validation
+                          state from tabs the operator isn't currently viewing. */}
+                      {count > 0 ? (
+                        <span
+                          aria-label={`${count} error${count === 1 ? '' : 's'}`}
+                          data-testid={`editor-tab-error-${t.value}`}
+                          className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-error-500)] px-1 text-[10px] font-bold leading-none text-white"
+                        >
+                          {count}
+                        </span>
+                      ) : null}
+                    </Tabs.Trigger>
+                  );
+                })}
               </Tabs.List>
 
               <Tabs.Panel value="identity" className="space-y-5 px-4 py-5">
                 <Section title="Identity">
-                  <Field label="Display name">
+                  <Field label="Display name" required error={fieldErrors.displayName}>
                     <input
                       className="input"
                       value={editing.draft.displayName}
-                      onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, displayName: e.target.value } })}
-                      required
+                      onChange={(e) => updateDraft({ displayName: e.target.value }, ['displayName'])}
+                      aria-invalid={fieldErrors.displayName ? true : undefined}
+                      aria-required="true"
                     />
                   </Field>
-                  <Field label="ISA sender IDs (comma-separated)">
+                  <Field label="ISA sender IDs (comma-separated)" error={fieldErrors.isaSenderIds}>
                     <input
                       className="input font-mono"
                       value={editing.draft.isaSenderIds}
-                      onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, isaSenderIds: e.target.value } })}
+                      onChange={(e) => updateDraft({ isaSenderIds: e.target.value }, ['isaSenderIds'])}
+                      aria-invalid={fieldErrors.isaSenderIds ? true : undefined}
                     />
                   </Field>
-                  <Field label="ISA receiver IDs (comma-separated)">
+                  <Field label="ISA receiver IDs (comma-separated)" error={fieldErrors.isaReceiverIds}>
                     <input
                       className="input font-mono"
                       value={editing.draft.isaReceiverIds}
-                      onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, isaReceiverIds: e.target.value } })}
+                      onChange={(e) => updateDraft({ isaReceiverIds: e.target.value }, ['isaReceiverIds'])}
+                      aria-invalid={fieldErrors.isaReceiverIds ? true : undefined}
                     />
                   </Field>
                   <Field label="Status">
                     <select
                       className="select"
                       value={editing.draft.status}
-                      onChange={(e) =>
-                        setEditing({ ...editing, draft: { ...editing.draft, status: e.target.value as PartnerStatus } })
-                      }
+                      onChange={(e) => updateDraft({ status: e.target.value as PartnerStatus })}
                     >
                       <option value="active">active</option>
                       <option value="disabled">disabled</option>
@@ -506,9 +649,18 @@ export function PartnersConfigPage(): JSX.Element {
                     />
                     Show SLA countdown on lifecycle rows for this partner
                   </label>
+                  {fieldErrors.slaWindows ? (
+                    <p
+                      role="alert"
+                      data-testid="error-slaWindows"
+                      className="mb-2 rounded-md border border-[var(--color-error-500)]/30 bg-[var(--color-error-50)] px-3 py-1.5 text-xs text-[var(--color-error-700)]"
+                    >
+                      {fieldErrors.slaWindows}
+                    </p>
+                  ) : null}
                   <SlaWindowsEditor
                     rows={editing.draft.slaWindows}
-                    onChange={(rows) => setEditing({ ...editing, draft: { ...editing.draft, slaWindows: rows } })}
+                    onChange={(rows) => updateDraft({ slaWindows: rows }, ['slaWindows'])}
                   />
                 </Section>
               </Tabs.Panel>
@@ -520,6 +672,14 @@ export function PartnersConfigPage(): JSX.Element {
                 >
                   <ConnectivityEditor
                     value={editing.draft.connectivity}
+                    errors={fieldErrors}
+                    onFieldChange={(clear) =>
+                      setFieldErrors((prev) => {
+                        const next = { ...prev };
+                        for (const f of clear) delete next[f];
+                        return next;
+                      })
+                    }
                     onChange={(connectivity) =>
                       setEditing({ ...editing, draft: { ...editing.draft, connectivity } })
                     }
@@ -555,7 +715,20 @@ export function PartnersConfigPage(): JSX.Element {
               className="sticky bottom-0 z-10 mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--color-surface-border)] bg-[var(--color-surface-card)]/95 px-4 py-3 backdrop-blur"
               data-testid="partner-editor-save-bar"
             >
-              {errorMsg ? (
+              {/* FO2 — Field-level problems are shown inline next to the offending
+                  control, not in the save bar. The save bar is reserved for
+                  top-level messages (cross-partner conflicts, network errors)
+                  and a quiet count of pending inline errors. */}
+              {Object.keys(fieldErrors).length > 0 ? (
+                <p
+                  className="mr-auto text-xs text-[var(--color-error-700)]"
+                  data-testid="editor-error-summary"
+                  role="status"
+                >
+                  Fix {Object.keys(fieldErrors).length} field
+                  {Object.keys(fieldErrors).length === 1 ? '' : 's'} before saving.
+                </p>
+              ) : errorMsg ? (
                 <div
                   className="mr-auto max-w-md rounded-md border border-[var(--color-error-500)]/30 bg-[var(--color-error-50)] px-3 py-1.5 text-xs text-[var(--color-error-700)]"
                   role="alert"
@@ -563,7 +736,11 @@ export function PartnersConfigPage(): JSX.Element {
                   {errorMsg}
                 </div>
               ) : null}
-              <button type="button" className="btn" onClick={() => { setEditing(null); setErrorMsg(null); }}>
+              <button
+                type="button"
+                className="btn"
+                onClick={() => { setEditing(null); setErrorMsg(null); setFieldErrors({}); }}
+              >
                 Cancel
               </button>
               <button type="submit" className="btn-primary" disabled={saveM.isPending}>
@@ -644,11 +821,34 @@ function Section({ title, hint, children }: { title: string; hint?: string; chil
   );
 }
 
-function Field({ label, children }: { label: string; children: React.ReactNode }): JSX.Element {
+function Field({
+  label,
+  required,
+  error,
+  children,
+}: {
+  label: string;
+  /** FO2 — mark the field with a subtle `*` and add `aria-required`. */
+  required?: boolean;
+  /** FO2 — per-field error message; renders inline below the control and
+   *  flips the wrapper's color to error. */
+  error?: string;
+  children: React.ReactNode;
+}): JSX.Element {
   return (
     <label className="flex flex-col gap-1 text-xs font-medium text-[var(--color-fg-muted)]">
-      {label}
+      <span aria-required={required ?? undefined}>
+        {label}
+        {required ? (
+          <span className="ml-0.5 text-[var(--color-error-500)]" aria-hidden>*</span>
+        ) : null}
+      </span>
       {children}
+      {error ? (
+        <span role="alert" className="text-xs font-normal text-[var(--color-error-700)]">
+          {error}
+        </span>
+      ) : null}
     </label>
   );
 }
@@ -1091,21 +1291,32 @@ function ContactsEditor({
 function ConnectivityEditor({
   value,
   onChange,
+  errors,
+  onFieldChange,
 }: {
   value: ConnectivityDraft;
   onChange: (next: ConnectivityDraft) => void;
+  /** FO2 — per-field validation errors. Mark endpoint and technicalContact
+   *  as required only once the operator has chosen a channel. */
+  errors?: Pick<FieldErrors, 'connectivity.channel' | 'connectivity.endpoint' | 'connectivity.technicalContact' | 'connectivity.notes'>;
+  /** Optional callback so the parent can clear specific field errors as
+   *  the operator edits — keeps the inline-error UX responsive. */
+  onFieldChange?: (clear: (keyof FieldErrors)[]) => void;
 }): JSX.Element {
+  const channelChosen = value.channel !== '';
   return (
     <div className="space-y-3">
       <div className="grid grid-cols-12 gap-2">
-        <Field label="Channel">
+        <Field label="Channel" error={errors?.['connectivity.channel']}>
           <select
             className="input"
             data-testid="connectivity-channel"
             value={value.channel}
-            onChange={(e) =>
-              onChange({ ...value, channel: e.target.value as ConnectivityChannel | '' })
-            }
+            aria-invalid={errors?.['connectivity.channel'] ? true : undefined}
+            onChange={(e) => {
+              onChange({ ...value, channel: e.target.value as ConnectivityChannel | '' });
+              onFieldChange?.(['connectivity.channel', 'connectivity.endpoint', 'connectivity.technicalContact']);
+            }}
           >
             <option value="">— Select —</option>
             {CONNECTIVITY_CHANNELS.map((c) => (
@@ -1114,27 +1325,43 @@ function ConnectivityEditor({
           </select>
         </Field>
         <div className="col-span-7">
-          <Field label="Endpoint">
+          <Field
+            label="Endpoint"
+            required={channelChosen}
+            error={errors?.['connectivity.endpoint']}
+          >
             <input
               className="input font-mono"
               data-testid="connectivity-endpoint"
               placeholder="sftp://partner.example.com/in  or  https://partner.example.com/as2"
               value={value.endpoint}
-              onChange={(e) => onChange({ ...value, endpoint: e.target.value })}
+              aria-invalid={errors?.['connectivity.endpoint'] ? true : undefined}
+              onChange={(e) => {
+                onChange({ ...value, endpoint: e.target.value });
+                onFieldChange?.(['connectivity.endpoint']);
+              }}
             />
           </Field>
         </div>
       </div>
-      <Field label="Technical contact (email)">
+      <Field
+        label="Technical contact (email)"
+        required={channelChosen}
+        error={errors?.['connectivity.technicalContact']}
+      >
         <input
           className="input font-mono"
           data-testid="connectivity-tech-contact"
           placeholder="edi-ops@partner.example.com"
           value={value.technicalContact}
-          onChange={(e) => onChange({ ...value, technicalContact: e.target.value })}
+          aria-invalid={errors?.['connectivity.technicalContact'] ? true : undefined}
+          onChange={(e) => {
+            onChange({ ...value, technicalContact: e.target.value });
+            onFieldChange?.(['connectivity.technicalContact']);
+          }}
         />
       </Field>
-      <Field label="Notes (operational, no credentials)">
+      <Field label="Notes (operational, no credentials)" error={errors?.['connectivity.notes']}>
         <textarea
           className="input"
           rows={2}
