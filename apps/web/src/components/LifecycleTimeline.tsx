@@ -74,7 +74,7 @@ export function LifecycleTimeline({ events, po, showDownloadRaw = false, compact
 
   return (
     <div>
-    <ol className="relative">
+    <ol className="relative" data-testid="lifecycle-timeline">
       {events.map((e, i) => {
         const dupKey = e.kind === 'transaction' ? `${e.transactionSetId}::${e.direction}` : '';
         const duplicateTotal = dupKey ? (duplicateTotals.get(dupKey) ?? 1) : 1;

@@ -83,7 +83,9 @@ afterEach(() => {
 test('renders every event in chronological order with set badges and detail links per transaction', async () => {
   renderAt('/lifecycle/PO-100');
   const firstSet = await screen.findByText('850');
-  const items = document.querySelectorAll('li');
+  // Scope to the timeline's <ol> — the page also renders a Breadcrumbs
+  // <ol> (Lifecycles → <PO>) whose <li> items would otherwise be counted.
+  const items = screen.getByTestId('lifecycle-timeline').querySelectorAll('li');
   expect(items.length).toBe(3);
   expect(items[0]!.textContent).toContain('850');
   expect(items[1]!.textContent).toContain('997');
