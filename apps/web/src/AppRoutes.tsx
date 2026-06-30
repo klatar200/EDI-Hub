@@ -1,14 +1,13 @@
 /**
  * Shared route tree — used by Clerk auth (App.tsx) and desktop LAN token mode.
  */
-import { Navigate, Route, Routes } from 'react-router-dom';
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { Layout } from './components/Layout.tsx';
 import { RequireRole, useApiReady, useHasRole } from './lib/useRole.tsx';
 import { LifecyclesPage } from './pages/LifecyclesPage.tsx';
-import { TransactionsPage } from './pages/TransactionsPage.tsx';
 import { TransactionDetailPage } from './pages/TransactionDetailPage.tsx';
-import { IngestionsPage } from './pages/IngestionsPage.tsx';
+import { DocumentsPage } from './pages/DocumentsPage.tsx';
 import { SearchPage } from './pages/SearchPage.tsx';
 import { LifecyclePage } from './pages/LifecyclePage.tsx';
 import { MetricsPage } from './pages/MetricsPage.tsx';
@@ -31,6 +30,16 @@ function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element 
       {children}
     </div>
   );
+}
+
+/** U3/N3 — Documents merge. Old /transactions and /ingestions routes redirect
+ *  into /documents with the appropriate view, preserving any in-flight filter
+ *  query params so bookmarks and inbound links keep working. */
+function RedirectToDocuments({ view }: { view: 'parsed' | 'raw' }): JSX.Element {
+  const { search } = useLocation();
+  const params = new URLSearchParams(search);
+  params.set('view', view);
+  return <Navigate to={`/documents?${params.toString()}`} replace />;
 }
 
 /** UI-1 — resolve the root path to the user's chosen landing page. Defaults to
@@ -94,9 +103,12 @@ export function AppRoutes(): JSX.Element {
       <Route element={<Layout />}>
         <Route path="/" element={<DefaultLanding />} />
         <Route path="/lifecycles" element={<LifecyclesPage />} />
-        <Route path="/transactions" element={<TransactionsPage />} />
+        <Route path="/documents" element={<DocumentsPage />} />
+        {/* U3/N3 — old list routes redirect into /documents. Detail routes
+            stay where they are so deep links don't break. */}
+        <Route path="/transactions" element={<RedirectToDocuments view="parsed" />} />
         <Route path="/transactions/:id" element={<TransactionDetailPage />} />
-        <Route path="/ingestions" element={<IngestionsPage />} />
+        <Route path="/ingestions" element={<RedirectToDocuments view="raw" />} />
         <Route path="/search" element={<SearchPage />} />
         <Route path="/lifecycle/:po" element={<LifecyclePage />} />
         <Route path="/dashboard" element={<DashboardPage />} />

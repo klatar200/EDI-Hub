@@ -36,7 +36,13 @@ import {
 const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
 const SOURCES = ['upload', 'sftp', 'as2'] as const;
 
-export function IngestionsPage(): JSX.Element {
+export interface IngestionsPageProps {
+  /** N3 — suppress this page's PageHeader when rendered inside the
+   *  Documents explorer (the parent already owns the title + toggle). */
+  hideHeader?: boolean;
+}
+
+export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {}): JSX.Element {
   const [sp, setSp] = useSearchParams();
   const qc = useQueryClient();
   const toast = useToast();
@@ -77,19 +83,21 @@ export function IngestionsPage(): JSX.Element {
 
   return (
     <div>
-      <PageHeader
-        title="Ingestions"
-        subtitle="Every raw EDI transmission received by the hub, newest first."
-        actions={
-          <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
-            {q.isLoading ? (
-              <Skeleton.Row width="5rem" height="h-4" className="inline-block" />
-            ) : (
-              `${items.length} shown`
-            )}
-          </span>
-        }
-      />
+      {hideHeader ? null : (
+        <PageHeader
+          title="Ingestions"
+          subtitle="Every raw EDI transmission received by the hub, newest first."
+          actions={
+            <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
+              {q.isLoading ? (
+                <Skeleton.Row width="5rem" height="h-4" className="inline-block" />
+              ) : (
+                `${items.length} shown`
+              )}
+            </span>
+          }
+        />
+      )}
 
       <RequireRole role="ops">
         <IngestUploadPanel />

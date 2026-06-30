@@ -47,7 +47,14 @@ const DIRECTION_LABEL: Record<string, string> = {
   unknown: 'Unknown',
 };
 
-export function TransactionsPage(): JSX.Element {
+export interface TransactionsPageProps {
+  /** N3 — when rendered inside the Documents explorer, the parent already
+   *  shows the page title and segmented toggle. Suppress this page's own
+   *  PageHeader so the chrome doesn't stack. */
+  hideHeader?: boolean;
+}
+
+export function TransactionsPage({ hideHeader = false }: TransactionsPageProps = {}): JSX.Element {
   const [sp, setSp] = useSearchParams();
   const partnersKey = useTenantQueryKey('partners');
   const partnersConfigKey = useTenantQueryKey('partners-config');
@@ -101,19 +108,21 @@ export function TransactionsPage(): JSX.Element {
 
   return (
     <div>
-      <PageHeader
-        title="Transactions"
-        subtitle="Every decoded EDI transaction across your trading partners."
-        actions={
-          <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
-            {txQ.isLoading ? (
-              <Skeleton.Row width="5rem" height="h-4" className="inline-block" />
-            ) : (
-              `${items.length} shown`
-            )}
-          </span>
-        }
-      />
+      {hideHeader ? null : (
+        <PageHeader
+          title="Transactions"
+          subtitle="Every decoded EDI transaction across your trading partners."
+          actions={
+            <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
+              {txQ.isLoading ? (
+                <Skeleton.Row width="5rem" height="h-4" className="inline-block" />
+              ) : (
+                `${items.length} shown`
+              )}
+            </span>
+          }
+        />
+      )}
 
       {/* Filter controls — selects + PO input, in a Card-shaped strip. */}
       <Card className="mb-3">

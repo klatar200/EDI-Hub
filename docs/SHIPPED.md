@@ -4,7 +4,7 @@
 
 **Planning new work:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) · **Product overview:** [`README.md`](../README.md#features) · **AI rules:** [`AGENTS.md`](../AGENTS.md)
 
-**Last updated:** 2026-06-30 · All **PS-0–PS-12**, **PB-1–PB-8**, phases **0–10**, **desktop D1–D9**, and **UI Build Plan U0–U1** complete.
+**Last updated:** 2026-06-30 · All **PS-0–PS-12**, **PB-1–PB-8**, phases **0–10**, **desktop D1–D9**, and **UI Build Plan U0–U2** complete.
 
 ---
 
@@ -36,7 +36,7 @@
 | 10 | **M5** *code* | ✅ Code complete (deploy proof deferred — [`BUILD_PLAN.md` §4](../BUILD_PLAN.md#4-deploy-track--go-live-gate-deferred)) |
 | Desktop | D1–D9 | ✅ LAN server installer, auto-update |
 | UI overhaul | Sprint A3 | ✅ [§4](#4-ui-overhaul-sprint-a3) |
-| UI Build Plan | U0, U1 | ✅ [§4.1](#41-ui-build-plan-refresh--u0--u1) (U2–U5 open in [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md)) |
+| UI Build Plan | U0, U1, U2 | ✅ [§4.1](#41-ui-build-plan-refresh--u0--u1) (U3 gated on UI-1 ✅ / UI-3 ⏳; U4–U5 open in [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md)) |
 | 11–12 | **M6** | ⏳ Not started — [`BUILD_PLAN.md` §6](../BUILD_PLAN.md#6-phase-11--12--go-to-market) |
 
 ---
@@ -109,6 +109,22 @@
 | **T5** | Sticky `DataTable` headers — `overflow-clip` outer + `lg:overflow-x-visible` inner so sticky engages with page scroll; `top-12` to clear the layout nav | `apps/web/src/components/ui/DataTable.tsx` |
 | **S2** | Branched empty states on Alerts (narrowed / caught-up / pivoted-status) and inline Add-partner CTA in Partners | `AlertsPage.tsx`, `PartnersConfigPage.tsx` |
 | **S3** | Single loading idiom — `Skeleton.Row` shims on every in-page data fetch (list counters, expanded timelines, raw EDI panes, server-address fetches). Boot/auth splashes deliberately exempted. | Multiple |
+
+**U2 — Forms & detail polish:**
+
+| ID | Item | Evidence |
+|----|------|----------|
+| **N5**  | Breadcrumbs primitive (`<nav><ol>` with `aria-current="page"`, arrow on first link) wired into Lifecycle and Transaction detail pages | `apps/web/src/components/ui/Breadcrumbs.tsx`, `LifecyclePage.tsx`, `TransactionDetailPage.tsx` |
+| **T4**  | Edit/Delete on Partners and Remove on Users hidden behind `[@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100`; visible always on touch + in the a11y tree | `PartnersConfigPage.tsx`, `UsersPage.tsx` |
+| **FO1** | Custom Tabs primitive (WAI-ARIA + arrow / Home / End nav) + partner editor regrouped into 5 tabs (Identity / Sets & flow / SLAs & alerts / Connectivity / Notes & contacts) + sticky save bar | `apps/web/src/components/ui/Tabs.tsx`, `PartnersConfigPage.tsx` |
+| **FO2** | `Field` helper extended with `required` markers + inline `error`. Client `validateDraft` mirrors the server validator; API errors map server's `field` path back to the matching tab. Tab triggers carry error-count badges. | `PartnersConfigPage.tsx` |
+| **FO3** | Unsaved-changes guard: `JSON.stringify` baseline of the draft, `isDirty` `useMemo`, `beforeunload` listener while dirty, `confirmDiscard()` on Cancel / Edit-another / New / Delete-current. Warn-tone "Unsaved changes" pill. | `PartnersConfigPage.tsx` |
+
+**Gate decisions:**
+
+- **UI-1** (monitoring landing): resolved 2026-06-30 — keep BOTH Dashboard and Lifecycles as landing pages; each user picks via Settings; default Monitoring (`/dashboard`). Reshapes N2 into a per-user preference rather than collapsing the surfaces; partially supersedes ST2.
+- **UI-2** (component layer): de facto resolved — Radix (`Popover`, `DropdownMenu`) + hand-rolled (`Tabs`, `Breadcrumbs`) primitives co-exist under `apps/web/src/components/ui`. No new Radix deps added in U2.
+- **UI-3** (Transactions + Ingestions): still open — N3 blocked until resolved.
 
 ---
 

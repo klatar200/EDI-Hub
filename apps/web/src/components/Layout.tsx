@@ -131,11 +131,13 @@ export function Layout(): JSX.Element {
 
   // Primary nav — 5 destinations covering the day-to-day watch + the two
   // most-used drill-ins. Everything else moves into the More menu below.
+  // U3/N3 — "Documents" replaces the old "Transactions" slot; it now
+  // covers both parsed transactions and raw ingestions behind one toggle.
   const primaryNav: NavItem[] = [
     { to: '/lifecycles', label: 'Lifecycles' },
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/alerts', label: 'Alerts', badge: unread },
-    { to: '/transactions', label: 'Transactions' },
+    { to: '/documents', label: 'Documents' },
     { to: '/partners-config', label: 'Partners' },
   ];
   // Mobile keeps the old "Monitor / Explore / Configure" grouping for the
@@ -146,8 +148,7 @@ export function Layout(): JSX.Element {
     { to: '/alerts', label: 'Alerts', badge: unread },
   ];
   const exploreNav: NavItem[] = [
-    { to: '/transactions', label: 'Transactions' },
-    { to: '/ingestions', label: 'Ingestions' },
+    { to: '/documents', label: 'Documents' },
     { to: '/metrics', label: 'Metrics' },
   ];
   const configureNav: NavItem[] = [
@@ -160,9 +161,9 @@ export function Layout(): JSX.Element {
   ];
 
   // Overflow menu contents (desktop) — same items, regrouped to match what
-  // is NOT already in the primary bar.
+  // is NOT already in the primary bar. Ingestions used to live here on its
+  // own; it now folds into the primary "Documents" destination.
   const moreExplore: NavItem[] = [
-    { to: '/ingestions', label: 'Ingestions' },
     { to: '/metrics', label: 'Metrics' },
   ];
   const moreConfigure: NavItem[] = [
