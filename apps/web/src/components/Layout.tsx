@@ -29,6 +29,7 @@ import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { SearchBox } from './SearchBox.tsx';
 import { CommandPalette, useCommandPaletteHotkey } from './CommandPalette.tsx';
 import { AlertBell } from './AlertBell.tsx';
+import { SetupProgressIndicator } from './SetupProgressIndicator.tsx';
 import { DropdownMenu } from './ui';
 
 interface NavItem {
@@ -249,6 +250,8 @@ export function Layout(): JSX.Element {
               </DropdownMenu.Content>
             </DropdownMenu>
           </nav>
+
+          <SetupProgressIndicator />
 
           {/* Search + identity on the right */}
           <div className="ml-auto flex items-center gap-3" data-testid="auth-controls">

@@ -16,6 +16,7 @@ function fakeFetch(input: unknown): Promise<FakeResponse> {
   const url = String(input);
   if (url.includes('/partners-config')) return jsonResponse({ items: [] });
   if (url.includes('/partners')) return jsonResponse({ partners: ['ACME'] });
+  if (url.includes('/preferences')) return jsonResponse({ preferences: {} });
   if (url.includes('/transactions')) {
     return jsonResponse({
       items: [

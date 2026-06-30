@@ -25,6 +25,8 @@ import {
   useTableDisplayPrefs,
   type TableColumnDef,
 } from '../components/TableDisplayMenu.tsx';
+import { LifecycleMobileCards } from '../components/MobileTableCards.tsx';
+import { useMaxMd } from '../lib/useMediaQuery.ts';
 import { useApiReady, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
@@ -486,6 +488,7 @@ export function LifecyclesPage(): JSX.Element {
   const partnerDone = partners.length > 0;
   const ingestDone = setupQ.data?.hasIngested ?? false;
   const showOnboarding = !hasAnyFilter && (!partnerDone || !ingestDone);
+  const preferMobileCards = useMaxMd();
 
   return (
     <div>
@@ -721,6 +724,8 @@ export function LifecyclesPage(): JSX.Element {
         )
       ) : (
         <>
+          {preferMobileCards ? <LifecycleMobileCards items={items} /> : null}
+          {preferMobileCards ? null : (
           <DataTable density={density}>
             <DataTable.Thead>
               <DataTable.Tr>
@@ -760,6 +765,7 @@ export function LifecyclesPage(): JSX.Element {
               ))}
             </DataTable.Tbody>
           </DataTable>
+          )}
           <Pagination
             offset={(page - 1) * PAGE_SIZE}
             limit={PAGE_SIZE}

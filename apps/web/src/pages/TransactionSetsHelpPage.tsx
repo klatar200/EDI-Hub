@@ -1,18 +1,9 @@
 /**
  * PS-8 — Transaction set glossary (F59) + phased roadmap (F31).
  */
+import { EDI_GLOSSARY_ENTRIES } from '@edi/shared';
 import { PageHeader, Card } from '../components/ui';
-
-const SETS = [
-  { id: '850', name: 'Purchase Order', desc: 'Buyer sends a PO — line items, quantities, and requested delivery.' },
-  { id: '855', name: 'PO Acknowledgment', desc: 'Supplier confirms, changes, or rejects the PO (accept / reject / change).' },
-  { id: '856', name: 'Ship Notice / ASN', desc: 'Shipment notification with carton/pallet hierarchy and ship date.' },
-  { id: '810', name: 'Invoice', desc: 'Supplier invoice referencing the PO with amounts and line detail.' },
-  { id: '997', name: 'Functional Acknowledgment', desc: 'Technical ack that a functional group was received — includes AK3/AK4 errors.' },
-  { id: '860', name: 'PO Change', desc: 'Buyer revises an existing PO — references the original PO number (BCH).' },
-  { id: '875', name: 'Grocery PO', desc: 'Grocery-industry purchase order (BPO) — anchors the 875→880 grocery flow.' },
-  { id: '880', name: 'Grocery Invoice', desc: 'Grocery supplier invoice (BIG) referencing the grocery PO.' },
-];
+import { EdiTerm } from '../components/EdiTerm.tsx';
 
 const TIERS = [
   {
@@ -61,13 +52,13 @@ export function TransactionSetsHelpPage(): JSX.Element {
           Glossary
         </h2>
         <div className="grid gap-4">
-          {SETS.map((s) => (
-            <Card key={s.id} className="p-4">
+          {EDI_GLOSSARY_ENTRIES.filter((e) => /^\d+$/.test(e.term)).map((s) => (
+            <Card key={s.term} className="p-4">
               <div className="flex items-baseline gap-2">
-                <span className="font-mono text-lg font-semibold">{s.id}</span>
+                <EdiTerm term={s.term} className="font-mono text-lg font-semibold border-0" />
                 <span className="text-sm font-medium">{s.name}</span>
               </div>
-              <p className="mt-1 text-sm text-[var(--color-fg-muted)]">{s.desc}</p>
+              <p className="mt-1 text-sm text-[var(--color-fg-muted)]">{s.description}</p>
             </Card>
           ))}
         </div>

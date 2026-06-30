@@ -7,6 +7,7 @@ import { StatusBadge } from '../components/StatusBadge.tsx';
 import { RawParsedView } from '../components/RawParsedView.tsx';
 import { StageBadge, StageTimeline } from '../components/OutboundStage.tsx';
 import { Skeleton, Breadcrumbs } from '../components/ui';
+import { EdiTerm } from '../components/EdiTerm.tsx';
 
 export function TransactionDetailPage(): JSX.Element {
   const { id = '' } = useParams();
@@ -57,7 +58,7 @@ export function TransactionDetailPage(): JSX.Element {
               {
                 label: (
                   <span>
-                    <span className="font-mono">{t.transactionSetId}</span>
+                    <EdiTerm term={t.transactionSetId} className="font-mono border-0" />
                     {t.controlNumber ? <span className="ml-1.5 text-[var(--color-fg-muted)]">· {t.controlNumber}</span> : null}
                   </span>
                 ),
@@ -76,7 +77,7 @@ export function TransactionDetailPage(): JSX.Element {
         </div>
         <div className="mt-1 flex items-center gap-3">
           <h1 className="text-xl font-semibold text-[var(--color-fg)]">
-            <span className="font-mono">{t.transactionSetId}</span> · {t.controlNumber}
+            <EdiTerm term={t.transactionSetId} className="font-mono border-0" /> · {t.controlNumber}
           </h1>
           <StatusBadge status={t.status} />
           <StageBadge stage={t.outboundStage} />

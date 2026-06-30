@@ -14,6 +14,8 @@ import type { RawFileRecord } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { buildParseErrorReport } from '../lib/parse-error-report.ts';
 import { IngestUploadPanel } from '../components/IngestUploadPanel.tsx';
+import { IngestionMobileCards } from '../components/MobileTableCards.tsx';
+import { useMaxMd } from '../lib/useMediaQuery.ts';
 import { RequireRole, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useToast } from '../lib/useToast.tsx';
@@ -68,6 +70,7 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
     },
   });
   const items = q.data?.items ?? [];
+  const preferMobileCards = useMaxMd();
 
   function setFilter(key: string, value: string | undefined): void {
     const next = new URLSearchParams(sp);
@@ -164,6 +167,15 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
           action={hasAnyFilter ? <button className="btn" onClick={clearAll}>Clear filters</button> : null}
         />
       ) : (
+        <>
+        {preferMobileCards ? (
+          <IngestionMobileCards
+            items={items}
+            isOps={isOps}
+            onReparse={(id) => reparseM.mutate(id)}
+          />
+        ) : null}
+        {preferMobileCards ? null : (
         <DataTable>
           <DataTable.Thead>
             <DataTable.Tr>
@@ -228,6 +240,8 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
             ))}
           </DataTable.Tbody>
         </DataTable>
+        )}
+        </>
       )}
     </div>
   );

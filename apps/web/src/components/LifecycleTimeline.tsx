@@ -14,6 +14,7 @@ import { api } from '../lib/api.ts';
 import { LifecycleRawPanel } from './LifecycleRawPanel.tsx';
 import { DuplicateComparePanel } from './DuplicateComparePanel.tsx';
 import { StatusPill, type StatusTone, Card, EmptyState } from './ui';
+import { EdiTerm } from './EdiTerm.tsx';
 import { OutboundLifecycleBadges } from './OutboundStage.tsx';
 
 const STATUS_LABEL: Record<LifecycleStatus, string> = {
@@ -158,13 +159,16 @@ function TimelineRow({
           <Card.Content className={`space-y-2 ${compact ? '!p-2' : '!p-3'}`}>
             <div className="flex flex-wrap items-center gap-2">
               <span
-                className={`inline-block min-w-[3rem] rounded-md px-2 py-0.5 text-center font-mono text-sm font-semibold ${
+                className={`inline-block min-w-[3rem] rounded-md px-2 py-0.5 text-center ${
                   isGap
                     ? 'bg-[var(--color-warn-500)]/15 text-[var(--color-warn-700)]'
                     : 'bg-[var(--color-surface-muted)] text-[var(--color-fg)]'
                 }`}
               >
-                {event.transactionSetId}
+                <EdiTerm
+                  term={event.transactionSetId}
+                  className="border-0 font-mono text-sm font-semibold"
+                />
               </span>
 
               {showDuplicateBadge ? (

@@ -145,6 +145,7 @@ export function TableDisplayMenu({
           <button
             type="button"
             data-testid="table-columns-trigger"
+            aria-label="Choose visible table columns"
             className="inline-flex items-center gap-1.5 rounded-md border border-[var(--color-surface-border)] px-2.5 py-1.5 text-xs font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30"
           >
             Columns

@@ -22,6 +22,7 @@ import { App } from './App.tsx';
 import { DesktopLanRoot } from './DesktopLanRoot.tsx';
 import { ThemeProvider, useTheme } from './lib/useTheme.tsx';
 import { ToastProvider } from './lib/useToast.tsx';
+import { TooltipProvider } from './components/ui/Tooltip.tsx';
 import './index.css';
 
 const queryClient = new QueryClient({
@@ -101,9 +102,11 @@ if (clerkKeyMissing() && isDesktopRuntime()) {
                 fire success/error toasts via useToast(). Above BrowserRouter
                 so the viewport persists across route changes. */}
             <ToastProvider>
-              <BrowserRouter>
-                <App />
-              </BrowserRouter>
+              <TooltipProvider>
+                <BrowserRouter>
+                  <App />
+                </BrowserRouter>
+              </TooltipProvider>
             </ToastProvider>
           </QueryClientProvider>
         </ThemedClerk>

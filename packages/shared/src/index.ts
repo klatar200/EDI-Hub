@@ -981,3 +981,12 @@ export function partnerSetupStatus(p: {
     total: checks.length,
   };
 }
+
+export {
+  EDI_GLOSSARY,
+  EDI_GLOSSARY_ENTRIES,
+  lookupEdiGlossary,
+} from './edi-glossary.js';
+export type { EdiGlossaryEntry } from './edi-glossary.js';
+export { hubSetupStatus } from './hub-setup-status.js';
+export type { HubSetupCheck, HubSetupStatusResult } from './hub-setup-status.js';

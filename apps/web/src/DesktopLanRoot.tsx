@@ -7,6 +7,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { setAuthTokenGetter } from './lib/api.ts';
 import { ThemeProvider } from './lib/useTheme.tsx';
 import { ToastProvider } from './lib/useToast.tsx';
+import { TooltipProvider } from './components/ui/Tooltip.tsx';
 import { AppRoutes } from './AppRoutes.tsx';
 import { MeProvider } from './lib/useRole.tsx';
 import { OrgCacheReset } from './components/OrgCacheReset.tsx';
@@ -71,7 +72,8 @@ export function DesktopLanRoot(): JSX.Element {
     <ThemeProvider>
       <QueryClientProvider client={queryClient}>
         <ToastProvider>
-          <BrowserRouter>
+          <TooltipProvider>
+            <BrowserRouter>
             <LanTokenGate>
               <OrgCacheReset />
               <MeProvider orgId={DESKTOP_ORG_ID}>
@@ -79,6 +81,7 @@ export function DesktopLanRoot(): JSX.Element {
               </MeProvider>
             </LanTokenGate>
           </BrowserRouter>
+          </TooltipProvider>
         </ToastProvider>
       </QueryClientProvider>
     </ThemeProvider>

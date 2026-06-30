@@ -20,6 +20,8 @@ import {
   useTableDisplayPrefs,
   type TableColumnDef,
 } from '../components/TableDisplayMenu.tsx';
+import { TransactionMobileCards } from '../components/MobileTableCards.tsx';
+import { useMaxMd } from '../lib/useMediaQuery.ts';
 import {
   PageHeader,
   DataTable,
@@ -128,6 +130,7 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
   const configured = partnersConfigQ.data?.items ?? [];
   const claimed = new Set(configured.flatMap((p) => [...p.isaSenderIds, ...p.isaReceiverIds]));
   const inferred = (partnersQ.data?.partners ?? []).filter((id) => !claimed.has(id));
+  const preferMobileCards = useMaxMd();
 
   return (
     <div>
@@ -236,6 +239,9 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
           action={hasAnyFilter ? <button className="btn" onClick={clearAll}>Clear filters</button> : null}
         />
       ) : (
+        <>
+        {preferMobileCards ? <TransactionMobileCards items={items} /> : null}
+        {preferMobileCards ? null : (
         <DataTable density={density}>
           <DataTable.Thead>
             <DataTable.Tr>
@@ -304,6 +310,8 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
             ))}
           </DataTable.Tbody>
         </DataTable>
+        )}
+        </>
       )}
 
       <Pagination

@@ -1,7 +1,7 @@
 # UI/UX Build Plan
 
 **Owner:** Keagan
-**Status:** Live — **U0, U1, U2, U3 shipped · U4 shipped** · U5 not started. All three decision gates resolved.
+**Status:** Live — **U0–U4 shipped · U5 shipped**. All three decision gates resolved.
 **Purpose:** Implement the UI/UX review recommendations as a sequenced, demoable plan, consistent with the project's existing phase conventions.
 
 > Companion to [`BUILD_PLAN.md`](../BUILD_PLAN.md). This plan is **UI-only unless an item is explicitly flagged "backend"**. Most items reuse the existing CSS-var tokens and `apps/web/src/components/ui` primitives.
@@ -42,10 +42,10 @@
 | **S1** | Status color/token audit (one meaning per color) | ✅ |
 | **S2** | Empty states with a next action everywhere | ✅ |
 | **S3** | One loading idiom (Skeleton everywhere) | ✅ |
-| **O1** | Inline EDI jargon tooltips | ⏳ |
-| **O2** | Persistent setup-progress indicator | ⏳ |
-| **AC1** | Accessibility pass | ⏳ |
-| **AC2** | Mobile card-view fallback for dense tables | ⏳ |
+| **O1** | Inline EDI jargon tooltips | ✅ |
+| **O2** | Persistent setup-progress indicator | ✅ |
+| **AC1** | Accessibility pass | ✅ |
+| **AC2** | Mobile card-view fallback for dense tables | ✅ |
 | **ST1** | Standardize on one component layer (shadcn/Radix) | ✅ — pragmatic mix: Radix (`Popover`, `DropdownMenu`) + hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`) under `apps/web/src/components/ui`. |
 | **ST2** | Role-aware landing page | ⛔ — declined per UI-1 (global default = Monitoring; user opt-in via Settings). |
 | **ST3** | Header alert bell | ✅ |
@@ -151,14 +151,14 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 
 **Goal:** lower the EDI learning curve and meet a11y / mobile basics.
 **Effort:** ~1.5–2 weeks.
-**Status:** ⏳ Not started.
+**Status:** ✅ Shipped 2026-06-30 — O1, O2, AC1, AC2 complete.
 
 | ID | Item | Approach | Effort | Status |
 |----|------|----------|--------|--------|
-| **O1** | Inline jargon tooltips | Hover-definitions for 850/855/856/810/997, ISA, AK5 inline (uses ST1 Tooltip + existing glossary content). | M | ⏳ |
-| **O2** | Setup-progress indicator | Persistent "Setup: 2/4" until partner + ISA IDs + channel configured; builds on the onboarding checklist + `partnerSetupStatus`. | S–M | ⏳ |
-| **AC1** | Accessibility pass | Focus rings, aria-labels on icon-only buttons, dark-mode contrast, keyboard nav for tables/menus/dialogs. | M–L | ⏳ |
-| **AC2** | Mobile table fallback | Card-view layout (or explicit horizontal-scroll affordance) for dense tables below `md`. | M–L | ⏳ |
+| **O1** | Inline jargon tooltips | Hover-definitions for 850/855/856/810/997, ISA, AK5 inline (uses ST1 Tooltip + existing glossary content). | M | ✅ `@radix-ui/react-tooltip` + `EdiTerm`; canonical `EDI_GLOSSARY` in `@edi/shared`; wired into timeline, transaction detail, mobile cards, Help glossary. |
+| **O2** | Setup-progress indicator | Persistent "Setup: 2/4" until partner + ISA IDs + channel configured; builds on the onboarding checklist + `partnerSetupStatus`. | S–M | ✅ `hubSetupStatus` + `SetupProgressIndicator` in layout header; popover checklist links to fix routes. |
+| **AC1** | Accessibility pass | Focus rings, aria-labels on icon-only buttons, dark-mode contrast, keyboard nav for tables/menus/dialogs. | M–L | ✅ Global `focus-visible` already in `index.css`; added aria-labels on table column menu, saved-view delete, ingestion mobile actions; Radix Tooltip keyboard-focusable. |
+| **AC2** | Mobile table fallback | Card-view layout (or explicit horizontal-scroll affordance) for dense tables below `md`. | M–L | ✅ `LifecycleMobileCards`, `TransactionMobileCards`, `IngestionMobileCards` below `md`; tables `hidden md:block`. |
 
 **Exit:** jargon explained inline; visible setup progress; a11y + mobile basics in place.
 
@@ -173,7 +173,7 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 | **U2** | FO1, FO2, FO3, N5, T4 | Forms & detail polish | — | ✅ |
 | **U3** | N2, N3, ST2 | IA consolidation | UI-1, UI-3 | ✅ |
 | **U4** | N4, T2, T3, ST3 | Power features | UI-2 (for N4) | ✅ |
-| **U5** | O1, O2, AC1, AC2 | Guidance, a11y, responsive | UI-2 (for O1) | ⏳ |
+| **U5** | O1, O2, AC1, AC2 | Guidance, a11y, responsive | UI-2 (for O1) | ✅ |
 
 ---
 

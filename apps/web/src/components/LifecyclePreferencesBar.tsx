@@ -146,6 +146,7 @@ export function SavedViewsBar({
           className="rounded-full bg-[var(--color-surface-muted)] px-2 py-0.5 text-xs text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-border)]"
           data-testid={`delete-view-${v.id}`}
           title={`Delete “${v.name}”`}
+          aria-label={`Delete saved view ${v.name}`}
           onClick={() => deleteView(v.id)}
         >
           {v.name} ×
