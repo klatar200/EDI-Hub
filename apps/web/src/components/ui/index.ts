@@ -39,3 +39,5 @@ export { Modal } from './Modal.tsx';
 export { Sparkline } from './Sparkline.tsx';
 export { Popover } from './Popover.tsx';
 export { DropdownMenu } from './DropdownMenu.tsx';
+export { Breadcrumbs } from './Breadcrumbs.tsx';
+export type { BreadcrumbItem } from './Breadcrumbs.tsx';

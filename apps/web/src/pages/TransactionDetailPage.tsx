@@ -6,7 +6,7 @@ import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { StatusBadge } from '../components/StatusBadge.tsx';
 import { RawParsedView } from '../components/RawParsedView.tsx';
 import { StageBadge, StageTimeline } from '../components/OutboundStage.tsx';
-import { Skeleton } from '../components/ui';
+import { Skeleton, Breadcrumbs } from '../components/ui';
 
 export function TransactionDetailPage(): JSX.Element {
   const { id = '' } = useParams();
@@ -47,13 +47,24 @@ export function TransactionDetailPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <div>
+        {/* N5 — breadcrumb gives the page an explicit "up" path. The current
+            page's label mirrors the h1 ("<set> · <control>"). The cross-link
+            to the parent PO lifecycle stays on the right of the row. */}
         <div className="flex items-center justify-between gap-3">
-          <Link to="/" className="inline-flex items-center gap-1 text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]">
-            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-              <path d="M15 18l-6-6 6-6" />
-            </svg>
-            Transactions
-          </Link>
+          <Breadcrumbs
+            items={[
+              { to: '/transactions', label: 'Transactions', testId: 'breadcrumb-transactions' },
+              {
+                label: (
+                  <span>
+                    <span className="font-mono">{t.transactionSetId}</span>
+                    {t.controlNumber ? <span className="ml-1.5 text-[var(--color-fg-muted)]">· {t.controlNumber}</span> : null}
+                  </span>
+                ),
+                testId: 'breadcrumb-current',
+              },
+            ]}
+          />
           {t.poNumber ? (
             <Link
               to={`/lifecycle/${encodeURIComponent(t.poNumber)}`}

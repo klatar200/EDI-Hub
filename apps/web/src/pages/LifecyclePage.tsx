@@ -36,6 +36,7 @@ import {
   ErrorState,
   EmptyState,
   Skeleton,
+  Breadcrumbs,
 } from '../components/ui';
 
 export function LifecyclePage(): JSX.Element {
@@ -60,18 +61,16 @@ export function LifecyclePage(): JSX.Element {
 
   return (
     <div className="space-y-6">
-      {/* Back link + PageHeader with prominent PO + entry metadata + Print action */}
-      <div className="print:hidden">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1 text-sm text-[var(--color-fg-muted)] hover:text-[var(--color-fg)]"
-        >
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          Lifecycles
-        </Link>
-      </div>
+      {/* N5 — breadcrumb gives the page an explicit "up" path. The
+          PageHeader title still carries the styled "Lifecycle · <id>"
+          treatment, so the breadcrumb stays compact (parent + identifier). */}
+      <Breadcrumbs
+        className="print:hidden"
+        items={[
+          { to: '/lifecycles', label: 'Lifecycles', testId: 'breadcrumb-lifecycles' },
+          { label: <span className="font-mono">{value}</span>, testId: 'breadcrumb-current' },
+        ]}
+      />
       <PageHeader
         title={
           <span className="flex items-baseline gap-2">
