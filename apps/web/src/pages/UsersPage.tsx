@@ -90,7 +90,7 @@ export function UsersPage(): JSX.Element {
             {items.map((u) => {
               const isSelf = me?.id === u.id;
               return (
-                <DataTable.Tr key={u.id}>
+                <DataTable.Tr key={u.id} className="group">
                   <DataTable.Td mono>{u.email}</DataTable.Td>
                   <DataTable.Td>
                     {u.displayName ?? <span className="text-[var(--color-fg-subtle)]">—</span>}
@@ -118,18 +118,25 @@ export function UsersPage(): JSX.Element {
                       {isSelf ? (
                         <span className="text-xs text-[var(--color-fg-subtle)]">(you)</span>
                       ) : (
-                        <button
-                          type="button"
-                          data-testid={`remove-user-${u.id}`}
-                          className="text-xs text-[var(--color-error-700)] hover:underline"
-                          onClick={() => {
-                            if (confirm(`Revoke ${u.email}'s access to this tenant?`)) {
-                              remove.mutate(u.id);
-                            }
-                          }}
-                        >
-                          Remove
-                        </button>
+                        // T4 — Hide the destructive Remove action behind row hover
+                        // on devices that can hover; keep it visible on touch and
+                        // for keyboard focus (focus-within). Opacity-0 keeps it in
+                        // the a11y tree, so the existing remove-user-<id> testid
+                        // and screen-reader announcements are unchanged.
+                        <span className="inline-flex justify-end opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                          <button
+                            type="button"
+                            data-testid={`remove-user-${u.id}`}
+                            className="text-xs text-[var(--color-error-700)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--color-error-500)]/30 rounded"
+                            onClick={() => {
+                              if (confirm(`Revoke ${u.email}'s access to this tenant?`)) {
+                                remove.mutate(u.id);
+                              }
+                            }}
+                          >
+                            Remove
+                          </button>
+                        </span>
                       )}
                     </RequireRole>
                   </DataTable.Td>

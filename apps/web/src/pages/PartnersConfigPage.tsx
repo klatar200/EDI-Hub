@@ -306,7 +306,7 @@ export function PartnersConfigPage(): JSX.Element {
             {items.map((p: TradingPartnerRecord) => {
               const channel = p.connectivity?.channel;
               return (
-                <DataTable.Tr key={p.id}>
+                <DataTable.Tr key={p.id} className="group">
                   <DataTable.Td>
                     <span className="font-semibold text-[var(--color-fg)]">{p.displayName}</span>
                   </DataTable.Td>
@@ -336,22 +336,28 @@ export function PartnersConfigPage(): JSX.Element {
                   </DataTable.Td>
                   {isAdmin ? (
                     <DataTable.Td className="text-right">
-                      <button
-                        type="button"
-                        className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
-                        onClick={() => setEditing({ id: p.id, draft: fromRecord(p) })}
-                      >
-                        Edit
-                      </button>
-                      <button
-                        type="button"
-                        className="ml-3 text-sm text-[var(--color-error-700)] hover:underline"
-                        onClick={() => {
-                          if (window.confirm(`Delete partner "${p.displayName}"?`)) deleteM.mutate(p.id);
-                        }}
-                      >
-                        Delete
-                      </button>
+                      {/* T4 — Row actions hidden by default on hover-capable
+                          devices; revealed on row hover or keyboard focus.
+                          Stays visible on touch (no hover) and for screen
+                          readers (opacity-0 doesn't hide from a11y tree). */}
+                      <span className="inline-flex items-center justify-end gap-3 opacity-100 transition-opacity [@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                        <button
+                          type="button"
+                          className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 rounded"
+                          onClick={() => setEditing({ id: p.id, draft: fromRecord(p) })}
+                        >
+                          Edit
+                        </button>
+                        <button
+                          type="button"
+                          className="text-sm text-[var(--color-error-700)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--color-error-500)]/30 rounded"
+                          onClick={() => {
+                            if (window.confirm(`Delete partner "${p.displayName}"?`)) deleteM.mutate(p.id);
+                          }}
+                        >
+                          Delete
+                        </button>
+                      </span>
                     </DataTable.Td>
                   ) : null}
                 </DataTable.Tr>
