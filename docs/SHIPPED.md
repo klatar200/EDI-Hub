@@ -4,7 +4,7 @@
 
 **Planning new work:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) · **Product overview:** [`README.md`](../README.md#features) · **AI rules:** [`AGENTS.md`](../AGENTS.md)
 
-**Last updated:** 2026-06-28 · All **PS-0–PS-12**, **PB-1–PB-8**, phases **0–10**, and **desktop D1–D9** complete.
+**Last updated:** 2026-06-30 · All **PS-0–PS-12**, **PB-1–PB-8**, phases **0–10**, **desktop D1–D9**, and **UI Build Plan U0–U1** complete.
 
 ---
 
@@ -14,6 +14,7 @@
 2. [Product sprints (PS-0–PS-12)](#2-product-sprints-ps-0ps-12)
 3. [Backlog sprints (PB-1–PB-8)](#3-backlog-sprints-pb-1pb-8)
 4. [UI overhaul (Sprint A3)](#4-ui-overhaul-sprint-a3)
+   - [4.1 UI Build Plan refresh — U0 / U1](#41-ui-build-plan-refresh--u0--u1)
 5. [Remediation & ADRs (accepted)](#5-remediation--adrs-accepted)
 6. [Feature matrix (F1–F62)](#6-feature-matrix-f1f62)
 7. [Product backlog history](#7-product-backlog-history)
@@ -35,6 +36,7 @@
 | 10 | **M5** *code* | ✅ Code complete (deploy proof deferred — [`BUILD_PLAN.md` §4](../BUILD_PLAN.md#4-deploy-track--go-live-gate-deferred)) |
 | Desktop | D1–D9 | ✅ LAN server installer, auto-update |
 | UI overhaul | Sprint A3 | ✅ [§4](#4-ui-overhaul-sprint-a3) |
+| UI Build Plan | U0, U1 | ✅ [§4.1](#41-ui-build-plan-refresh--u0--u1) (U2–U5 open in [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md)) |
 | 11–12 | **M6** | ⏳ Not started — [`BUILD_PLAN.md` §6](../BUILD_PLAN.md#6-phase-11--12--go-to-market) |
 
 ---
@@ -85,6 +87,28 @@
 | **C — Components** | **C1** shadcn on Lifecycle + Alerts | Card, StatusPill, PageHeader |
 
 **Deliverables:** Vertical lifecycle timeline (gaps, duplicates, AK detail, inline raw); alerts row (partner chip, SLA pill, lifecycle link, ack/snooze).
+
+### 4.1 UI Build Plan refresh — U0 / U1
+
+**Status:** ✅ Done (2026-06-30). Companion plan: [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md). U2–U5 deferred.
+
+**U0 — Foundations & decisions:**
+
+| ID | Item | Evidence |
+|----|------|----------|
+| **ST1** | Radix `Popover` + `DropdownMenu` wrappers under `apps/web/src/components/ui` | `Popover.tsx`, `DropdownMenu.tsx` |
+| **S1**  | Status-tone semantic map (one meaning per color) extracted from `StatusPill` | `apps/web/src/components/ui/status-tones.ts` |
+| — | IA + component-layer ADR | [`adr/0003`](adr/0003-ui-foundations-and-component-layer.md) |
+
+**U1 — Nav & quick wins:**
+
+| ID | Item | Evidence |
+|----|------|----------|
+| **N1** | Primary nav cut to 5 destinations (Lifecycles, Dashboard, Alerts, Transactions, Partners); overflow → `More` dropdown grouped Explore / Configure / Admin | `apps/web/src/components/Layout.tsx` |
+| **T1** | Lifecycles' 8 narrow-the-list filters collapsed into a Filters popover with active-count badge; Sort + Needs-attention stay inline | `apps/web/src/pages/LifecyclesPage.tsx` |
+| **T5** | Sticky `DataTable` headers — `overflow-clip` outer + `lg:overflow-x-visible` inner so sticky engages with page scroll; `top-12` to clear the layout nav | `apps/web/src/components/ui/DataTable.tsx` |
+| **S2** | Branched empty states on Alerts (narrowed / caught-up / pivoted-status) and inline Add-partner CTA in Partners | `AlertsPage.tsx`, `PartnersConfigPage.tsx` |
+| **S3** | Single loading idiom — `Skeleton.Row` shims on every in-page data fetch (list counters, expanded timelines, raw EDI panes, server-address fetches). Boot/auth splashes deliberately exempted. | Multiple |
 
 ---
 
