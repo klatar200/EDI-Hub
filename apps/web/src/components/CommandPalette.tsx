@@ -210,7 +210,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
       onClick={onBackdropClick}
       aria-label="Command palette"
       data-testid="command-palette"
-      className="w-full max-w-xl rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-0 text-[var(--color-fg)] shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm"
+      className="m-0 w-[calc(100vw-2rem)] max-h-[90dvh] overflow-hidden rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-0 text-[var(--color-fg)] shadow-2xl backdrop:bg-black/40 backdrop:backdrop-blur-sm sm:w-full sm:max-w-xl"
     >
       <div onKeyDown={onKeyDown}>
         <div className="border-b border-[var(--color-surface-border)] px-3 py-2">

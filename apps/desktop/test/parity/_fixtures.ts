@@ -74,6 +74,14 @@ const LIFECYCLE = {
   po: 'PO-12345',
   enteredBy: { kind: 'po', value: 'PO-12345' },
   flow: 'standard',
+  dueDate: '20260615',
+  linkedPos: [],
+  partner: {
+    id: 'partner-acme',
+    displayName: 'ACME Foods',
+    slaCountdownEnabled: true,
+    slaWindows: [{ setId: '850', direction: 'outbound', withinMinutes: 1440 }],
+  },
   events: [
     {
       kind: 'transaction',
@@ -191,6 +199,63 @@ const ALERTS = {
   ],
 };
 
+const LIFECYCLES_LIST = {
+  items: [
+    {
+      po: 'PO-12345',
+      partnerId: 'partner-acme',
+      partnerDisplayName: 'ACME Foods',
+      flow: 'standard',
+      startedAt: FIXED_ISO,
+      lastActivityAt: FIXED_ISO,
+      received: 3,
+      missing: 1,
+      rejected: 0,
+      openAlertCount: 1,
+      hasParseError: false,
+      hasDuplicates: false,
+      additionalDocumentCount: 0,
+      expectedWarnings: ['856 inbound expected'],
+      slaSummary: null,
+      dueDate: '20260615',
+    },
+  ],
+  page: 1,
+  pageSize: 25,
+  total: 1,
+};
+
+const PREFERENCES = {
+  preferences: {},
+};
+
+const SETTINGS = {
+  settings: {
+    staleTrafficWindowHours: 24,
+    slaCountdownEnabled: false,
+    quietHoursStart: null,
+    quietHoursEnd: null,
+    emailDigestEnabled: false,
+    emailDigestHourUtc: 8,
+    mutedAlertTypes: [],
+  },
+  canEdit: true,
+};
+
+const SETUP = {
+  desktopMode: false,
+  firstRunComplete: true,
+  hasIngested: true,
+  dropFolderPath: null,
+  ourIsaIds: ['OURS'],
+  server: { redirectOrigins: ['http://localhost:5173'] },
+};
+
+/** SetupProgressIndicator in the header polls channel health on every page. */
+const CHANNELS = {
+  channels: [],
+};
+
 interface MockRoute {
   pattern: string;
   body: unknown;
@@ -201,8 +266,13 @@ const ROUTES: MockRoute[] = [
   { pattern: '**/api/partners', body: PARTNERS },
   { pattern: '**/api/partners-config*', body: PARTNERS_CONFIG },
   { pattern: '**/api/transactions*', body: TRANSACTIONS },
-  { pattern: '**/api/lifecycle*', body: LIFECYCLE },
+  { pattern: '**/api/lifecycle?*', body: LIFECYCLE },
+  { pattern: '**/api/lifecycles*', body: LIFECYCLES_LIST },
   { pattern: '**/api/alerts*', body: ALERTS },
+  { pattern: '**/api/preferences*', body: PREFERENCES },
+  { pattern: '**/api/settings*', body: SETTINGS },
+  { pattern: '**/api/setup*', body: SETUP },
+  { pattern: '**/api/channels*', body: CHANNELS },
 ];
 
 /** Install all fixture routes onto the page. Call once in `beforeEach`.

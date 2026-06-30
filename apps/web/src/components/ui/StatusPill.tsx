@@ -10,7 +10,7 @@
  *   <StatusPill tone="error">REJECTED</StatusPill>
  *   <StatusPill tone="warn"  size="sm">Stale</StatusPill>
  */
-import type { ReactNode } from 'react';
+import { isValidElement, type ReactNode } from 'react';
 
 export type StatusTone = 'neutral' | 'success' | 'warn' | 'error' | 'info' | 'brand';
 export type StatusSize = 'sm' | 'md';
@@ -35,22 +35,37 @@ interface StatusPillProps {
   /** Optional dot indicator on the left — useful when the tone alone is
    *  the signal and the label is supplementary. */
   withDot?: boolean;
+  /** Tooltip for truncated labels — defaults to plain-text children. */
+  title?: string;
   children: ReactNode;
+}
+
+function plainTextLabel(children: ReactNode): string | undefined {
+  if (typeof children === 'string' || typeof children === 'number') {
+    return String(children);
+  }
+  if (isValidElement(children) && typeof children.props.children === 'string') {
+    return children.props.children;
+  }
+  return undefined;
 }
 
 export function StatusPill({
   tone = 'neutral',
   size = 'md',
   withDot = false,
+  title,
   children,
 }: StatusPillProps): JSX.Element {
+  const tooltip = title ?? plainTextLabel(children);
   return (
     <span
-      className={`inline-flex items-center gap-1.5 rounded-full ring-1 ring-inset whitespace-nowrap ${toneClasses[tone]} ${sizeClasses[size]}`}
+      className={`inline-flex max-w-full min-w-0 items-center gap-1.5 rounded-full ring-1 ring-inset ${toneClasses[tone]} ${sizeClasses[size]}`}
+      title={tooltip}
     >
       {withDot ? (
         <span
-          className={`h-1.5 w-1.5 rounded-full ${
+          className={`h-1.5 w-1.5 shrink-0 rounded-full ${
             tone === 'success' ? 'bg-[var(--color-success-500)]'
             : tone === 'warn'  ? 'bg-[var(--color-warn-500)]'
             : tone === 'error' ? 'bg-[var(--color-error-500)]'
@@ -60,7 +75,7 @@ export function StatusPill({
           }`}
         />
       ) : null}
-      {children}
+      <span className="min-w-0 truncate">{children}</span>
     </span>
   );
 }

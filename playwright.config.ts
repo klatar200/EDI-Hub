@@ -1,5 +1,6 @@
 /**
  * D5 Sprint 1 — Playwright parity test harness.
+ * UR6/R36 — responsive-viewports.spec.ts adds 375/768/1280/1920 snapshots.
  *
  * Locks UI consistency between the web build (Vite dev) and the LAN-server
  * desktop build (Fastify-served apps/web/dist on :3000). The two should

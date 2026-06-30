@@ -34,6 +34,7 @@ export type { SortDirection } from './DataTable.tsx';
 export { Pagination } from './Pagination.tsx';
 export { FilterChip, FilterChipRow } from './FilterChip.tsx';
 export { FilterToolbar } from './FilterToolbar.tsx';
+export { FullBleed } from './FullBleed.tsx';
 export { Skeleton, Shimmer } from './Skeleton.tsx';
 export { Input, Select, Textarea, Switch, Label, FormField } from './forms.tsx';
 export { Modal } from './Modal.tsx';

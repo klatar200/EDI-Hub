@@ -37,7 +37,7 @@ export function AuditPage(): JSX.Element {
           />
         </FormField>
       </Card>
-      {q.isLoading ? <Skeleton.Table rows={6} columnWidths={['25%', '25%', '25%', '25%']} /> : null}
+      {q.isLoading ? <Skeleton.List rows={6} columnWidths={['25%', '25%', '25%', '25%']} /> : null}
       {q.isError ? (
         <ErrorState
           title="Could not load audit log"

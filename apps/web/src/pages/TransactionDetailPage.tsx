@@ -6,7 +6,7 @@ import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { StatusBadge } from '../components/StatusBadge.tsx';
 import { RawParsedView } from '../components/RawParsedView.tsx';
 import { StageBadge, StageTimeline } from '../components/OutboundStage.tsx';
-import { Skeleton, Breadcrumbs } from '../components/ui';
+import { Skeleton, Breadcrumbs, FullBleed } from '../components/ui';
 import { EdiTerm } from '../components/EdiTerm.tsx';
 
 export function TransactionDetailPage(): JSX.Element {
@@ -173,9 +173,11 @@ export function TransactionDetailPage(): JSX.Element {
         </section>
       )}
 
-      <section className="rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4 shadow-xs">
-        <RawParsedView detail={t as TransactionDetail} />
-      </section>
+      <FullBleed className="bg-[var(--color-surface-muted)]/25 py-4">
+        <section className="layout-shell rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-4 shadow-xs">
+          <RawParsedView detail={t as TransactionDetail} />
+        </section>
+      </FullBleed>
     </div>
   );
 }

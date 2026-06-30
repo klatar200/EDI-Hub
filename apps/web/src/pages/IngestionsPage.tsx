@@ -108,7 +108,7 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
         <IngestUploadPanel />
       </RequireRole>
 
-      <Card className="mb-3">
+      <Card className="container-panel mb-3">
         <div className="p-3">
           <FilterToolbar
             activeSecondaryCount={secondaryFilterCount}
@@ -162,7 +162,7 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
       </FilterChipRow>
 
       {q.isLoading ? (
-        <Skeleton.Table rows={6} columnWidths={['30%', '14%', '14%', '20%']} />
+        <Skeleton.List rows={6} columnWidths={['30%', '14%', '14%', '20%']} />
       ) : q.isError ? (
         <ErrorState
           title="Could not load ingestions"

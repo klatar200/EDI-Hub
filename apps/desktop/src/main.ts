@@ -43,6 +43,12 @@ import { registerFolderPickerIpc } from './folder-picker.js';
 import { installFileLogger } from './file-logger.js';
 import { installUpdateLogger, logBootPhase } from './update-logger.js';
 import { loadClerkRuntimeEnv } from './clerk-runtime.js';
+import {
+  loadWindowBounds,
+  saveWindowBounds,
+  WINDOW_MIN_HEIGHT,
+  WINDOW_MIN_WIDTH,
+} from './window-bounds.js';
 
 // Electron resolves `app.getPath('userData')` from `app.getName()`, which
 // defaults to package.json `name` (`@edi/desktop`) — NOT electron-builder's
@@ -377,9 +383,15 @@ let mainWindow: BrowserWindow | null = null;
 async function openMainWindow(): Promise<void> {
   const here = __dirname;
   const preloadPath = join(here, 'preload.js');
+  const userData = app.getPath('userData');
+  const saved = loadWindowBounds(userData);
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 800,
+    width: saved.width,
+    height: saved.height,
+    x: saved.x,
+    y: saved.y,
+    minWidth: WINDOW_MIN_WIDTH,
+    minHeight: WINDOW_MIN_HEIGHT,
     show: false, // shown after the renderer loads to avoid the flash of unstyled chrome
     webPreferences: {
       contextIsolation: true,
@@ -387,6 +399,14 @@ async function openMainWindow(): Promise<void> {
       sandbox: false, // preload uses contextBridge; sandbox: true would block the require we use
       preload: preloadPath,
     },
+  });
+  if (saved.isMaximized) mainWindow.maximize();
+  mainWindow.on('close', () => {
+    if (!mainWindow || mainWindow.isDestroyed()) return;
+    saveWindowBounds(userData, {
+      ...mainWindow.getBounds(),
+      isMaximized: mainWindow.isMaximized(),
+    });
   });
   mainWindow.once('ready-to-show', () => mainWindow?.show());
   mainWindow.once('closed', () => { mainWindow = null; });

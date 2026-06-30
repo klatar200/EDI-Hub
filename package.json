@@ -26,6 +26,8 @@
     "test": "npm run test --workspaces --if-present",
     "test:ci": "npm run db:generate && npm run typecheck && npm run lint && npm run test --workspace=@edi/db && npm run test --workspace=@edi/edi-parser && npm run test --workspace=@edi/api && npm run test --workspace=@edi/web && npm run test --workspace=@edi/desktop && npm run build --workspace=@edi/web",
     "test:parity": "playwright test --project=web --project=desktop",
+    "test:parity:responsive": "playwright test --project=web responsive-viewports.spec.ts",
+    "test:parity:responsive:update": "playwright test --project=web responsive-viewports.spec.ts --update-snapshots",
     "test:parity:setup": "playwright test --project=setup",
     "test:parity:update": "playwright test --project=web --project=desktop --update-snapshots",
     "dev:api": "npm run dev --workspace=apps/api",

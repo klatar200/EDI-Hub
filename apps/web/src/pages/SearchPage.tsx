@@ -66,7 +66,7 @@ export function SearchPage(): JSX.Element {
       />
 
       {query.isLoading ? (
-        <Skeleton.Table rows={3} columnWidths={['20%', '40%', '20%', '20%']} />
+        <Skeleton.List rows={3} columnWidths={['20%', '40%', '20%', '20%']} />
       ) : query.isError ? (
         <ErrorState
           title="Search failed"

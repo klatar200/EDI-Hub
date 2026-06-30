@@ -132,6 +132,38 @@ npm run smoke --workspace=@edi/api
 
 ---
 
+## Responsive UI checklist (UR6 / R37)
+
+After layout or breakpoint changes, resize the hub through these widths and spot-check chrome + one list + one detail page. Use the browser devtools device toolbar or drag the window edge.
+
+| Width | Breakpoint | What to verify |
+|-------|------------|----------------|
+| **375px** | Mobile | Hamburger nav opens; filters collapse to **Filters** popover; list pages show **cards** not tables; toasts span full width |
+| **768px** | Tablet | Header wraps cleanly; filter toolbar still usable; cards below `lg` |
+| **1280px** | Laptop | Horizontal top nav; **tables** with sticky header; command palette centered |
+| **1920px** | Ultra-wide | **Left sidebar** nav (`2xl+`); lifecycle detail **summary panel**; dashboard stat grid uses full width |
+
+Press **`?`** (or the **?** button in the header) for keyboard shortcuts — **`/`** focuses search, **`Ctrl+K` / `⌘K`** opens the command palette.
+
+**Pages to exercise manually**
+
+1. **Layout** — `/documents` (header: search, alerts bell, org switcher)
+2. **Table/list** — `/documents?view=parsed` or `/lifecycles` (cards vs table flip at 1024px)
+3. **Detail** — `/lifecycle/<po>` (timeline + side panel at 1920px)
+4. **Forms** — `/partners-config` editor grids stack on narrow widths
+
+**Automated parity (R36)** — Playwright snapshots at the same four widths (requires Clerk session — see [`.auth/README.md`](../.auth/README.md)):
+
+```powershell
+npm run test:parity:responsive
+# After an intentional visual change:
+npm run test:parity:responsive:update
+```
+
+CI runs the full parity suite (including responsive matrix) when `CLERK_PARITY_STATE_B64` is configured.
+
+---
+
 ## What you are NOT doing (until go-live)
 
 - `terraform apply` / AWS RDS / S3 / ALB / ECS

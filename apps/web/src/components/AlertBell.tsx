@@ -61,7 +61,7 @@ export function AlertBell(): JSX.Element {
           type="button"
           data-testid="alert-bell-trigger"
           aria-label={unread > 0 ? `${unread} unread alerts` : 'Alerts'}
-          className="relative inline-flex h-8 w-8 items-center justify-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30"
+          className="relative inline-flex h-11 w-11 items-center justify-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30"
         >
           <svg aria-hidden viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
             <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9" />
@@ -77,14 +77,14 @@ export function AlertBell(): JSX.Element {
           ) : null}
         </button>
       </Popover.Trigger>
-      <Popover.Content align="end" className="w-[min(380px,90vw)] p-0">
+      <Popover.Content align="end" className="w-[min(380px,90vw)] overflow-hidden p-0">
         <div className="border-b border-[var(--color-surface-border)] px-3 py-2">
           <h2 className="text-sm font-semibold text-[var(--color-fg)]">Active alerts</h2>
           <p className="text-xs text-[var(--color-fg-muted)]">
             {unread === 0 ? 'Nothing needs attention right now.' : `${unread} open`}
           </p>
         </div>
-        <div data-testid="alert-bell-peek" className="max-h-80 overflow-y-auto">
+        <div data-testid="alert-bell-peek" className="max-h-[min(20rem,70dvh)] overflow-y-auto">
           {activeAlerts.isLoading ? (
             <p className="px-3 py-4 text-sm text-[var(--color-fg-muted)]">Loading…</p>
           ) : peekItems.length === 0 ? (
@@ -160,7 +160,7 @@ function AlertPeekRow({
             <button
               type="button"
               data-testid={`alert-bell-ack-${alert.id}`}
-              className="rounded border border-[var(--color-surface-border)] px-2 py-0.5 text-xs font-medium hover:bg-[var(--color-surface-muted)] disabled:opacity-50"
+              className="inline-flex min-h-11 min-w-11 items-center justify-center rounded-md border border-[var(--color-surface-border)] px-3 text-xs font-medium hover:bg-[var(--color-surface-muted)] disabled:opacity-50"
               disabled={pending}
               onClick={onAck}
             >

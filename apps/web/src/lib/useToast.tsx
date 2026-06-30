@@ -125,7 +125,7 @@ function ToastViewport({
     <div
       aria-live="polite"
       aria-atomic="true"
-      className="pointer-events-none fixed bottom-4 right-4 z-50 flex w-full max-w-sm flex-col gap-2"
+      className="pointer-events-none fixed bottom-4 left-4 right-4 z-50 flex flex-col gap-2 sm:left-auto sm:right-4 sm:w-full sm:max-w-sm safe-area-bottom"
     >
       {toasts.map((t) => (
         <ToastCard key={t.id} toast={t} onDismiss={() => onDismiss(t.id)} />

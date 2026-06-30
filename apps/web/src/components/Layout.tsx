@@ -3,7 +3,7 @@
  *
  * UR1 — responsive header wrap, progressive chrome collapse, mobile nav drawer.
  */
-import { useRef } from 'react';
+import { useRef, useState, useCallback } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { OrganizationSwitcher, UserButton } from '@clerk/react';
@@ -13,10 +13,13 @@ import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { useSyncHeaderHeight } from '../lib/useSyncHeaderHeight.ts';
 import { SearchBox } from './SearchBox.tsx';
 import { CommandPalette, useCommandPaletteHotkey } from './CommandPalette.tsx';
+import { KeyboardShortcutsOverlay, useGlobalKeyboardHotkeys } from './KeyboardShortcutsOverlay.tsx';
+import { modKeyLabel } from '../lib/keyboard.ts';
 import { AlertBell } from './AlertBell.tsx';
 import { SetupProgressIndicator } from './SetupProgressIndicator.tsx';
 import { MobileNavDrawer } from './MobileNavDrawer.tsx';
 import type { MobileNavItem } from './MobileNavDrawer.tsx';
+import { DesktopSidebar } from './DesktopSidebar.tsx';
 import { DropdownMenu } from './ui';
 
 interface NavItem {
@@ -85,6 +88,10 @@ export function Layout(): JSX.Element {
   const navigate = useNavigate();
   const isAdmin = useHasRole('admin');
   const [paletteOpen, setPaletteOpen] = useCommandPaletteHotkey();
+  const [shortcutsOpen, setShortcutsOpen] = useState(false);
+  const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
+  useGlobalKeyboardHotkeys({ onOpenShortcuts: openShortcuts });
+  const modKey = modKeyLabel();
 
   const alertsBadgeKey = useTenantQueryKey('alerts', 'active', 'unread-badge');
   const activeAlerts = useQuery({
@@ -149,14 +156,24 @@ export function Layout(): JSX.Element {
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-bg)] text-[var(--color-fg)]">
+      <a href="#main-content" className="skip-link">
+        Skip to content
+      </a>
+      <div className="2xl:flex 2xl:min-h-screen">
+        <DesktopSidebar
+          monitorNav={monitorNav}
+          exploreNav={exploreNav}
+          configureNav={configureNav}
+        />
+        <div className="flex min-w-0 flex-1 flex-col">
       <header
         ref={headerRef}
         className="sticky top-0 z-30 border-b border-[var(--color-surface-border)] bg-[var(--color-surface-card)]/95 backdrop-blur"
       >
-        <div className="layout-shell flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:gap-x-4">
+        <div className="layout-shell flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:gap-x-4 2xl:justify-end">
           <NavLink
             to="/"
-            className="flex min-w-0 shrink-0 items-center gap-2 text-[15px] font-semibold tracking-tight text-[var(--color-fg)] hover:text-[var(--color-brand-700)]"
+            className="flex min-w-0 shrink-0 items-center gap-2 text-[15px] font-semibold tracking-tight text-[var(--color-fg)] hover:text-[var(--color-brand-700)] 2xl:hidden"
           >
             <span
               aria-hidden
@@ -167,7 +184,7 @@ export function Layout(): JSX.Element {
             <span className="truncate sm:max-w-none">EDI Hub</span>
           </NavLink>
 
-          <nav className="hidden min-w-0 items-center gap-1 lg:flex" aria-label="Primary">
+          <nav className="hidden min-w-0 items-center gap-1 lg:flex 2xl:hidden" aria-label="Primary">
             {primaryNav.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
@@ -215,7 +232,7 @@ export function Layout(): JSX.Element {
             </DropdownMenu>
           </nav>
 
-          <div className="min-w-0 shrink">
+          <div className="min-w-0 shrink 2xl:hidden">
             <SetupProgressIndicator />
           </div>
 
@@ -228,7 +245,7 @@ export function Layout(): JSX.Element {
               onClick={() => setPaletteOpen(true)}
               data-testid="open-command-palette"
               aria-label="Open command palette"
-              className="hidden h-9 w-9 shrink-0 items-center justify-center rounded-md border border-[var(--color-surface-border)] text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex md:w-auto md:gap-2 md:px-2"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--color-surface-border)] text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex md:h-9 md:w-auto md:gap-2 md:px-2"
             >
               <svg aria-hidden viewBox="0 0 24 24" className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                 <circle cx="11" cy="11" r="7" />
@@ -236,13 +253,22 @@ export function Layout(): JSX.Element {
               </svg>
               <span className="hidden text-xs md:inline">Jump to…</span>
               <kbd className="hidden rounded border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] px-1 font-mono text-[10px] lg:inline">
-                ⌘K
+                {modKey}K
               </kbd>
+            </button>
+            <button
+              type="button"
+              onClick={openShortcuts}
+              data-testid="open-keyboard-shortcuts"
+              aria-label="Keyboard shortcuts"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--color-surface-border)] text-sm font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex md:h-9 md:w-9"
+            >
+              <span aria-hidden>?</span>
             </button>
             <SearchBox />
             <AlertBell />
             <span aria-hidden className="hidden h-5 w-px shrink-0 bg-[var(--color-surface-border)] md:block" />
-            <div className="min-w-0 max-w-[8rem] shrink md:max-w-[10rem] lg:max-w-none">
+            <div className="min-w-0 max-w-[min(10rem,100%)] shrink md:max-w-[10rem] lg:max-w-none">
               <OrganizationSwitcher
                 hidePersonal
                 afterSelectOrganizationUrl="/"
@@ -268,23 +294,28 @@ export function Layout(): JSX.Element {
       </header>
 
       <CommandPalette open={paletteOpen} onClose={() => setPaletteOpen(false)} />
+      <KeyboardShortcutsOverlay open={shortcutsOpen} onClose={() => setShortcutsOpen(false)} />
 
       {showDropBanner ? (
         <div
-          className="border-b border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-[var(--layout-gutter-x)] py-2 text-center text-sm text-[var(--color-brand-800)]"
+          className="border-b border-[var(--color-brand-200)] bg-[var(--color-brand-50)] px-[var(--layout-gutter-x)] py-2 text-center text-sm leading-relaxed text-[var(--color-brand-800)] sm:py-2.5"
           data-testid="drop-folder-banner"
         >
-          Drop an EDI file into{' '}
-          <code className="rounded bg-white/60 px-1.5 py-0.5 font-mono text-xs break-all">
-            {setupQ.data!.dropFolderPath}
-          </code>{' '}
-          to ingest it.
+          <p className="flex flex-wrap items-center justify-center gap-x-1 gap-y-1">
+            <span>Drop an EDI file into</span>
+            <code className="rounded bg-white/60 px-1.5 py-0.5 font-mono text-xs break-all">
+              {setupQ.data!.dropFolderPath}
+            </code>
+            <span>to ingest it.</span>
+          </p>
         </div>
       ) : null}
 
       <main id="main-content" className="layout-shell py-6">
         <Outlet />
       </main>
+        </div>
+      </div>
     </div>
   );
 }

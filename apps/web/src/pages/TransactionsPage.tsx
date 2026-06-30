@@ -160,7 +160,7 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
       )}
 
       {/* Filter controls — selects + PO input, in a Card-shaped strip. */}
-      <Card className="mb-3">
+      <Card className="container-panel mb-3">
         <div className="p-3">
           <FilterToolbar
             activeSecondaryCount={secondaryFilterCount}
@@ -241,7 +241,7 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
       </FilterChipRow>
 
       {txQ.isLoading ? (
-        <Skeleton.Table rows={6} columnWidths={['8%', '20%', '14%', '14%', '12%', '20%', '12%']} />
+        <Skeleton.List rows={6} columnWidths={['8%', '20%', '14%', '14%', '12%', '20%', '12%']} />
       ) : txQ.isError ? (
         <ErrorState
           title="Could not load transactions"

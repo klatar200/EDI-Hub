@@ -75,7 +75,7 @@ export function MetricsPage(): JSX.Element {
       />
 
       {q.isLoading ? (
-        <Skeleton.Table rows={4} columnWidths={['25%', '15%', '15%', '15%', '30%']} />
+        <Skeleton.List rows={4} columnWidths={['25%', '15%', '15%', '15%', '30%']} />
       ) : q.isError ? (
         <ErrorState
           title="Could not load metrics"

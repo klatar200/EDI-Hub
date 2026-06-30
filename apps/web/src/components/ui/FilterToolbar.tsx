@@ -54,10 +54,10 @@ export function FilterToolbar({
             <Popover.Content
               align="start"
               sideOffset={6}
-              className="w-[min(640px,90vw)]"
+              className="w-[min(640px,90vw)] container-panel"
               data-testid="filters-popover"
             >
-              <div className="grid grid-cols-1 gap-3">{secondary}</div>
+              <div className="filter-panel-grid">{secondary}</div>
             </Popover.Content>
           </Popover>
         ) : (

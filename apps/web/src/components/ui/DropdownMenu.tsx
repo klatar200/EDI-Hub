@@ -38,7 +38,7 @@ const Content = forwardRef<
         ref={ref}
         align={align}
         sideOffset={sideOffset}
-        className={`z-50 min-w-[10rem] overflow-hidden rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-1 text-sm text-[var(--color-fg)] shadow-lg outline-none ${className}`}
+        className={`z-50 max-h-[min(24rem,70dvh)] min-w-[10rem] overflow-y-auto rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-1 text-sm text-[var(--color-fg)] shadow-lg outline-none ${className}`}
         {...props}
       >
         {children}

@@ -22,6 +22,7 @@ import {
   Skeleton,
   FormField,
   Select,
+  FullBleed,
 } from '../components/ui';
 
 const INGEST_WINDOWS: { value: DashboardIngestWindow; label: string }[] = [
@@ -91,7 +92,8 @@ export function DashboardPage(): JSX.Element {
         />
       ) : (
         <>
-          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <div className="container-panel">
+            <div className="dashboard-stat-grid">
             <Card>
               <Card.Content className="!p-4">
                 <h2 className="text-sm font-medium text-[var(--color-fg-muted)]">Traffic silence</h2>
@@ -168,10 +170,12 @@ export function DashboardPage(): JSX.Element {
                 </Link>
               </Card.Content>
             </Card>
+            </div>
           </div>
 
           {d.recentFailures.length > 0 ? (
-            <section data-testid="recent-failures">
+            <FullBleed className="bg-[var(--color-surface-muted)]/30 py-4">
+            <section className="layout-shell" data-testid="recent-failures">
               <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Recent ingest failures</h2>
               {preferMobileCards ? (
                 <DashboardFailureMobileCards items={d.recentFailures} />
@@ -201,9 +205,11 @@ export function DashboardPage(): JSX.Element {
                 Open triage →
               </Link>
             </section>
+            </FullBleed>
           ) : null}
 
-          <section>
+          <FullBleed className="bg-[var(--color-surface-muted)]/20 py-4">
+          <section className="layout-shell">
             <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Partner health</h2>
             {preferMobileCards ? (
               <DashboardPartnerHealthMobileCards items={d.partnerHealth} />
@@ -257,6 +263,7 @@ export function DashboardPage(): JSX.Element {
             </DataTable>
             )}
           </section>
+          </FullBleed>
         </>
       )}
     </div>

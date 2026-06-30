@@ -536,7 +536,7 @@ export function LifecyclesPage(): JSX.Element {
         }
       />
 
-      <Card className="mb-3">
+      <Card className="container-panel mb-3">
         <LifecycleViewTabs
           value={viewTab}
           pinnedCount={pinnedPos.length}
@@ -570,10 +570,10 @@ export function LifecyclesPage(): JSX.Element {
             <Popover.Content
               align="start"
               sideOffset={6}
-              className="w-[min(640px,90vw)]"
+              className="w-[min(640px,90vw)] container-panel"
               data-testid="filters-popover"
             >
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div className="filter-panel-grid">
                 <FormField label="Partner">
                   <Select
                     size="sm"
@@ -701,7 +701,7 @@ export function LifecyclesPage(): JSX.Element {
       </FilterChipRow>
 
       {listQ.isLoading ? (
-        <Skeleton.Table rows={6} columnWidths={['18%', '14%', '10%', '14%', '14%', '14%', '8%', '8%']} />
+        <Skeleton.List rows={6} columnWidths={['18%', '14%', '10%', '14%', '14%', '14%', '8%', '8%']} />
       ) : listQ.isError ? (
         <ErrorState
           title="Could not load lifecycles"

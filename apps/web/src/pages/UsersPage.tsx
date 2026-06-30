@@ -59,7 +59,7 @@ export function UsersPage(): JSX.Element {
       />
 
       {q.isLoading ? (
-        <Skeleton.Table rows={5} columnWidths={['35%', '25%', '15%', '15%']} />
+        <Skeleton.List rows={5} columnWidths={['35%', '25%', '15%', '15%']} />
       ) : q.isError ? (
         <ErrorState
           title="Could not load users"

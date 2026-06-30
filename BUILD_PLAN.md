@@ -59,12 +59,12 @@
 | **UR1** | Header wrap, drawer nav, PageHeader | R5, R7, R8, R10, R12, R38–R40 | ✅ |
 | **UR2** | Tables + pagination | R13–R17, R41–R45 | ✅ |
 | **UR3** | Forms, detail pages, filters | R18–R25, R46–R52 | ✅ |
-| **UR4** | Electron + overlays + a11y | R26–R32, R53–R56, R58 | ⏳ **Next** |
-| **UR5** | Ultra-wide layouts | R4, R33–R35 | ⏳ |
-| **UR6** | Playwright viewports + checklist | R36, R37 | ⏳ |
-| **UR7** | Polish | R57, R59, R60 | ⏳ |
+| **UR4** | Electron + overlays + a11y | R26–R32, R53–R56, R58 | ✅ |
+| **UR5** | Ultra-wide layouts | R4, R33–R35 | ✅ |
+| **UR6** | Playwright viewports + checklist | R36, R37 | ✅ |
+| **UR7** | Polish | R57, R59, R60 | ✅ |
 
-**Exit (responsiveness track):** All UR sprints ✅ · `npm run test:ci` green · parity snapshots updated at 375 / 768 / 1280 / 1920 (R36).
+**Exit (responsiveness track):** UR0–UR7 ✅ · `npm run test:ci` green · parity snapshots at 375 / 768 / 1280 / 1920 (R36).
 
 ---
 

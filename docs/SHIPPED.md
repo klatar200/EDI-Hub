@@ -156,6 +156,23 @@
 
 **Nothing left in the UI Build Plan.** Optional future UI polish lives in [`BUILD_PLAN.md` §5](../BUILD_PLAN.md#5-future--optional-features).
 
+**UR0–UR6 — UI responsiveness** (2026-06-30):
+
+| Sprint | Focus | Key IDs |
+|--------|--------|---------|
+| **UR0** | Layout tokens + fluid shell | R1, R2, R3, R9 |
+| **UR1** | Header wrap, drawer nav, PageHeader | R5, R7, R8, R10, R12, R38–R40 |
+| **UR2** | Tables + pagination | R13–R17, R41–R45 |
+| **UR3** | Forms, detail pages, filters | R18–R25, R46–R52 |
+| **UR4** | Electron + overlays + a11y | R26–R32, R53–R56, R58 |
+| **UR5** | Ultra-wide layouts | R4, R33–R35 |
+| **UR6** | Playwright viewports + checklist | R36, R37 |
+| **UR7** | Polish | R57, R59, R60 |
+
+Full catalog and decision log: [`docs/UI_RESPONSIVE_PLAN.md`](UI_RESPONSIVE_PLAN.md). Responsiveness track **complete** (UR0–UR7).
+
+**Declined:** **R6** — search stays always-visible (`w-64`); no icon-expand pattern.
+
 ---
 
 ## 5. Remediation & ADRs (accepted)

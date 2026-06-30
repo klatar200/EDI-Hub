@@ -28,7 +28,7 @@ export function Pagination({
   if (offset === 0 && count === 0) return null;
 
   const stickyClass = stickyMobile
-    ? 'max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:-mx-[var(--layout-gutter-x)] max-lg:border-t max-lg:border-[var(--color-surface-border)] max-lg:bg-[var(--color-surface-card)]/95 max-lg:px-[var(--layout-gutter-x)] max-lg:py-3 max-lg:backdrop-blur'
+    ? 'max-lg:sticky max-lg:bottom-0 max-lg:z-10 max-lg:-mx-[var(--layout-gutter-x)] max-lg:border-t max-lg:border-[var(--color-surface-border)] max-lg:bg-[var(--color-surface-card)]/95 max-lg:px-[var(--layout-gutter-x)] max-lg:py-3 max-lg:backdrop-blur safe-area-bottom'
     : '';
 
   return (

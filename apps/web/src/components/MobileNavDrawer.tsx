@@ -90,7 +90,7 @@ export function MobileNavDrawer({
     <>
       <button
         type="button"
-        className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 lg:hidden"
+        className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-md text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 lg:hidden"
         aria-label="Open navigation menu"
         aria-expanded={open}
         data-testid="mobile-nav-toggle"

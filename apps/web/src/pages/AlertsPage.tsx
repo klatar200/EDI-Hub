@@ -246,7 +246,7 @@ export function AlertsPage(): JSX.Element {
         }
       />
 
-      <Card className="mb-3">
+      <Card className="container-panel mb-3">
         <div className="p-3">
           <FilterToolbar
             activeSecondaryCount={secondaryFilterCount}

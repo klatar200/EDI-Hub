@@ -449,7 +449,7 @@ export function PartnersConfigPage(): JSX.Element {
       />
 
       {listQ.isLoading ? (
-        <Skeleton.Table rows={4} columnWidths={['20%', '20%', '15%', '10%', '10%', '12%', '13%']} />
+        <Skeleton.List rows={4} columnWidths={['20%', '20%', '15%', '10%', '10%', '12%', '13%']} />
       ) : listQ.isError ? (
         <ErrorState
           title="Could not load partners"
@@ -791,7 +791,7 @@ export function PartnersConfigPage(): JSX.Element {
                 be many rows). `sticky bottom-0` works because the Card
                 doesn't establish a sticky-scroll ancestor. */}
             <div
-              className="sticky bottom-0 z-10 mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--color-surface-border)] bg-[var(--color-surface-card)]/95 px-4 py-3 backdrop-blur"
+              className="safe-area-bottom sticky bottom-0 z-10 mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--color-surface-border)] bg-[var(--color-surface-card)]/95 px-4 py-3 backdrop-blur"
               data-testid="partner-editor-save-bar"
             >
               {/* FO2 — Field-level problems are shown inline next to the offending

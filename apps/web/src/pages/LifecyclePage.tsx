@@ -30,6 +30,7 @@ const FLOW_LABEL: Record<LifecycleResponse['flow'], string> = {
 import { api, type LifecycleKey } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { LifecycleTimeline } from '../components/LifecycleTimeline.tsx';
+import { LifecycleSummaryPanel } from '../components/LifecycleSummaryPanel.tsx';
 import { LifecycleExportMenu } from '../components/LifecycleExportMenu.tsx';
 import {
   PageHeader,
@@ -147,7 +148,12 @@ export function LifecyclePage(): JSX.Element {
               ))}
             </div>
           ) : null}
-          <LifecycleTimeline events={q.data.events} po={q.data.po} showDownloadRaw />
+          <div className="grid gap-6 2xl:grid-cols-[minmax(0,1fr)_18rem] 2xl:items-start">
+            <LifecycleTimeline events={q.data.events} po={q.data.po} showDownloadRaw />
+            <div className="hidden 2xl:block">
+              <LifecycleSummaryPanel data={q.data} />
+            </div>
+          </div>
         </>
       )}
     </div>

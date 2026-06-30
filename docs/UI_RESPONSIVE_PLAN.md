@@ -1,7 +1,7 @@
 # UI Responsiveness Plan
 
 **Owner:** Keagan  
-**Status:** 🚧 **In progress** — UR0–UR3 shipped; UR4–UR7 remaining. All catalog items **R1–R60** approved except **R6** declined.  
+**Status:** ✅ **Complete** — UR0–UR7 shipped. All catalog items **R1–R60** approved except **R6** declined.  
 **Scope:** Web app (`apps/web`) and desktop app (Electron loads the same bundle via `DesktopLanRoot` / `App`).  
 **Purpose:** Make the hub **use the full window** at every size — fluid shell, adaptive nav, and page-level layouts — without regressing U0–U5 shipped work.
 
@@ -200,10 +200,10 @@ Phases include **✅ OK** round-1 items only. Round-2 items slot into the matchi
 | **UR1** | Header + nav | R5, R7, R8, R10, R12, R38–R40 | ✅ Shipped |
 | **UR2** | Tables | R13–R17, R41–R45 | ✅ Shipped |
 | **UR3** | Forms & detail | R18–R25, R46–R52 | ✅ Shipped |
-| **UR4** | Desktop + a11y | R26–R32, R53–R56, R58 | ⏳ **Next** |
-| **UR5** | Large / ultra-wide | R4, R33–R35 | ⏳ |
-| **UR6** | Verification | R36, R37 | ⏳ |
-| **UR7** | Polish bundle | R57, R59, R60 + any stragglers | ⏳ |
+| **UR4** | Desktop + a11y | R26–R32, R53–R56, R58 | ✅ Shipped |
+| **UR5** | Large / ultra-wide | R4, R33–R35 | ✅ Shipped |
+| **UR6** | Verification | R36, R37 | ✅ Shipped |
+| **UR7** | Polish bundle | R57, R59, R60 + any stragglers | ✅ Shipped |
 
 **UR1 note:** Search remains a always-visible `w-64` input per owner preference. Header wrap (R5) + progressive collapse (R7) handle crowding; optional R38–R40 if approved.
 
@@ -220,6 +220,10 @@ Phases include **✅ OK** round-1 items only. Round-2 items slot into the matchi
 | 2026-06-30 | UR1 | ✅ Shipped | R5, R7, R8, R10, R12, R38–R40 — header wrap, drawer nav, PageHeader, breadcrumbs |
 | 2026-06-30 | UR2 | ✅ Shipped | R13–R17, R41–R45 — lg card breakpoint, mobile cards all lists, scroll affordance, pagination |
 | 2026-06-30 | UR3 | ✅ Shipped | R18–R25, R46–R52 — partner grids, detail pages, FilterToolbar, modal mobile sizing |
+| 2026-06-30 | UR4 | ✅ Shipped | R26–R32, R53–R56, R58 — window bounds, skip link, touch targets, overlays, reduced motion |
+| 2026-06-30 | UR5 | ✅ Shipped | R4, R33–R35 — FullBleed, 2xl sidebar, lifecycle summary panel, container queries |
+| 2026-06-30 | UR6 | ✅ Shipped | R36, R37 — Playwright viewport matrix + LOCAL_DEV resize checklist |
+| 2026-06-30 | UR7 | ✅ Shipped | R57, R59, R60 — keyboard shortcuts overlay, CLS skeletons, StatusPill truncate |
 
 ---
 
