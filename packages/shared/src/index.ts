@@ -835,6 +835,15 @@ export interface SavedView {
   query: string;
 }
 
+/** U4/T3 — per-table display preferences (column visibility + row density). */
+export type TableDensity = 'comfortable' | 'compact';
+
+export interface TableColumnPrefs {
+  /** Column ids hidden by the user. Required columns (e.g. PO) cannot be hidden. */
+  hiddenColumns?: string[];
+  density?: TableDensity;
+}
+
 export interface UserPreferences {
   savedViews?: SavedView[];
   /** F43 — max 10 pinned PO numbers. */
@@ -842,6 +851,11 @@ export interface UserPreferences {
   /** UI-1 — page to land on when opening the hub. Personal to the user;
    *  default 'dashboard' (Monitoring). */
   defaultLanding?: 'dashboard' | 'lifecycles';
+  /** U4/T3 — column + density prefs keyed by table id. */
+  tablePrefs?: {
+    lifecycles?: TableColumnPrefs;
+    transactions?: TableColumnPrefs;
+  };
 }
 
 export interface UserPreferencesResponse {

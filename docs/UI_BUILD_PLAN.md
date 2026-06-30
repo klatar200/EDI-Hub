@@ -1,7 +1,7 @@
 # UI/UX Build Plan
 
 **Owner:** Keagan
-**Status:** Live — **U0, U1, U2, U3 shipped · U4 in flight (N4 done)** · U5 not started. All three decision gates resolved.
+**Status:** Live — **U0, U1, U2, U3 shipped · U4 shipped** · U5 not started. All three decision gates resolved.
 **Purpose:** Implement the UI/UX review recommendations as a sequenced, demoable plan, consistent with the project's existing phase conventions.
 
 > Companion to [`BUILD_PLAN.md`](../BUILD_PLAN.md). This plan is **UI-only unless an item is explicitly flagged "backend"**. Most items reuse the existing CSS-var tokens and `apps/web/src/components/ui` primitives.
@@ -32,8 +32,8 @@
 | **N4** | Command palette (Cmd-K) | ✅ |
 | **N5** | Breadcrumbs / back affordance on detail pages | ✅ |
 | **T1** | Collapse Lifecycles filter row into a Filters popover | ✅ |
-| **T2** | Saved views as segmented tabs | ⏳ |
-| **T3** | Column + density controls on big tables | ⏳ |
+| **T2** | Saved views as segmented tabs | ✅ |
+| **T3** | Column + density controls on big tables | ✅ |
 | **T4** | Hover-revealed row actions | ✅ |
 | **T5** | Sticky table headers | ✅ |
 | **FO1** | Partner editor → tabs/accordion + sticky save bar | ✅ |
@@ -48,7 +48,7 @@
 | **AC2** | Mobile card-view fallback for dense tables | ⏳ |
 | **ST1** | Standardize on one component layer (shadcn/Radix) | ✅ — pragmatic mix: Radix (`Popover`, `DropdownMenu`) + hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`) under `apps/web/src/components/ui`. |
 | **ST2** | Role-aware landing page | ⛔ — declined per UI-1 (global default = Monitoring; user opt-in via Settings). |
-| **ST3** | Header alert bell | ⏳ |
+| **ST3** | Header alert bell | ✅ |
 
 ---
 
@@ -134,14 +134,14 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 
 **Goal:** speed for daily operators; reduce reliance on the nav bar.
 **Effort:** ~1.5 weeks.
-**Status:** 🚧 In flight — N4 shipped 2026-06-30; T2 / T3 / ST3 pending.
+**Status:** ✅ Shipped 2026-06-30 — N4, T2, T3, ST3 complete.
 
 | ID | Item | Approach | Effort | Status |
 |----|------|----------|--------|--------|
 | **N4** | Command palette (Cmd-K) | Fuzzy jump to any PO, partner, page, or action (uses the ST1 Command primitive + existing search API). | M–L | ✅ Custom `CommandPalette` + `useCommandPaletteHotkey`. Static pages filter inline; debounced `/search` populates Lifecycle / Transaction / Raw-file sections. Header "Jump to… ⌘K" hint button. |
-| **T2** | Saved-view tabs | Render saved lifecycle views as segmented tabs ("All / Needs attention / Mine") at the top of the list. | M | ⏳ |
-| **T3** | Column + density controls | Per-user column hide/show + comfortable/compact toggle on Transactions and Lifecycles (persist in preferences). | M | ⏳ |
-| **ST3** | Header alert bell | Unread-count bell with a quick peek + ack, complementing the Alerts page. | M | ⏳ |
+| **T2** | Saved-view tabs | Render saved lifecycle views as segmented tabs ("All / Needs attention / Mine") at the top of the list. | M | ✅ `LifecycleViewTabs` at top of filter card; Mine uses `pinnedOnly` + `pinnedPos`; custom views stay in `SavedViewsBar`. |
+| **T3** | Column + density controls | Per-user column hide/show + comfortable/compact toggle on Transactions and Lifecycles (persist in preferences). | M | ✅ `TableDisplayMenu` + `UserPreferences.tablePrefs`; `DataTable` `density` prop. |
+| **ST3** | Header alert bell | Unread-count bell with a quick peek + ack, complementing the Alerts page. | M | ✅ `AlertBell` in layout header; peek top 5 active alerts; ops can ack inline. |
 
 **Exit:** Cmd-K navigates; saved-view tabs; column/density prefs persist; alert bell live.
 
@@ -172,7 +172,7 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 | **U1** | N1, T1, T5, S2, S3 | Nav & quick wins | — | ✅ |
 | **U2** | FO1, FO2, FO3, N5, T4 | Forms & detail polish | — | ✅ |
 | **U3** | N2, N3, ST2 | IA consolidation | UI-1, UI-3 | ✅ |
-| **U4** | N4, T2, T3, ST3 | Power features | UI-2 (for N4) | 🚧 N4 done; T2/T3/ST3 pending |
+| **U4** | N4, T2, T3, ST3 | Power features | UI-2 (for N4) | ✅ |
 | **U5** | O1, O2, AC1, AC2 | Guidance, a11y, responsive | UI-2 (for O1) | ⏳ |
 
 ---

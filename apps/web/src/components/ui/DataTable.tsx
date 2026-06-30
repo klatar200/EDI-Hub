@@ -28,13 +28,19 @@ export type SortDirection = 'asc' | 'desc' | null;
 
 interface DataTableProps {
   className?: string;
+  /** U4/T3 — row padding; compact tightens th/td spacing. */
+  density?: 'comfortable' | 'compact';
   /** When true, alternating rows get a subtle muted background. Off by default;
    *  the hover state usually gives enough row separation. */
   zebra?: boolean;
   children: ReactNode;
 }
 
-export function DataTable({ className = '', children }: DataTableProps): JSX.Element {
+export function DataTable({ className = '', density = 'comfortable', children }: DataTableProps): JSX.Element {
+  const densityClass =
+    density === 'compact'
+      ? '[&_th]:px-3 [&_th]:py-1.5 [&_td]:px-3 [&_td]:py-1.5'
+      : '';
   // T5 — sticky header support.
   //
   // Two scroll-container traps to avoid:
@@ -53,7 +59,7 @@ export function DataTable({ className = '', children }: DataTableProps): JSX.Ele
       className={`overflow-clip rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs ${className}`}
     >
       <div className="overflow-x-auto lg:overflow-x-visible">
-        <table className="w-full text-sm">{children}</table>
+        <table className={`w-full text-sm ${densityClass}`}>{children}</table>
       </div>
     </div>
   );

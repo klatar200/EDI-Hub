@@ -76,6 +76,26 @@ test('PATCH /preferences persists defaultLanding alongside pins', async () => {
   await app.close();
 });
 
+test('preferences PATCH persists tablePrefs', async () => {
+  const app = makeApp({ id: 'u-1', preferences: {} });
+  await app.register(preferencesRoutes, { prefix: '/api' });
+  const res = await app.inject({
+    method: 'PATCH',
+    url: '/api/preferences',
+    payload: {
+      tablePrefs: {
+        lifecycles: { density: 'compact', hiddenColumns: ['flow', 'due'] },
+        transactions: { density: 'comfortable', hiddenColumns: ['sender'] },
+      },
+    },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json() as { preferences: { tablePrefs?: { lifecycles?: { density?: string; hiddenColumns?: string[] } } } };
+  assert.equal(body.preferences.tablePrefs?.lifecycles?.density, 'compact');
+  assert.deepEqual(body.preferences.tablePrefs?.lifecycles?.hiddenColumns, ['flow', 'due']);
+  await app.close();
+});
+
 test('PATCH /preferences ignores an invalid defaultLanding', async () => {
   const app = makeApp({ id: 'u-1', preferences: {} });
   await app.register(preferencesRoutes, { prefix: '/api' });

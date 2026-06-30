@@ -28,6 +28,7 @@ import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { SearchBox } from './SearchBox.tsx';
 import { CommandPalette, useCommandPaletteHotkey } from './CommandPalette.tsx';
+import { AlertBell } from './AlertBell.tsx';
 import { DropdownMenu } from './ui';
 
 interface NavItem {
@@ -268,6 +269,7 @@ export function Layout(): JSX.Element {
               <kbd className="rounded border border-[var(--color-surface-border)] bg-[var(--color-surface-muted)] px-1 font-mono text-[10px]">⌘K</kbd>
             </button>
             <SearchBox />
+            <AlertBell />
             <span aria-hidden className="hidden h-5 w-px bg-[var(--color-surface-border)] sm:block" />
             <OrganizationSwitcher
               hidePersonal

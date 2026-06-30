@@ -16,6 +16,11 @@ import type { TransactionSummary } from '@edi/shared';
 import { api, type TransactionFilters } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
+  TableDisplayMenu,
+  useTableDisplayPrefs,
+  type TableColumnDef,
+} from '../components/TableDisplayMenu.tsx';
+import {
   PageHeader,
   DataTable,
   StatusPill,
@@ -33,6 +38,16 @@ import {
 } from '../components/ui';
 
 const PAGE_SIZE = 25;
+const TRANSACTION_COLUMNS: TableColumnDef[] = [
+  { id: 'set', label: 'Set' },
+  { id: 'poInvoice', label: 'PO / Invoice', required: true },
+  { id: 'direction', label: 'Direction' },
+  { id: 'sender', label: 'Sender' },
+  { id: 'receiver', label: 'Receiver' },
+  { id: 'status', label: 'Status' },
+  { id: 'ingested', label: 'Ingested' },
+  { id: 'lifecycle', label: 'Lifecycle' },
+];
 const SETS = ['850', '855', '856', '860', '875', '880', '810', '997'];
 const STATUSES = ['RECEIVED', 'PARSED', 'PARSE_ERROR', 'UNRECOGNIZED_FORMAT', 'DUPLICATE', 'FAILED'];
 const DIRECTIONS = [
@@ -60,6 +75,14 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
   const partnersConfigKey = useTenantQueryKey('partners-config');
   const partnersQ = useQuery({ queryKey: partnersKey, queryFn: () => api.partners() });
   const partnersConfigQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
+  const preferencesKey = useTenantQueryKey('preferences');
+  const preferencesQ = useQuery({ queryKey: preferencesKey, queryFn: () => api.preferences.get() });
+  const tableDisplay = useTableDisplayPrefs(
+    'transactions',
+    preferencesQ.data?.preferences,
+    TRANSACTION_COLUMNS,
+  );
+  const { isColumnVisible, density } = tableDisplay;
 
   const offset = Math.max(Number.parseInt(sp.get('offset') ?? '0', 10) || 0, 0);
   const filters: TransactionFilters = {
@@ -126,7 +149,8 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
 
       {/* Filter controls — selects + PO input, in a Card-shaped strip. */}
       <Card className="mb-3">
-        <div className="flex flex-wrap items-end gap-3 p-3">
+        <div className="flex flex-wrap items-end justify-between gap-3 p-3">
+          <div className="flex flex-wrap items-end gap-3">
           <FormField label="Type">
             <Select size="sm" value={filters.set ?? ''} onChange={(e) => setFilter('set', e.target.value || undefined)}>
               <option value="">All</option>
@@ -170,6 +194,14 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
           <FormField label="To">
             <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
           </FormField>
+          </div>
+          {preferencesQ.data ? (
+            <TableDisplayMenu
+              tableKey="transactions"
+              preferences={preferencesQ.data.preferences}
+              columns={TRANSACTION_COLUMNS}
+            />
+          ) : null}
         </div>
       </Card>
 
@@ -204,23 +236,23 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
           action={hasAnyFilter ? <button className="btn" onClick={clearAll}>Clear filters</button> : null}
         />
       ) : (
-        <DataTable>
+        <DataTable density={density}>
           <DataTable.Thead>
             <DataTable.Tr>
-              <DataTable.Th>Set</DataTable.Th>
+              {isColumnVisible('set') ? <DataTable.Th>Set</DataTable.Th> : null}
               <DataTable.Th>PO / Invoice</DataTable.Th>
-              <DataTable.Th>Direction</DataTable.Th>
-              <DataTable.Th>Sender</DataTable.Th>
-              <DataTable.Th>Receiver</DataTable.Th>
-              <DataTable.Th>Status</DataTable.Th>
-              <DataTable.Th>Ingested</DataTable.Th>
-              <DataTable.Th>Lifecycle</DataTable.Th>
+              {isColumnVisible('direction') ? <DataTable.Th>Direction</DataTable.Th> : null}
+              {isColumnVisible('sender') ? <DataTable.Th>Sender</DataTable.Th> : null}
+              {isColumnVisible('receiver') ? <DataTable.Th>Receiver</DataTable.Th> : null}
+              {isColumnVisible('status') ? <DataTable.Th>Status</DataTable.Th> : null}
+              {isColumnVisible('ingested') ? <DataTable.Th>Ingested</DataTable.Th> : null}
+              {isColumnVisible('lifecycle') ? <DataTable.Th>Lifecycle</DataTable.Th> : null}
             </DataTable.Tr>
           </DataTable.Thead>
           <DataTable.Tbody>
             {items.map((t: TransactionSummary) => (
               <DataTable.Tr key={t.id}>
-                <DataTable.Td mono>{t.transactionSetId}</DataTable.Td>
+                {isColumnVisible('set') ? <DataTable.Td mono>{t.transactionSetId}</DataTable.Td> : null}
                 <DataTable.Td>
                   <Link
                     to={`/transactions/${t.id}`}
@@ -229,37 +261,45 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
                     {t.poNumber ?? t.invoiceNumber ?? t.controlNumber}
                   </Link>
                 </DataTable.Td>
-                <DataTable.Td>
-                  <StatusPill tone={t.direction === 'inbound' ? 'info' : t.direction === 'outbound' ? 'brand' : 'neutral'} size="sm">
-                    {DIRECTION_LABEL[t.direction] ?? t.direction}
-                  </StatusPill>
-                </DataTable.Td>
-                <DataTable.Td>{t.senderId ?? '—'}</DataTable.Td>
-                <DataTable.Td>{t.receiverId ?? '—'}</DataTable.Td>
-                <DataTable.Td>
-                  {t.status ? (
-                    <StatusPill tone={rawFileTone(t.status)} withDot>
-                      {t.status}
+                {isColumnVisible('direction') ? (
+                  <DataTable.Td>
+                    <StatusPill tone={t.direction === 'inbound' ? 'info' : t.direction === 'outbound' ? 'brand' : 'neutral'} size="sm">
+                      {DIRECTION_LABEL[t.direction] ?? t.direction}
                     </StatusPill>
-                  ) : (
-                    <span className="text-[var(--color-fg-subtle)]">—</span>
-                  )}
-                </DataTable.Td>
-                <DataTable.Td muted>
-                  {t.ingestedAt ? new Date(t.ingestedAt).toLocaleString() : '—'}
-                </DataTable.Td>
-                <DataTable.Td>
-                  {t.poNumber ? (
-                    <Link
-                      to={`/lifecycle/${encodeURIComponent(t.poNumber)}`}
-                      className="text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
-                    >
-                      View →
-                    </Link>
-                  ) : (
-                    <span className="text-[var(--color-fg-subtle)]">—</span>
-                  )}
-                </DataTable.Td>
+                  </DataTable.Td>
+                ) : null}
+                {isColumnVisible('sender') ? <DataTable.Td>{t.senderId ?? '—'}</DataTable.Td> : null}
+                {isColumnVisible('receiver') ? <DataTable.Td>{t.receiverId ?? '—'}</DataTable.Td> : null}
+                {isColumnVisible('status') ? (
+                  <DataTable.Td>
+                    {t.status ? (
+                      <StatusPill tone={rawFileTone(t.status)} withDot>
+                        {t.status}
+                      </StatusPill>
+                    ) : (
+                      <span className="text-[var(--color-fg-subtle)]">—</span>
+                    )}
+                  </DataTable.Td>
+                ) : null}
+                {isColumnVisible('ingested') ? (
+                  <DataTable.Td muted>
+                    {t.ingestedAt ? new Date(t.ingestedAt).toLocaleString() : '—'}
+                  </DataTable.Td>
+                ) : null}
+                {isColumnVisible('lifecycle') ? (
+                  <DataTable.Td>
+                    {t.poNumber ? (
+                      <Link
+                        to={`/lifecycle/${encodeURIComponent(t.poNumber)}`}
+                        className="text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)]"
+                      >
+                        View →
+                      </Link>
+                    ) : (
+                      <span className="text-[var(--color-fg-subtle)]">—</span>
+                    )}
+                  </DataTable.Td>
+                ) : null}
               </DataTable.Tr>
             ))}
           </DataTable.Tbody>

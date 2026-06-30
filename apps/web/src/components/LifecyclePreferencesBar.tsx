@@ -6,10 +6,47 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import type { SavedView, UserPreferences } from '@edi/shared';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
-import { FormField, Input, Select } from './ui';
+import { FormField, Input, Select, Tabs } from './ui';
 
 const MAX_PINS = 10;
 const MAX_SAVED_VIEWS = 20;
+
+export type LifecycleViewTab = 'all' | 'needs-attention' | 'mine';
+
+export function lifecycleViewFromParams(sp: URLSearchParams): LifecycleViewTab {
+  if (sp.get('pinnedOnly') === 'true') return 'mine';
+  if (sp.get('needsAttention') === 'true') return 'needs-attention';
+  return 'all';
+}
+
+/** U4/T2 — quick preset tabs at the top of the lifecycle list. */
+export function LifecycleViewTabs({
+  value,
+  pinnedCount,
+  onChange,
+}: {
+  value: LifecycleViewTab;
+  pinnedCount: number;
+  onChange: (tab: LifecycleViewTab) => void;
+}): JSX.Element {
+  return (
+    <div className="border-b border-[var(--color-surface-border)] px-3 pt-2" data-testid="lifecycle-view-tabs">
+      <Tabs value={value} onValueChange={(v) => onChange(v as LifecycleViewTab)}>
+        <Tabs.List ariaLabel="Lifecycle view">
+          <Tabs.Trigger value="all" testId="lifecycle-view-all">
+            All
+          </Tabs.Trigger>
+          <Tabs.Trigger value="needs-attention" testId="lifecycle-view-needs-attention">
+            Needs attention
+          </Tabs.Trigger>
+          <Tabs.Trigger value="mine" testId="lifecycle-view-mine" disabled={pinnedCount === 0}>
+            Mine{pinnedCount > 0 ? ` (${pinnedCount})` : ''}
+          </Tabs.Trigger>
+        </Tabs.List>
+      </Tabs>
+    </div>
+  );
+}
 
 export function sortWithPinnedPos<T extends { po: string }>(items: T[], pinnedPos: string[]): T[] {
   const pinIndex = new Map(pinnedPos.map((po, i) => [po, i]));
@@ -34,21 +71,16 @@ export function filtersToViewQuery(sp: URLSearchParams): string {
 export function SavedViewsBar({
   preferences,
   currentQuery,
-  pinnedOnly,
   onApplyView,
-  onTogglePinnedOnly,
 }: {
   preferences: UserPreferences;
   currentQuery: string;
-  pinnedOnly: boolean;
   onApplyView: (query: string) => void;
-  onTogglePinnedOnly: (enabled: boolean) => void;
 }): JSX.Element {
   const qc = useQueryClient();
   const preferencesKey = useTenantQueryKey('preferences');
   const [viewName, setViewName] = useState('');
   const savedViews = preferences.savedViews ?? [];
-  const pinnedCount = preferences.pinnedPos?.length ?? 0;
 
   const patchM = useMutation({
     mutationFn: (next: UserPreferences) => api.preferences.patch(next),
@@ -119,18 +151,6 @@ export function SavedViewsBar({
           {v.name} ×
         </button>
       ))}
-      <FormField label="Pinned">
-        <Select
-          size="sm"
-          value={pinnedOnly ? 'true' : ''}
-          data-testid="pinned-only-select"
-          disabled={pinnedCount === 0}
-          onChange={(e) => onTogglePinnedOnly(e.target.value === 'true')}
-        >
-          <option value="">All conversations</option>
-          <option value="true">Pinned only ({pinnedCount})</option>
-        </Select>
-      </FormField>
     </div>
   );
 }

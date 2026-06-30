@@ -1,4 +1,4 @@
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen, waitFor, within, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
@@ -12,6 +12,7 @@ function jsonResponse(body: unknown): Promise<FakeResponse> {
 function fakeFetch(input: unknown): Promise<FakeResponse> {
   const url = String(input);
   if (url.includes('/partners')) return jsonResponse({ partners: ['ACME', 'GLOBEX'] });
+  if (url.includes('/preferences')) return jsonResponse({ preferences: {} });
   if (url.includes('/transactions')) {
     return jsonResponse({
       items: [
@@ -59,4 +60,25 @@ test('renders transactions returned by the API', async () => {
 test('populates the partner filter from /partners', async () => {
   renderPage();
   await waitFor(() => expect(screen.getByRole('option', { name: 'GLOBEX' })).toBeInTheDocument());
+});
+
+test('table display menu toggles column visibility', async () => {
+  let prefs = { tablePrefs: { transactions: { hiddenColumns: [] as string[] } } };
+  vi.stubGlobal('fetch', vi.fn((input: unknown, init?: RequestInit) => {
+    const url = String(input);
+    if (url.includes('/preferences') && init?.method === 'PATCH') {
+      prefs = JSON.parse(String(init.body)) as typeof prefs;
+      return jsonResponse({ preferences: prefs });
+    }
+    if (url.includes('/preferences')) return jsonResponse({ preferences: prefs });
+    return fakeFetch(input);
+  }));
+  renderPage();
+  await screen.findByText('PO-12345');
+  fireEvent.click(screen.getByTestId('table-columns-trigger'));
+  const senderToggle = await screen.findByTestId('table-column-toggle-sender');
+  fireEvent.click(senderToggle);
+  await waitFor(() => {
+    expect(prefs.tablePrefs?.transactions?.hiddenColumns).toContain('sender');
+  });
 });

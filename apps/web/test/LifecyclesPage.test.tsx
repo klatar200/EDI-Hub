@@ -172,12 +172,12 @@ test('filters refetch with URL-reflected hasAlerts param', async () => {
   });
 });
 
-test('Needs attention toggle reflects in the lifecycles query', async () => {
+test('Needs attention tab reflects in the lifecycles query', async () => {
   const fetchMock = vi.fn(fakeFetch);
   vi.stubGlobal('fetch', fetchMock);
   renderPage();
   await screen.findByTestId('lifecycle-row-PO-100');
-  fireEvent.click(screen.getByTestId('filter-needs-attention'));
+  fireEvent.click(screen.getByTestId('lifecycle-view-needs-attention'));
   await waitFor(() => {
     const call = fetchMock.mock.calls.find((c) => String(c[0]).includes('needsAttention=true'));
     expect(call).toBeDefined();

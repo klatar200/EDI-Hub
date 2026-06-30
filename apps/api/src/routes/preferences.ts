@@ -33,6 +33,31 @@ function parsePreferences(raw: unknown): UserPreferences {
   if (o.defaultLanding === 'dashboard' || o.defaultLanding === 'lifecycles') {
     prefs.defaultLanding = o.defaultLanding;
   }
+  if (typeof o.tablePrefs === 'object' && o.tablePrefs !== null && !Array.isArray(o.tablePrefs)) {
+    const tp = o.tablePrefs as Record<string, unknown>;
+    const tablePrefs: NonNullable<UserPreferences['tablePrefs']> = {};
+    for (const key of ['lifecycles', 'transactions'] as const) {
+      const raw = tp[key];
+      if (typeof raw !== 'object' || raw === null || Array.isArray(raw)) continue;
+      const col = raw as Record<string, unknown>;
+      const entry: NonNullable<UserPreferences['tablePrefs']>[typeof key] = {};
+      if (col.density === 'comfortable' || col.density === 'compact') {
+        entry.density = col.density;
+      }
+      if (Array.isArray(col.hiddenColumns)) {
+        entry.hiddenColumns = col.hiddenColumns
+          .filter((c): c is string => typeof c === 'string' && c.trim().length > 0)
+          .map((c) => c.trim())
+          .slice(0, 32);
+      }
+      if (entry.density || entry.hiddenColumns?.length) {
+        tablePrefs[key] = entry;
+      }
+    }
+    if (Object.keys(tablePrefs).length > 0) {
+      prefs.tablePrefs = tablePrefs;
+    }
+  }
   return prefs;
 }
 

@@ -13,10 +13,18 @@ import { OnboardingChecklist } from '../components/OnboardingChecklist.tsx';
 import {
   PinButton,
   SavedViewsBar,
+  LifecycleViewTabs,
+  lifecycleViewFromParams,
   filtersToViewQuery,
   sortWithPinnedPos,
   usePinToggle,
+  type LifecycleViewTab,
 } from '../components/LifecyclePreferencesBar.tsx';
+import {
+  TableDisplayMenu,
+  useTableDisplayPrefs,
+  type TableColumnDef,
+} from '../components/TableDisplayMenu.tsx';
 import { useApiReady, useHasRole } from '../lib/useRole.tsx';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import {
@@ -37,6 +45,18 @@ import {
 } from '../components/ui';
 
 const PAGE_SIZE = 25;
+const LIFECYCLE_COLUMNS: TableColumnDef[] = [
+  { id: 'po', label: 'PO', required: true },
+  { id: 'partner', label: 'Partner' },
+  { id: 'flow', label: 'Flow' },
+  { id: 'started', label: 'Started' },
+  { id: 'due', label: 'Due' },
+  { id: 'lastActivity', label: 'Last activity' },
+  { id: 'sla', label: 'SLA' },
+  { id: 'documents', label: 'Documents' },
+  { id: 'alerts', label: 'Alerts' },
+  { id: 'flags', label: 'Flags' },
+];
 const SETS = ['850', '855', '856', '860', '875', '880', '810', '997'];
 const FLOWS: { value: LifecycleFlow; label: string }[] = [
   { value: 'standard', label: 'Standard' },
@@ -136,6 +156,8 @@ function LifecycleRow({
   pinned,
   onTogglePin,
   pinDisabled,
+  isColumnVisible,
+  visibleColumnCount,
 }: {
   row: LifecycleSummary;
   showSlaColumn: boolean;
@@ -144,6 +166,8 @@ function LifecycleRow({
   pinned: boolean;
   onTogglePin: () => void;
   pinDisabled?: boolean;
+  isColumnVisible: (id: string) => boolean;
+  visibleColumnCount: number;
 }): JSX.Element {
   const [expanded, setExpanded] = useState(false);
   const isOps = useHasRole('ops');
@@ -197,14 +221,18 @@ function LifecycleRow({
             {row.po}
           </Link>
         </DataTable.Td>
-        <DataTable.Td>{row.partnerDisplayName ?? '—'}</DataTable.Td>
-        <DataTable.Td>
-          <StatusPill tone="neutral" size="sm">{FLOW_LABEL[row.flow]}</StatusPill>
-        </DataTable.Td>
-        <DataTable.Td muted>{formatDate(row.startedAt)}</DataTable.Td>
-        <DataTable.Td muted data-testid={`due-date-${row.po}`}>{formatDueDate(row.dueDate)}</DataTable.Td>
-        <DataTable.Td muted>{formatDate(row.lastActivityAt)}</DataTable.Td>
-        {showSlaColumn ? (
+        {isColumnVisible('partner') ? <DataTable.Td>{row.partnerDisplayName ?? '—'}</DataTable.Td> : null}
+        {isColumnVisible('flow') ? (
+          <DataTable.Td>
+            <StatusPill tone="neutral" size="sm">{FLOW_LABEL[row.flow]}</StatusPill>
+          </DataTable.Td>
+        ) : null}
+        {isColumnVisible('started') ? <DataTable.Td muted>{formatDate(row.startedAt)}</DataTable.Td> : null}
+        {isColumnVisible('due') ? (
+          <DataTable.Td muted data-testid={`due-date-${row.po}`}>{formatDueDate(row.dueDate)}</DataTable.Td>
+        ) : null}
+        {isColumnVisible('lastActivity') ? <DataTable.Td muted>{formatDate(row.lastActivityAt)}</DataTable.Td> : null}
+        {showSlaColumn && isColumnVisible('sla') ? (
           <DataTable.Td muted className="text-xs">
             {row.slaSummary ? (
               <span className={row.slaSummary.breached ? 'font-medium text-[var(--color-error-700)]' : ''}>
@@ -215,47 +243,53 @@ function LifecycleRow({
             )}
           </DataTable.Td>
         ) : null}
-        <DataTable.Td>
-          <span className="tabular-nums">{row.received}</span>
-          {row.missing > 0 ? (
-            <span className="ml-1.5 inline-block" title={warningTitle}>
-              <StatusPill tone="warn" size="sm">{row.missing} missing</StatusPill>
-            </span>
-          ) : null}
-          {row.rejected > 0 ? (
-            <span className="ml-1.5 inline-block">
-              <StatusPill tone="error" size="sm">{row.rejected} rejected</StatusPill>
-            </span>
-          ) : null}
-        </DataTable.Td>
-        <DataTable.Td>
-          {row.openAlertCount > 0 ? (
-            <Link to="/alerts?hasAlerts=true" data-testid={`alert-badge-${row.po}`}>
-              <StatusPill tone="error" size="sm" withDot>{row.openAlertCount}</StatusPill>
-            </Link>
-          ) : (
-            <span className="text-[var(--color-fg-subtle)]">—</span>
-          )}
-        </DataTable.Td>
-        <DataTable.Td>
-          {row.hasParseError ? (
-            <Link to="/ingestions?status=PARSE_ERROR" data-testid={`parse-error-badge-${row.po}`}>
-              <StatusPill tone="warn" size="sm" withDot>Parse error</StatusPill>
-            </Link>
-          ) : row.hasDuplicates ? (
-            <StatusPill tone="info" size="sm">+{row.additionalDocumentCount} extra</StatusPill>
-          ) : row.expectedWarnings.length > 0 ? (
-            <span title={warningTitle} data-testid={`expected-warning-${row.po}`}>
-              <StatusPill tone="warn" size="sm" withDot>Expected doc</StatusPill>
-            </span>
-          ) : (
-            <span className="text-[var(--color-fg-subtle)]">—</span>
-          )}
-        </DataTable.Td>
+        {isColumnVisible('documents') ? (
+          <DataTable.Td>
+            <span className="tabular-nums">{row.received}</span>
+            {row.missing > 0 ? (
+              <span className="ml-1.5 inline-block" title={warningTitle}>
+                <StatusPill tone="warn" size="sm">{row.missing} missing</StatusPill>
+              </span>
+            ) : null}
+            {row.rejected > 0 ? (
+              <span className="ml-1.5 inline-block">
+                <StatusPill tone="error" size="sm">{row.rejected} rejected</StatusPill>
+              </span>
+            ) : null}
+          </DataTable.Td>
+        ) : null}
+        {isColumnVisible('alerts') ? (
+          <DataTable.Td>
+            {row.openAlertCount > 0 ? (
+              <Link to="/alerts?hasAlerts=true" data-testid={`alert-badge-${row.po}`}>
+                <StatusPill tone="error" size="sm" withDot>{row.openAlertCount}</StatusPill>
+              </Link>
+            ) : (
+              <span className="text-[var(--color-fg-subtle)]">—</span>
+            )}
+          </DataTable.Td>
+        ) : null}
+        {isColumnVisible('flags') ? (
+          <DataTable.Td>
+            {row.hasParseError ? (
+              <Link to="/ingestions?status=PARSE_ERROR" data-testid={`parse-error-badge-${row.po}`}>
+                <StatusPill tone="warn" size="sm" withDot>Parse error</StatusPill>
+              </Link>
+            ) : row.hasDuplicates ? (
+              <StatusPill tone="info" size="sm">+{row.additionalDocumentCount} extra</StatusPill>
+            ) : row.expectedWarnings.length > 0 ? (
+              <span title={warningTitle} data-testid={`expected-warning-${row.po}`}>
+                <StatusPill tone="warn" size="sm" withDot>Expected doc</StatusPill>
+              </span>
+            ) : (
+              <span className="text-[var(--color-fg-subtle)]">—</span>
+            )}
+          </DataTable.Td>
+        ) : null}
       </DataTable.Tr>
       {expanded ? (
         <DataTable.Tr>
-          <DataTable.Td colSpan={showSlaColumn ? 10 : 9} className="bg-[var(--color-surface-muted)]/40">
+          <DataTable.Td colSpan={visibleColumnCount} className="bg-[var(--color-surface-muted)]/40">
             {expandQ.isLoading ? (
               <div className="py-3" data-testid={`expand-loading-${row.po}`}>
                 <Skeleton.Row width="40%" />
@@ -350,9 +384,16 @@ export function LifecyclesPage(): JSX.Element {
   const slaCountdownEnabled = settingsQ.data?.settings?.slaCountdownEnabled ?? false;
   const pinnedPos = preferencesQ.data?.preferences.pinnedPos ?? [];
   const { togglePin, isPending: pinPending } = usePinToggle(preferencesQ.data?.preferences);
+  const tableDisplay = useTableDisplayPrefs(
+    'lifecycles',
+    preferencesQ.data?.preferences,
+    LIFECYCLE_COLUMNS,
+  );
+  const { isColumnVisible, density } = tableDisplay;
 
   const page = Math.max(1, Number.parseInt(sp.get('page') ?? '1', 10) || 1);
   const pinnedOnly = sp.get('pinnedOnly') === 'true';
+  const viewTab = lifecycleViewFromParams(sp);
   const sort: LifecycleListFilters['sort'] =
     sp.get('sort') === 'startedAt:asc' ? 'startedAt:asc' : 'startedAt:desc';
   const filters = {
@@ -402,14 +443,24 @@ export function LifecyclesPage(): JSX.Element {
     setSp(new URLSearchParams(query));
   }
 
-  function setPinnedOnlyFilter(enabled: boolean): void {
-    setFilter('pinnedOnly', enabled ? 'true' : undefined);
+  function setLifecycleViewTab(tab: LifecycleViewTab): void {
+    const next = new URLSearchParams(sp);
+    next.delete('needsAttention');
+    next.delete('pinnedOnly');
+    next.delete('page');
+    if (tab === 'needs-attention') next.set('needsAttention', 'true');
+    else if (tab === 'mine') next.set('pinnedOnly', 'true');
+    setSp(next);
   }
 
   const rawItems = listQ.data?.items ?? [];
   const items = sortWithPinnedPos(rawItems, pinnedPos);
   const total = listQ.data?.total ?? 0;
   const showSlaColumn = slaCountdownEnabled || items.some((r) => r.slaSummary);
+  const visibleColumnCount = LIFECYCLE_COLUMNS.filter((col) => {
+    if (col.id === 'sla' && !showSlaColumn) return false;
+    return isColumnVisible(col.id);
+  }).length;
   const viewQuery = filtersToViewQuery(sp);
   // Filters that live inside the popover. Needs-attention + pinnedOnly are
   // surfaced inline as their own controls, so they're excluded from the
@@ -483,25 +534,14 @@ export function LifecyclesPage(): JSX.Element {
       />
 
       <Card className="mb-3">
-        <div className="flex flex-wrap items-end gap-3 p-3">
-          <button
-            type="button"
-            data-testid="filter-needs-attention"
-            aria-pressed={Boolean(filters.needsAttention)}
-            onClick={() => setFilter('needsAttention', filters.needsAttention ? undefined : 'true')}
-            className={`self-end rounded-md border px-3 py-1.5 text-sm font-medium transition ${
-              filters.needsAttention
-                ? 'border-[var(--color-warn-500)] bg-[var(--color-warn-50)] text-[var(--color-warn-800)]'
-                : 'border-[var(--color-surface-border)] text-[var(--color-fg-muted)] hover:bg-[var(--color-surface-muted)]'
-            }`}
-          >
-            Needs attention
-          </button>
-
-          {/* T1 — All "narrow-the-list" filters collapse into a single Filters
-              popover with an active-count badge. Sort stays inline (it shapes
-              the view, not the result set) and Needs-attention stays inline
-              (the most common one-tap action). */}
+        <LifecycleViewTabs
+          value={viewTab}
+          pinnedCount={pinnedPos.length}
+          onChange={setLifecycleViewTab}
+        />
+        <div className="flex flex-wrap items-end justify-between gap-3 p-3">
+          <div className="flex flex-wrap items-end gap-3">
+          {/* T1 — narrow-the-list filters live in a Filters popover. */}
           <Popover>
             <Popover.Trigger asChild>
               <button
@@ -619,14 +659,20 @@ export function LifecyclesPage(): JSX.Element {
               <option value="startedAt:asc">Started — oldest first</option>
             </Select>
           </FormField>
+          </div>
+          {preferencesQ.data ? (
+            <TableDisplayMenu
+              tableKey="lifecycles"
+              preferences={preferencesQ.data.preferences}
+              columns={LIFECYCLE_COLUMNS}
+            />
+          ) : null}
         </div>
         {preferencesQ.data ? (
           <SavedViewsBar
             preferences={preferencesQ.data.preferences}
             currentQuery={viewQuery}
-            pinnedOnly={pinnedOnly}
             onApplyView={applySavedView}
-            onTogglePinnedOnly={setPinnedOnlyFilter}
           />
         ) : null}
       </Card>
@@ -675,19 +721,19 @@ export function LifecyclesPage(): JSX.Element {
         )
       ) : (
         <>
-          <DataTable>
+          <DataTable density={density}>
             <DataTable.Thead>
               <DataTable.Tr>
                 <DataTable.Th>PO</DataTable.Th>
-                <DataTable.Th>Partner</DataTable.Th>
-                <DataTable.Th>Flow</DataTable.Th>
-                <DataTable.Th>Started</DataTable.Th>
-                <DataTable.Th>Due</DataTable.Th>
-                <DataTable.Th>Last activity</DataTable.Th>
-                {showSlaColumn ? <DataTable.Th>SLA</DataTable.Th> : null}
-                <DataTable.Th>Documents</DataTable.Th>
-                <DataTable.Th>Alerts</DataTable.Th>
-                <DataTable.Th>Flags</DataTable.Th>
+                {isColumnVisible('partner') ? <DataTable.Th>Partner</DataTable.Th> : null}
+                {isColumnVisible('flow') ? <DataTable.Th>Flow</DataTable.Th> : null}
+                {isColumnVisible('started') ? <DataTable.Th>Started</DataTable.Th> : null}
+                {isColumnVisible('due') ? <DataTable.Th>Due</DataTable.Th> : null}
+                {isColumnVisible('lastActivity') ? <DataTable.Th>Last activity</DataTable.Th> : null}
+                {showSlaColumn && isColumnVisible('sla') ? <DataTable.Th>SLA</DataTable.Th> : null}
+                {isColumnVisible('documents') ? <DataTable.Th>Documents</DataTable.Th> : null}
+                {isColumnVisible('alerts') ? <DataTable.Th>Alerts</DataTable.Th> : null}
+                {isColumnVisible('flags') ? <DataTable.Th>Flags</DataTable.Th> : null}
               </DataTable.Tr>
             </DataTable.Thead>
             <DataTable.Tbody>
@@ -700,6 +746,8 @@ export function LifecyclesPage(): JSX.Element {
                   pinned={pinnedPos.includes(row.po)}
                   onTogglePin={() => togglePin(row.po)}
                   pinDisabled={pinPending}
+                  isColumnVisible={isColumnVisible}
+                  visibleColumnCount={visibleColumnCount}
                   onToggleSelect={(po, checked) => {
                     setSelected((prev) => {
                       const next = new Set(prev);
