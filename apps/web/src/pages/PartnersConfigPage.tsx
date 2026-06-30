@@ -10,7 +10,7 @@
  *  - Notes
  *  - Contacts (email-only)
  */
-import { useState, type FormEvent } from 'react';
+import { useEffect, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CONNECTIVITY_CHANNELS,
@@ -41,6 +41,7 @@ import {
   EmptyState,
   Skeleton,
   Card,
+  Tabs,
 } from '../components/ui';
 import { useToast } from '../lib/useToast.tsx';
 
@@ -63,6 +64,20 @@ interface SegmentLabelRow {
 const EMPTY_CONNECTIVITY: ConnectivityDraft = {
   channel: '', endpoint: '', technicalContact: '', notes: '',
 };
+
+// FO1 — editor section keys. Used to drive the Tabs primitive in the
+// editor. Identity is the default landing tab. "Sets & flow" bundles the
+// decoding-related editors (supported sets, lifecycle flow, ack-code
+// overrides, segment-label overrides) since they all describe how the
+// hub interprets transactions from this partner.
+type EditorTab = 'identity' | 'sets' | 'slas' | 'connectivity' | 'notes';
+const EDITOR_TABS: { value: EditorTab; label: string }[] = [
+  { value: 'identity',     label: 'Identity' },
+  { value: 'sets',         label: 'Sets & flow' },
+  { value: 'slas',         label: 'SLAs & alerts' },
+  { value: 'connectivity', label: 'Connectivity' },
+  { value: 'notes',        label: 'Notes & contacts' },
+];
 
 interface DraftState {
   displayName: string;
@@ -189,6 +204,12 @@ export function PartnersConfigPage(): JSX.Element {
   const listQ = useQuery({ queryKey: partnersConfigKey, queryFn: () => api.partnersConfig.list() });
   const [editing, setEditing] = useState<{ id: string | null; draft: DraftState } | null>(null);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  // FO1 — editor is broken into 5 tabs. Reset to Identity whenever the
+  // operator opens or switches between partners.
+  const [editorTab, setEditorTab] = useState<EditorTab>('identity');
+  useEffect(() => {
+    if (editing) setEditorTab('identity');
+  }, [editing?.id]);
 
   const saveM = useMutation({
     mutationFn: async (payload: { id: string | null; input: PartnerConfigInput }) =>
@@ -371,10 +392,9 @@ export function PartnersConfigPage(): JSX.Element {
         <Card className="mt-6">
           <form
             onSubmit={handleSubmit}
-            className="space-y-5 p-4"
             data-testid="partner-editor"
           >
-            <div className="border-b border-[var(--color-surface-border)] pb-3">
+            <div className="border-b border-[var(--color-surface-border)] px-4 pb-3 pt-4">
               <h2 className="text-sm font-semibold text-[var(--color-fg)]">
                 {editing.id ? 'Edit partner' : 'New partner'}
               </h2>
@@ -385,126 +405,164 @@ export function PartnersConfigPage(): JSX.Element {
               </p>
             </div>
 
-          <PartnerSetupBanner input={toInput(editing.draft)} />
+            <div className="space-y-4 px-4 pt-4">
+              <PartnerSetupBanner input={toInput(editing.draft)} />
+            </div>
 
-          <Section title="Identity">
-            <Field label="Display name">
-              <input
-                className="input"
-                value={editing.draft.displayName}
-                onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, displayName: e.target.value } })}
-                required
-              />
-            </Field>
-            <Field label="ISA sender IDs (comma-separated)">
-              <input
-                className="input font-mono"
-                value={editing.draft.isaSenderIds}
-                onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, isaSenderIds: e.target.value } })}
-              />
-            </Field>
-            <Field label="ISA receiver IDs (comma-separated)">
-              <input
-                className="input font-mono"
-                value={editing.draft.isaReceiverIds}
-                onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, isaReceiverIds: e.target.value } })}
-              />
-            </Field>
-            <Field label="Status">
-              <select
-                className="select"
-                value={editing.draft.status}
-                onChange={(e) =>
-                  setEditing({ ...editing, draft: { ...editing.draft, status: e.target.value as PartnerStatus } })
-                }
-              >
-                <option value="active">active</option>
-                <option value="disabled">disabled</option>
-              </select>
-            </Field>
-          </Section>
+            {/* FO1 — Tabbed editor. The 9 sections are grouped by intent:
+                Identity / Sets & flow / SLAs & alerts / Connectivity /
+                Notes & contacts. Panels stay mounted (Tabs hides inactive
+                with `hidden`) so the draft state in each tab is preserved
+                across switches without lifting fields. */}
+            <Tabs value={editorTab} onValueChange={(v) => setEditorTab(v as EditorTab)} className="mt-4">
+              <Tabs.List ariaLabel="Partner editor sections" className="px-4">
+                {EDITOR_TABS.map((t) => (
+                  <Tabs.Trigger key={t.value} value={t.value} testId={`editor-tab-${t.value}`}>
+                    {t.label}
+                  </Tabs.Trigger>
+                ))}
+              </Tabs.List>
 
-          <Section title="Supported sets" hint="Comma-separated. Empty = accept anything (backward compat).">
-            <input
-              className="input font-mono"
-              placeholder="850, 855, 810"
-              value={editing.draft.supportedSets}
-              onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, supportedSets: e.target.value } })}
-            />
-          </Section>
+              <Tabs.Panel value="identity" className="space-y-5 px-4 py-5">
+                <Section title="Identity">
+                  <Field label="Display name">
+                    <input
+                      className="input"
+                      value={editing.draft.displayName}
+                      onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, displayName: e.target.value } })}
+                      required
+                    />
+                  </Field>
+                  <Field label="ISA sender IDs (comma-separated)">
+                    <input
+                      className="input font-mono"
+                      value={editing.draft.isaSenderIds}
+                      onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, isaSenderIds: e.target.value } })}
+                    />
+                  </Field>
+                  <Field label="ISA receiver IDs (comma-separated)">
+                    <input
+                      className="input font-mono"
+                      value={editing.draft.isaReceiverIds}
+                      onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, isaReceiverIds: e.target.value } })}
+                    />
+                  </Field>
+                  <Field label="Status">
+                    <select
+                      className="select"
+                      value={editing.draft.status}
+                      onChange={(e) =>
+                        setEditing({ ...editing, draft: { ...editing.draft, status: e.target.value as PartnerStatus } })
+                      }
+                    >
+                      <option value="active">active</option>
+                      <option value="disabled">disabled</option>
+                    </select>
+                  </Field>
+                </Section>
+              </Tabs.Panel>
 
-          <Section title="Lifecycle flow" hint="Empty list = use shipped Standard / Grocery defaults.">
-            <LifecycleFlowEditor
-              flows={editing.draft.lifecycleFlows}
-              onChange={(flows) => setEditing({ ...editing, draft: { ...editing.draft, lifecycleFlows: flows } })}
-            />
-          </Section>
+              <Tabs.Panel value="sets" className="space-y-5 px-4 py-5">
+                <Section title="Supported sets" hint="Comma-separated. Empty = accept anything (backward compat).">
+                  <input
+                    className="input font-mono"
+                    placeholder="850, 855, 810"
+                    value={editing.draft.supportedSets}
+                    onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, supportedSets: e.target.value } })}
+                  />
+                </Section>
 
-          <Section title="Ack-code overrides" hint="Replace the X12 default wording for specific codes.">
-            <AckOverridesEditor
-              overrides={editing.draft.ackCodeOverrides}
-              onChange={(o) => setEditing({ ...editing, draft: { ...editing.draft, ackCodeOverrides: o } })}
-            />
-          </Section>
+                <Section title="Lifecycle flow" hint="Empty list = use shipped Standard / Grocery defaults.">
+                  <LifecycleFlowEditor
+                    flows={editing.draft.lifecycleFlows}
+                    onChange={(flows) => setEditing({ ...editing, draft: { ...editing.draft, lifecycleFlows: flows } })}
+                  />
+                </Section>
 
-          <Section title="SLA windows" hint="One row per (set, direction). withinMinutes is flat — calendar-aware is a Future Features item.">
-            <label className="mb-3 flex items-center gap-2 text-sm">
-              <input
-                type="checkbox"
-                checked={editing.draft.slaCountdownEnabled}
-                onChange={(e) =>
-                  setEditing({ ...editing, draft: { ...editing.draft, slaCountdownEnabled: e.target.checked } })
-                }
-              />
-              Show SLA countdown on lifecycle rows for this partner
-            </label>
-            <SlaWindowsEditor
-              rows={editing.draft.slaWindows}
-              onChange={(rows) => setEditing({ ...editing, draft: { ...editing.draft, slaWindows: rows } })}
-            />
-          </Section>
+                <Section title="Ack-code overrides" hint="Replace the X12 default wording for specific codes.">
+                  <AckOverridesEditor
+                    overrides={editing.draft.ackCodeOverrides}
+                    onChange={(o) => setEditing({ ...editing, draft: { ...editing.draft, ackCodeOverrides: o } })}
+                  />
+                </Section>
 
-          <Section
-            title="Connectivity"
-            hint="How this partner transmits. Credentials live in secrets — reference them by name in notes if needed."
-          >
-            <ConnectivityEditor
-              value={editing.draft.connectivity}
-              onChange={(connectivity) =>
-                setEditing({ ...editing, draft: { ...editing.draft, connectivity } })
-              }
-            />
-          </Section>
+                <Section title="Segment label overrides" hint="Custom labels for Z-segments or non-standard elements (set → segment → label).">
+                  <SegmentLabelOverridesEditor
+                    rows={editing.draft.segmentLabelRows}
+                    onChange={(segmentLabelRows) => setEditing({ ...editing, draft: { ...editing.draft, segmentLabelRows } })}
+                  />
+                </Section>
+              </Tabs.Panel>
 
-          <Section title="Segment label overrides" hint="Custom labels for Z-segments or non-standard elements (set → segment → label).">
-            <SegmentLabelOverridesEditor
-              rows={editing.draft.segmentLabelRows}
-              onChange={(segmentLabelRows) => setEditing({ ...editing, draft: { ...editing.draft, segmentLabelRows } })}
-            />
-          </Section>
+              <Tabs.Panel value="slas" className="space-y-5 px-4 py-5">
+                <Section title="SLA windows" hint="One row per (set, direction). withinMinutes is flat — calendar-aware is a Future Features item.">
+                  <label className="mb-3 flex items-center gap-2 text-sm">
+                    <input
+                      type="checkbox"
+                      checked={editing.draft.slaCountdownEnabled}
+                      onChange={(e) =>
+                        setEditing({ ...editing, draft: { ...editing.draft, slaCountdownEnabled: e.target.checked } })
+                      }
+                    />
+                    Show SLA countdown on lifecycle rows for this partner
+                  </label>
+                  <SlaWindowsEditor
+                    rows={editing.draft.slaWindows}
+                    onChange={(rows) => setEditing({ ...editing, draft: { ...editing.draft, slaWindows: rows } })}
+                  />
+                </Section>
+              </Tabs.Panel>
 
-          <Section title="Notes">
-            <textarea
-              className="input"
-              rows={3}
-              value={editing.draft.notes}
-              onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, notes: e.target.value } })}
-            />
-          </Section>
+              <Tabs.Panel value="connectivity" className="space-y-5 px-4 py-5">
+                <Section
+                  title="Connectivity"
+                  hint="How this partner transmits. Credentials live in secrets — reference them by name in notes if needed."
+                >
+                  <ConnectivityEditor
+                    value={editing.draft.connectivity}
+                    onChange={(connectivity) =>
+                      setEditing({ ...editing, draft: { ...editing.draft, connectivity } })
+                    }
+                  />
+                </Section>
+              </Tabs.Panel>
 
-          <Section title="Contacts" hint="Email-only for now; phone / Slack / on-call are tracked in BUILD_PLAN §12.">
-            <ContactsEditor
-              contacts={editing.draft.contacts}
-              onChange={(contacts) => setEditing({ ...editing, draft: { ...editing.draft, contacts } })}
-            />
-          </Section>
+              <Tabs.Panel value="notes" className="space-y-5 px-4 py-5">
+                <Section title="Notes">
+                  <textarea
+                    className="input"
+                    rows={3}
+                    value={editing.draft.notes}
+                    onChange={(e) => setEditing({ ...editing, draft: { ...editing.draft, notes: e.target.value } })}
+                  />
+                </Section>
 
-            {errorMsg ? (
-              <div className="rounded-md border border-[var(--color-error-500)]/30 bg-[var(--color-error-50)] px-3 py-2 text-xs text-[var(--color-error-700)]">
-                {errorMsg}
-              </div>
-            ) : null}
-            <div className="flex justify-end gap-2 border-t border-[var(--color-surface-border)] pt-4">
+                <Section title="Contacts" hint="Email-only for now; phone / Slack / on-call are tracked in BUILD_PLAN §12.">
+                  <ContactsEditor
+                    contacts={editing.draft.contacts}
+                    onChange={(contacts) => setEditing({ ...editing, draft: { ...editing.draft, contacts } })}
+                  />
+                </Section>
+              </Tabs.Panel>
+            </Tabs>
+
+            {/* FO1 — Sticky save bar pins Cancel + Save to the bottom of
+                the viewport while the operator scrolls through long
+                editors (Lifecycle flow + SLA windows + Contacts can each
+                be many rows). `sticky bottom-0` works because the Card
+                doesn't establish a sticky-scroll ancestor. */}
+            <div
+              className="sticky bottom-0 z-10 mt-2 flex flex-wrap items-center justify-end gap-3 border-t border-[var(--color-surface-border)] bg-[var(--color-surface-card)]/95 px-4 py-3 backdrop-blur"
+              data-testid="partner-editor-save-bar"
+            >
+              {errorMsg ? (
+                <div
+                  className="mr-auto max-w-md rounded-md border border-[var(--color-error-500)]/30 bg-[var(--color-error-50)] px-3 py-1.5 text-xs text-[var(--color-error-700)]"
+                  role="alert"
+                >
+                  {errorMsg}
+                </div>
+              ) : null}
               <button type="button" className="btn" onClick={() => { setEditing(null); setErrorMsg(null); }}>
                 Cancel
               </button>

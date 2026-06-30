@@ -110,6 +110,8 @@ test('editor renders SLA windows section with seeded row', async () => {
   // Click the GFS edit button (second row) — that record has 1 SLA seeded.
   fireEvent.click(editButtons[1] as HTMLElement);
   const editor = await screen.findByTestId('partner-editor');
+  // FO1 — editor is tabbed; SLA windows live on the "SLAs & alerts" tab.
+  fireEvent.click(within(editor).getByTestId('editor-tab-slas'));
   expect(within(editor).getByText('SLA windows')).toBeInTheDocument();
   // The seeded withinMinutes value is bound to a number input.
   expect(within(editor).getByDisplayValue('60')).toBeInTheDocument();
@@ -119,6 +121,8 @@ test('editor renders Supported sets, Lifecycle flow, Ack overrides sections', as
   renderPage();
   fireEvent.click(await screen.findByText('New partner'));
   const editor = await screen.findByTestId('partner-editor');
+  // FO1 — Sets, lifecycle flow, and ack overrides all live on the "Sets & flow" tab.
+  fireEvent.click(within(editor).getByTestId('editor-tab-sets'));
   expect(within(editor).getByText('Supported sets')).toBeInTheDocument();
   expect(within(editor).getByText('Lifecycle flow')).toBeInTheDocument();
   expect(within(editor).getByText('Ack-code overrides')).toBeInTheDocument();
@@ -132,7 +136,12 @@ test('editor renders the Connectivity section blank on a new partner', async () 
   renderPage();
   fireEvent.click(await screen.findByText('New partner'));
   const editor = await screen.findByTestId('partner-editor');
-  expect(within(editor).getByText('Connectivity')).toBeInTheDocument();
+  // FO1 — Connectivity is its own tab in the editor.
+  fireEvent.click(within(editor).getByTestId('editor-tab-connectivity'));
+  // Scope the "Connectivity" assertion to the active panel to avoid matching
+  // the always-visible tab trigger of the same label.
+  const panel = within(editor).getByRole('tabpanel', { name: /Connectivity/i });
+  expect(within(panel).getByText('Connectivity')).toBeInTheDocument();
   // Channel select starts on the placeholder; endpoint + contact + notes are
   // empty inputs. Reaching for them by testid keeps the assertion stable as
   // styles evolve.
@@ -150,6 +159,8 @@ test('editor pre-fills Connectivity when editing a partner that has it configure
   // Sysco (first row) has connectivity in the fixture.
   fireEvent.click(editButtons[0] as HTMLElement);
   const editor = await screen.findByTestId('partner-editor');
+  // FO1 — Connectivity is its own tab in the editor.
+  fireEvent.click(within(editor).getByTestId('editor-tab-connectivity'));
   const channel = within(editor).getByTestId('connectivity-channel') as HTMLSelectElement;
   const endpoint = within(editor).getByTestId('connectivity-endpoint') as HTMLInputElement;
   const tech = within(editor).getByTestId('connectivity-tech-contact') as HTMLInputElement;
@@ -163,6 +174,9 @@ test('editor shows segment label overrides from partner record', async () => {
   const editButtons = await screen.findAllByText('Edit');
   fireEvent.click(editButtons[0] as HTMLElement);
   const editor = await screen.findByTestId('partner-editor');
+  // FO1 — Segment-label overrides live alongside Supported sets / Lifecycle
+  // flow / Ack overrides under the "Sets & flow" tab.
+  fireEvent.click(within(editor).getByTestId('editor-tab-sets'));
   expect(within(editor).getByTestId('segment-label-editor')).toBeInTheDocument();
   expect(within(editor).getByDisplayValue('ZZ')).toBeInTheDocument();
   expect(within(editor).getByDisplayValue('Custom ZZ label')).toBeInTheDocument();

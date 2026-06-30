@@ -41,3 +41,4 @@ export { Popover } from './Popover.tsx';
 export { DropdownMenu } from './DropdownMenu.tsx';
 export { Breadcrumbs } from './Breadcrumbs.tsx';
 export type { BreadcrumbItem } from './Breadcrumbs.tsx';
+export { Tabs } from './Tabs.tsx';
