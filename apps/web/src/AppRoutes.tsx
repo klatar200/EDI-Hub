@@ -33,6 +33,29 @@ function CenteredCard({ children }: { children: React.ReactNode }): JSX.Element 
   );
 }
 
+/** UI-1 — resolve the root path to the user's chosen landing page. Defaults to
+ *  the Monitoring dashboard; users set this in Settings. */
+function DefaultLanding(): JSX.Element {
+  const apiReady = useApiReady();
+  const prefsKey = useTenantQueryKey('preferences');
+  const prefsQ = useQuery({
+    queryKey: prefsKey,
+    queryFn: () => api.preferences.get(),
+    enabled: apiReady,
+    retry: false,
+    staleTime: 30_000,
+  });
+  if (apiReady && prefsQ.isPending) {
+    return (
+      <CenteredCard>
+        <p className="text-sm text-[var(--color-fg-muted)]">Loading…</p>
+      </CenteredCard>
+    );
+  }
+  const landing = prefsQ.data?.preferences.defaultLanding ?? 'dashboard';
+  return <Navigate to={landing === 'lifecycles' ? '/lifecycles' : '/dashboard'} replace />;
+}
+
 export function AppRoutes(): JSX.Element {
   const isAdmin = useHasRole('admin');
   const apiReady = useApiReady();
@@ -69,7 +92,8 @@ export function AppRoutes(): JSX.Element {
   return (
     <Routes>
       <Route element={<Layout />}>
-        <Route path="/" element={<LifecyclesPage />} />
+        <Route path="/" element={<DefaultLanding />} />
+        <Route path="/lifecycles" element={<LifecyclesPage />} />
         <Route path="/transactions" element={<TransactionsPage />} />
         <Route path="/transactions/:id" element={<TransactionDetailPage />} />
         <Route path="/ingestions" element={<IngestionsPage />} />

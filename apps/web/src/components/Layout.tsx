@@ -119,7 +119,7 @@ export function Layout(): JSX.Element {
     setupQ.data.dropFolderPath;
 
   const monitorNav: NavItem[] = [
-    { to: '/', label: 'Lifecycles', end: true },
+    { to: '/lifecycles', label: 'Lifecycles' },
     { to: '/dashboard', label: 'Dashboard' },
     { to: '/alerts', label: 'Alerts', badge: unread },
   ];

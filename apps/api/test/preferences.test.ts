@@ -60,3 +60,32 @@ test('PATCH /preferences persists pins', async () => {
   assert.deepEqual(body.preferences.pinnedPos, ['PO-200', 'PO-100']);
   await app.close();
 });
+
+test('PATCH /preferences persists defaultLanding alongside pins', async () => {
+  const app = makeApp({ id: 'u-1', preferences: {} });
+  await app.register(preferencesRoutes, { prefix: '/api' });
+  const res = await app.inject({
+    method: 'PATCH',
+    url: '/api/preferences',
+    payload: { defaultLanding: 'lifecycles', pinnedPos: ['PO-1'] },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json() as { preferences: { defaultLanding?: string; pinnedPos: string[] } };
+  assert.equal(body.preferences.defaultLanding, 'lifecycles');
+  assert.deepEqual(body.preferences.pinnedPos, ['PO-1']);
+  await app.close();
+});
+
+test('PATCH /preferences ignores an invalid defaultLanding', async () => {
+  const app = makeApp({ id: 'u-1', preferences: {} });
+  await app.register(preferencesRoutes, { prefix: '/api' });
+  const res = await app.inject({
+    method: 'PATCH',
+    url: '/api/preferences',
+    payload: { defaultLanding: 'bogus' },
+  });
+  assert.equal(res.statusCode, 200);
+  const body = res.json() as { preferences: { defaultLanding?: string } };
+  assert.equal(body.preferences.defaultLanding, undefined);
+  await app.close();
+});

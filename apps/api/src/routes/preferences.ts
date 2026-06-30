@@ -30,6 +30,9 @@ function parsePreferences(raw: unknown): UserPreferences {
       .map((p) => p.trim())
       .slice(0, MAX_PINS);
   }
+  if (o.defaultLanding === 'dashboard' || o.defaultLanding === 'lifecycles') {
+    prefs.defaultLanding = o.defaultLanding;
+  }
   return prefs;
 }
 
