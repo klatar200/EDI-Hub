@@ -10,7 +10,7 @@
  *  - Notes
  *  - Contacts (email-only)
  */
-import { useEffect, useState, type FormEvent } from 'react';
+import { useEffect, useMemo, useState, type FormEvent } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CONNECTIVITY_CHANNELS,
@@ -280,12 +280,49 @@ export function PartnersConfigPage(): JSX.Element {
   // different partner so a stale error from a previous edit doesn't
   // bleed into the next.
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({});
+  // FO3 — snapshot of the draft at the moment the editor opened. Any
+  // divergence from this is "unsaved changes" and guards the operator
+  // against losing them. Stored as a serialized string to keep the diff
+  // cheap and to match `JSON.stringify(draft)` comparison below.
+  const [baselineDraft, setBaselineDraft] = useState<string | null>(null);
   useEffect(() => {
     if (editing) {
       setEditorTab('identity');
       setFieldErrors({});
+      setBaselineDraft(JSON.stringify(editing.draft));
+    } else {
+      setBaselineDraft(null);
     }
   }, [editing?.id]);
+
+  // FO3 — derive isDirty from baseline vs current draft.
+  const isDirty = useMemo(() => {
+    if (!editing || baselineDraft === null) return false;
+    return JSON.stringify(editing.draft) !== baselineDraft;
+  }, [editing, baselineDraft]);
+
+  // FO3 — Browser-tab close / refresh / hard navigation. Modern browsers
+  // ignore custom strings and show their own boilerplate; the listener
+  // just needs to call preventDefault() and set returnValue to enable the
+  // native "leave site?" prompt.
+  useEffect(() => {
+    if (!isDirty) return;
+    function onBeforeUnload(e: BeforeUnloadEvent): void {
+      e.preventDefault();
+      e.returnValue = '';
+    }
+    window.addEventListener('beforeunload', onBeforeUnload);
+    return () => window.removeEventListener('beforeunload', onBeforeUnload);
+  }, [isDirty]);
+
+  /** FO3 — single source of truth for "close this editor" prompts. Returns
+   *  true when it's safe to proceed (no dirty state OR the operator
+   *  confirmed). Falls through to `window.confirm` for the UI; tests can
+   *  stub the global. */
+  function confirmDiscard(message = 'Discard unsaved changes to this partner?'): boolean {
+    if (!isDirty) return true;
+    return window.confirm(message);
+  }
 
   /** FO2 — replace a draft field and clear its inline error if any. Keeps
    *  the editor responsive: as soon as the operator types into an errored
@@ -395,7 +432,9 @@ export function PartnersConfigPage(): JSX.Element {
             <button
               type="button"
               className="btn-primary"
-              onClick={() => setEditing({ id: null, draft: { ...EMPTY_DRAFT } })}
+              onClick={() => {
+                if (confirmDiscard()) setEditing({ id: null, draft: { ...EMPTY_DRAFT } });
+              }}
             >
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.25" strokeLinecap="round" strokeLinejoin="round" aria-hidden>
                 <line x1="12" y1="5" x2="12" y2="19" /><line x1="5" y1="12" x2="19" y2="12" />
@@ -431,7 +470,9 @@ export function PartnersConfigPage(): JSX.Element {
               type="button"
               className="btn-primary"
               data-testid="empty-new-partner"
-              onClick={() => setEditing({ id: null, draft: { ...EMPTY_DRAFT } })}
+              onClick={() => {
+                if (confirmDiscard()) setEditing({ id: null, draft: { ...EMPTY_DRAFT } });
+              }}
             >
               Add partner
             </button>
@@ -493,7 +534,9 @@ export function PartnersConfigPage(): JSX.Element {
                         <button
                           type="button"
                           className="text-sm text-[var(--color-brand-600)] hover:text-[var(--color-brand-700)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 rounded"
-                          onClick={() => setEditing({ id: p.id, draft: fromRecord(p) })}
+                          onClick={() => {
+                            if (confirmDiscard()) setEditing({ id: p.id, draft: fromRecord(p) });
+                          }}
                         >
                           Edit
                         </button>
@@ -501,6 +544,12 @@ export function PartnersConfigPage(): JSX.Element {
                           type="button"
                           className="text-sm text-[var(--color-error-700)] hover:underline focus:outline-none focus:ring-2 focus:ring-[var(--color-error-500)]/30 rounded"
                           onClick={() => {
+                            // FO3 — when the row being deleted is the one currently
+                            // open in the editor, the unsaved-changes guard fires
+                            // first (otherwise the delete would silently obliterate
+                            // their draft along with the row).
+                            const isCurrentlyEditing = editing?.id === p.id;
+                            if (isCurrentlyEditing && !confirmDiscard()) return;
                             if (window.confirm(`Delete partner "${p.displayName}"?`)) deleteM.mutate(p.id);
                           }}
                         >
@@ -523,9 +572,23 @@ export function PartnersConfigPage(): JSX.Element {
             data-testid="partner-editor"
           >
             <div className="border-b border-[var(--color-surface-border)] px-4 pb-3 pt-4">
-              <h2 className="text-sm font-semibold text-[var(--color-fg)]">
-                {editing.id ? 'Edit partner' : 'New partner'}
-              </h2>
+              <div className="flex items-center gap-2">
+                <h2 className="text-sm font-semibold text-[var(--color-fg)]">
+                  {editing.id ? 'Edit partner' : 'New partner'}
+                </h2>
+                {/* FO3 — Visual cue that the operator has unsaved edits.
+                    Pairs with the beforeunload + confirm-on-discard guards
+                    so the dirty state isn't just felt, it's labeled. */}
+                {isDirty ? (
+                  <span
+                    data-testid="partner-editor-dirty"
+                    className="inline-flex items-center gap-1 rounded-full bg-[var(--color-warn-50)] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-[var(--color-warn-800)]"
+                  >
+                    <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-[var(--color-warn-500)]" />
+                    Unsaved changes
+                  </span>
+                ) : null}
+              </div>
               <p className="mt-0.5 text-xs text-[var(--color-fg-muted)]">
                 {editing.id
                   ? 'Update identity, supported sets, lifecycle flow, ack overrides, SLAs, connectivity, notes, and contacts.'
@@ -739,7 +802,14 @@ export function PartnersConfigPage(): JSX.Element {
               <button
                 type="button"
                 className="btn"
-                onClick={() => { setEditing(null); setErrorMsg(null); setFieldErrors({}); }}
+                data-testid="partner-editor-cancel"
+                onClick={() => {
+                  // FO3 — Cancel is the most common discard path; guard it.
+                  if (!confirmDiscard()) return;
+                  setEditing(null);
+                  setErrorMsg(null);
+                  setFieldErrors({});
+                }}
               >
                 Cancel
               </button>
