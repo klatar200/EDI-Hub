@@ -839,6 +839,9 @@ export interface UserPreferences {
   savedViews?: SavedView[];
   /** F43 — max 10 pinned PO numbers. */
   pinnedPos?: string[];
+  /** UI-1 — page to land on when opening the hub. Personal to the user;
+   *  default 'dashboard' (Monitoring). */
+  defaultLanding?: 'dashboard' | 'lifecycles';
 }
 
 export interface UserPreferencesResponse {
