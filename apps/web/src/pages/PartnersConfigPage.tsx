@@ -518,7 +518,15 @@ function PartnerSetupCell({ partner }: { partner: TradingPartnerRecord }): JSX.E
 }
 
 function PartnerSetupBanner({ input }: { input: PartnerConfigInput }): JSX.Element {
-  const setup = partnerSetupStatus(input);
+  // `slaWindows` and `contacts` are optional on PartnerConfigInput (PATCH
+  // bodies omit them to keep the current value). `partnerSetupStatus` only
+  // reads `.length`, so coerce `undefined` to an empty array — strict tsc
+  // build flags the optional-vs-required mismatch otherwise.
+  const setup = partnerSetupStatus({
+    isaSenderIds: input.isaSenderIds,
+    slaWindows: input.slaWindows ?? [],
+    contacts: input.contacts ?? [],
+  });
   if (setup.status === 'ready') {
     return (
       <div
