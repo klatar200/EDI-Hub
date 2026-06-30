@@ -50,6 +50,10 @@ export default defineConfig({
     },
   },
 
+  // UR8/R62 — share one baseline per project (omit {platform}) so CI on
+  // ubuntu-linux uses the same PNGs committed from Windows dev machines.
+  snapshotPathTemplate: '{testDir}/{testFileDir}/{testFileName}-snapshots/{arg}-{projectName}{ext}',
+
   use: {
     // Lock viewport so screenshots are deterministic across machines.
     viewport: { width: 1280, height: 800 },

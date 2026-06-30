@@ -168,8 +168,9 @@
 | **UR5** | Ultra-wide layouts | R4, R33–R35 |
 | **UR6** | Playwright viewports + checklist | R36, R37 |
 | **UR7** | Polish | R57, R59, R60 |
+| **UR8** | Hardening & local smoke | R61, R62, R63 |
 
-Full catalog and decision log: [`docs/UI_RESPONSIVE_PLAN.md`](UI_RESPONSIVE_PLAN.md). Responsiveness track **complete** (UR0–UR7).
+Full catalog and decision log: [`docs/UI_RESPONSIVE_PLAN.md`](UI_RESPONSIVE_PLAN.md). Responsiveness + hardening track **complete** (UR0–UR8).
 
 **Declined:** **R6** — search stays always-visible (`w-64`); no icon-expand pattern.
 

@@ -15,6 +15,7 @@ import { readFileSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { buildServer } from '../src/server.js';
+import type { AuthOutcome } from '../src/services/auth.js';
 import { getObjectBuffer, ensureBucket } from '../src/storage/s3.js';
 import { getPrisma, disconnectPrisma, tenantContext, PILOT_TENANT_ID } from '@edi/db';
 import type { IngestUploadResponse } from '@edi/shared';
@@ -63,7 +64,11 @@ async function main(): Promise<void> {
   await prisma.$queryRaw`SELECT 1`;
   console.log('[0] Postgres connection OK');
 
-  const app = await buildServer();
+  const app = await buildServer({
+    // Stack smoke runs against real Postgres/MinIO but must not depend on a
+    // live Clerk session in the developer's .env (CLERK_SECRET_KEY may be set).
+    verifyAuth: async (): Promise<AuthOutcome> => ({ kind: 'dev-fallback' }),
+  });
   await ensureBucket(app.s3, app.config.s3.bucket);
   console.log('[0] MinIO bucket OK');
 
@@ -92,7 +97,9 @@ async function main(): Promise<void> {
   assert(stored.equals(fileBuffer), 'S3 object bytes do not match uploaded file');
   console.log(`[3] S3 object verified (${stored.length} bytes)`);
 
-  const record = await getPrisma().rawFile.findUnique({ where: { id: json.id } });
+  const record = await tenantContext.run({ tenantId: PILOT_TENANT_ID }, async () =>
+    prisma.rawFile.findUnique({ where: { id: json.id } }),
+  );
   assert(record?.status === 'PARSED', `DB status expected PARSED, got ${record?.status}`);
   console.log('[4] Postgres raw_files row PARSED');
 

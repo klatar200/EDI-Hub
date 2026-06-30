@@ -1,7 +1,7 @@
 # UI Responsiveness Plan
 
 **Owner:** Keagan  
-**Status:** ✅ **Complete** — UR0–UR7 shipped. All catalog items **R1–R60** approved except **R6** declined.  
+**Status:** ✅ **UR0–UR8 complete**. All catalog items **R1–R63** approved except **R6** declined.  
 **Scope:** Web app (`apps/web`) and desktop app (Electron loads the same bundle via `DesktopLanRoot` / `App`).  
 **Purpose:** Make the hub **use the full window** at every size — fluid shell, adaptive nav, and page-level layouts — without regressing U0–U5 shipped work.
 
@@ -188,6 +188,14 @@ Additional fixes from code review — owner approved 2026-06-30.
 | **R59** | **Reduce layout shift on load** | Skeleton dimensions tuned to match final card/table row heights (CLS polish). | M | ✅ |
 | **R60** | **StatusPill overflow** | `max-w-full truncate` or wrap for long custom status labels in tables/cards. | S | ✅ |
 
+### P — Post-ship hardening (UR8 addendum)
+
+| ID | Recommendation | What it would do | Effort | Decision |
+|----|----------------|------------------|--------|----------|
+| **R61** | **Google Fonts load order** | Load Inter/JetBrains Mono via `<link>` in `index.html` (no CSS `@import` after `@layer`). | S | ✅ |
+| **R62** | **Parity CI snapshot paths** | Platform-agnostic snapshot names (`*-web.png`) so Linux GitHub Actions uses the same baselines as Windows dev. | S | ✅ |
+| **R63** | **Local stack smoke exit** | `npm run validate:local` green (Docker Postgres + MinIO ingest → lifecycle → detection). | M | ✅ |
+
 ---
 
 ## Implementation phases
@@ -204,6 +212,7 @@ Phases include **✅ OK** round-1 items only. Round-2 items slot into the matchi
 | **UR5** | Large / ultra-wide | R4, R33–R35 | ✅ Shipped |
 | **UR6** | Verification | R36, R37 | ✅ Shipped |
 | **UR7** | Polish bundle | R57, R59, R60 + any stragglers | ✅ Shipped |
+| **UR8** | Hardening & exit | R61, R62, R63 | ✅ Shipped |
 
 **UR1 note:** Search remains a always-visible `w-64` input per owner preference. Header wrap (R5) + progressive collapse (R7) handle crowding; optional R38–R40 if approved.
 
@@ -224,6 +233,7 @@ Phases include **✅ OK** round-1 items only. Round-2 items slot into the matchi
 | 2026-06-30 | UR5 | ✅ Shipped | R4, R33–R35 — FullBleed, 2xl sidebar, lifecycle summary panel, container queries |
 | 2026-06-30 | UR6 | ✅ Shipped | R36, R37 — Playwright viewport matrix + LOCAL_DEV resize checklist |
 | 2026-06-30 | UR7 | ✅ Shipped | R57, R59, R60 — keyboard shortcuts overlay, CLS skeletons, StatusPill truncate |
+| 2026-06-30 | UR8 | ✅ Shipped | R61, R62, R63 — fonts, parity CI paths, validate:local smoke |
 
 ---
 

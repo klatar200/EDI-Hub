@@ -63,6 +63,8 @@ export async function uploadStream(params: {
   key: string;
   body: Readable;
   contentType?: string;
+  /** Default true — set false for MinIO / custom endpoints. */
+  serverSideEncryption?: boolean;
 }): Promise<UploadResult> {
   const upload = new Upload({
     client: params.client,
@@ -71,12 +73,12 @@ export async function uploadStream(params: {
       Key: params.key,
       Body: params.body,
       ContentType: params.contentType ?? 'application/octet-stream',
-      // Phase 9 Sprint 5 — explicit SSE-S3 on every PUT. The bucket policy
-      // (infra/s3.tf) denies uploads without this header even though the
-      // bucket's default-encryption rule would silently apply it. Belt +
-      // suspenders: if the policy ever drifts off, the SDK call still
-      // encrypts at rest.
-      ServerSideEncryption: 'AES256',
+      ...(params.serverSideEncryption !== false
+        ? {
+            // Phase 9 Sprint 5 — explicit SSE-S3 on every PUT (real AWS only).
+            ServerSideEncryption: 'AES256' as const,
+          }
+        : {}),
     },
   });
   await upload.done();

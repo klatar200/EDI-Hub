@@ -46,6 +46,8 @@ export interface S3Config {
   endpoint: string | undefined;
   /** true for MinIO (path-style); false for real AWS S3. */
   forcePathStyle: boolean;
+  /** AES256 on PUT for real AWS; off when `endpoint` is set (MinIO rejects SSE). */
+  serverSideEncryption?: boolean;
 }
 
 /** Desktop track D3 Sprint 1 - which backend the storage adapter targets.
@@ -205,6 +207,7 @@ export function loadConfig(): AppConfig {
       region: optional('S3_REGION', 'us-east-1'),
       endpoint: endpoint && endpoint.length > 0 ? endpoint : undefined,
       forcePathStyle: boolEnv('S3_FORCE_PATH_STYLE', false),
+      serverSideEncryption: !(endpoint && endpoint.length > 0),
     },
     storage: {
       backend: storageBackend,

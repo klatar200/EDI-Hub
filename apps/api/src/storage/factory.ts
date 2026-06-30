@@ -27,7 +27,11 @@ export function createStorageAdapter(
             "Construct one via createS3Client(config.s3) at boot.",
         );
       }
-      return new S3StorageAdapter(s3Client, config.s3.bucket);
+      return new S3StorageAdapter(
+        s3Client,
+        config.s3.bucket,
+        config.s3.serverSideEncryption ?? !config.s3.endpoint,
+      );
     }
     case 'local':
       return new LocalStorageAdapter({ dataDir: config.storage.localDataDir });

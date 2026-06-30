@@ -21,7 +21,7 @@
 ## Table of contents
 
 1. [Snapshot](#1-snapshot)
-2. [Active track — UI responsiveness (UR0–UR7)](#2-active-track--ui-responsiveness-ur0ur7)
+2. [Active track — UR8 hardening](#2-active-track--ur8-hardening)
 3. [Local validation ($0)](#3-local-validation-0)
 4. [Architecture constraints (do not reopen)](#4-architecture-constraints-do-not-reopen)
 5. [Deploy track — go-live gate (deferred)](#5-deploy-track--go-live-gate-deferred)
@@ -38,7 +38,8 @@
 | Product (phases 0–10, desktop, PS/PB sprints) | ✅ Complete — [`docs/SHIPPED.md`](docs/SHIPPED.md) |
 | UI Build Plan (U0–U5) | ✅ Complete — [`docs/SHIPPED.md` §4.1](docs/SHIPPED.md#41-ui-build-plan-refresh--u0u5) · archive [`docs/UI_BUILD_PLAN.md`](docs/UI_BUILD_PLAN.md) |
 | Security remediation SEC-1–5 | ✅ — [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) |
-| **Active** | **UI responsiveness UR0–UR7** — [§2](#2-active-track--ui-responsiveness-ur0ur7) · catalog [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) |
+| **Active** | **Local validation** — [§3](#3-local-validation-0) (browser walkthrough remaining) |
+| UI responsiveness UR0–UR7 | ✅ Complete — [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) · [`docs/SHIPPED.md`](docs/SHIPPED.md) |
 | Local validation | [§3](#3-local-validation-0) — parallel exit criteria |
 | **Deferred** | AWS staging, M5 ops proof, Phase 11–12 — [§5](#5-deploy-track--go-live-gate-deferred) |
 | Tests / CI | `npm run test:ci` green on `main` |
@@ -47,7 +48,27 @@
 
 ---
 
-## 2. Active track — UI responsiveness (UR0–UR7)
+## 2. Active track — UR8 hardening
+
+**Goal:** Close post-responsiveness gaps so CI parity and local stack smoke are reliable on any runner.
+
+**Catalog addendum:** [`docs/UI_RESPONSIVE_PLAN.md`](docs/UI_RESPONSIVE_PLAN.md) — R61–R63.
+
+| Sprint | Focus | Key IDs | Status |
+|--------|--------|---------|--------|
+| **UR8** | Fonts, parity CI, local smoke | R61, R62, R63 | ✅ |
+
+| ID | Item | Status |
+|----|------|--------|
+| **R61** | Google Fonts via `index.html` (postcss clean) | ✅ |
+| **R62** | Playwright snapshot path — platform-agnostic baselines for Linux CI | ✅ |
+| **R63** | `npm run validate:local` green + BUILD_PLAN §3 exit criteria | ✅ |
+
+**Exit (UR8):** No postcss font warning in parity runs · parity snapshots match on Linux CI · `validate:local` passes with Docker stack.
+
+---
+
+## 2a. UI responsiveness (UR0–UR7) — complete
 
 **Goal:** Fluid shell, adaptive nav, responsive tables/forms across web + desktop (same React bundle).
 
@@ -78,7 +99,7 @@
 
 - [x] `npm run test:ci` green
 - [x] UI Build Plan U0–U5 shipped (desktop **v0.0.37-alpha**)
-- [ ] `npm run validate:local` green (Docker Postgres + MinIO — ingest, lifecycle, detection)
+- [x] `npm run validate:local` green (Docker Postgres + MinIO — ingest, lifecycle, detection)
 - [ ] Sign in (Clerk or dev-fallback) and see lifecycles UI
 - [ ] Upload or SFTP-drop test 850 → appears in lifecycle list
 - [ ] Alerts/detection runnable locally

@@ -19,6 +19,7 @@ export class S3StorageAdapter implements StorageAdapter {
   constructor(
     private readonly client: S3Client,
     private readonly bucket: string,
+    private readonly serverSideEncryption = true,
   ) {}
 
   async upload(key: string, body: Readable, contentType?: string): Promise<{ key: string }> {
@@ -28,6 +29,7 @@ export class S3StorageAdapter implements StorageAdapter {
       key,
       body,
       contentType,
+      serverSideEncryption: this.serverSideEncryption,
     });
   }
 
