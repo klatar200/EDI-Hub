@@ -33,6 +33,7 @@ import {
   FormField,
   Input,
   Select,
+  Popover,
 } from '../components/ui';
 
 const PAGE_SIZE = 25;
@@ -406,11 +407,26 @@ export function LifecyclesPage(): JSX.Element {
   const total = listQ.data?.total ?? 0;
   const showSlaColumn = slaCountdownEnabled || items.some((r) => r.slaSummary);
   const viewQuery = filtersToViewQuery(sp);
+  // Filters that live inside the popover. Needs-attention + pinnedOnly are
+  // surfaced inline as their own controls, so they're excluded from the
+  // popover badge count (counting them would double-mark active state).
+  const popoverFilterKeys = [
+    'partnerId', 'flow', 'setId', 'setDirection', 'from', 'to', 'hasAlerts', 'hasParseError',
+  ] as const;
+  const activeFilterCount = popoverFilterKeys.filter((k) => Boolean(filters[k])).length;
   const hasAnyFilter = Boolean(
     filters.partnerId || filters.from || filters.to || filters.hasAlerts
     || filters.hasParseError || filters.needsAttention || filters.flow || filters.setId || filters.setDirection
     || pinnedOnly,
   );
+
+  function clearPopoverFilters(): void {
+    const next = new URLSearchParams(sp);
+    for (const key of popoverFilterKeys) next.delete(key);
+    next.delete('page');
+    setSp(next);
+  }
+
   const partners = partnersConfigQ.data?.items ?? [];
   const partnerDone = partners.length > 0;
   const ingestDone = setupQ.data?.hasIngested ?? false;
@@ -473,47 +489,117 @@ export function LifecyclesPage(): JSX.Element {
           >
             Needs attention
           </button>
-          <FormField label="Partner">
-            <Select
-              size="sm"
-              value={filters.partnerId ?? ''}
-              onChange={(e) => setFilter('partnerId', e.target.value || undefined)}
+
+          {/* T1 — All "narrow-the-list" filters collapse into a single Filters
+              popover with an active-count badge. Sort stays inline (it shapes
+              the view, not the result set) and Needs-attention stays inline
+              (the most common one-tap action). */}
+          <Popover>
+            <Popover.Trigger asChild>
+              <button
+                type="button"
+                data-testid="filters-popover-trigger"
+                aria-label={`Filters${activeFilterCount > 0 ? ` (${activeFilterCount} active)` : ''}`}
+                className="inline-flex items-center gap-2 self-end rounded-md border border-[var(--color-surface-border)] px-3 py-1.5 text-sm font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 data-[state=open]:bg-[var(--color-surface-muted)] data-[state=open]:text-[var(--color-fg)]"
+              >
+                <svg aria-hidden viewBox="0 0 20 20" className="h-4 w-4" fill="currentColor">
+                  <path d="M3 4h14a1 1 0 0 1 .8 1.6L12 12v4a1 1 0 0 1-1.45.9l-2-1A1 1 0 0 1 8 15v-3L2.2 5.6A1 1 0 0 1 3 4Z" />
+                </svg>
+                Filters
+                {activeFilterCount > 0 ? (
+                  <span
+                    data-testid="filters-active-count"
+                    className="inline-flex h-4 min-w-[16px] items-center justify-center rounded-full bg-[var(--color-brand-500)] px-1 text-[10px] font-bold leading-none text-white"
+                  >
+                    {activeFilterCount}
+                  </span>
+                ) : null}
+              </button>
+            </Popover.Trigger>
+            <Popover.Content
+              align="start"
+              sideOffset={6}
+              className="w-[min(640px,90vw)]"
+              data-testid="filters-popover"
             >
-              <option value="">All</option>
-              {partners.map((p) => (
-                <option key={p.id} value={p.id}>{p.displayName}</option>
-              ))}
-            </Select>
-          </FormField>
-          <FormField label="Flow">
-            <Select size="sm" value={filters.flow ?? ''} onChange={(e) => setFilter('flow', e.target.value || undefined)}>
-              <option value="">All</option>
-              {FLOWS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="Doc type">
-            <Select size="sm" value={filters.setId ?? ''} onChange={(e) => setFilter('setId', e.target.value || undefined)}>
-              <option value="">All</option>
-              {SETS.map((s) => <option key={s} value={s}>{s}</option>)}
-            </Select>
-          </FormField>
-          <FormField label="Direction">
-            <Select
-              size="sm"
-              value={filters.setDirection ?? ''}
-              onChange={(e) => setFilter('setDirection', e.target.value || undefined)}
-            >
-              <option value="">Any</option>
-              <option value="inbound">Inbound</option>
-              <option value="outbound">Outbound</option>
-            </Select>
-          </FormField>
-          <FormField label="From">
-            <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
-          </FormField>
-          <FormField label="To">
-            <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
-          </FormField>
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                <FormField label="Partner">
+                  <Select
+                    size="sm"
+                    value={filters.partnerId ?? ''}
+                    onChange={(e) => setFilter('partnerId', e.target.value || undefined)}
+                  >
+                    <option value="">All</option>
+                    {partners.map((p) => (
+                      <option key={p.id} value={p.id}>{p.displayName}</option>
+                    ))}
+                  </Select>
+                </FormField>
+                <FormField label="Flow">
+                  <Select size="sm" value={filters.flow ?? ''} onChange={(e) => setFilter('flow', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {FLOWS.map((f) => <option key={f.value} value={f.value}>{f.label}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="Doc type">
+                  <Select size="sm" value={filters.setId ?? ''} onChange={(e) => setFilter('setId', e.target.value || undefined)}>
+                    <option value="">All</option>
+                    {SETS.map((s) => <option key={s} value={s}>{s}</option>)}
+                  </Select>
+                </FormField>
+                <FormField label="Direction">
+                  <Select
+                    size="sm"
+                    value={filters.setDirection ?? ''}
+                    onChange={(e) => setFilter('setDirection', e.target.value || undefined)}
+                  >
+                    <option value="">Any</option>
+                    <option value="inbound">Inbound</option>
+                    <option value="outbound">Outbound</option>
+                  </Select>
+                </FormField>
+                <FormField label="From">
+                  <Input size="sm" type="date" value={filters.from ?? ''} onChange={(e) => setFilter('from', e.target.value || undefined)} />
+                </FormField>
+                <FormField label="To">
+                  <Input size="sm" type="date" value={filters.to ?? ''} onChange={(e) => setFilter('to', e.target.value || undefined)} />
+                </FormField>
+                <FormField label="Alerts">
+                  <Select
+                    size="sm"
+                    value={filters.hasAlerts ? 'true' : ''}
+                    onChange={(e) => setFilter('hasAlerts', e.target.value || undefined)}
+                  >
+                    <option value="">All</option>
+                    <option value="true">With open alerts</option>
+                  </Select>
+                </FormField>
+                <FormField label="Parse errors">
+                  <Select
+                    size="sm"
+                    value={filters.hasParseError ? 'true' : ''}
+                    onChange={(e) => setFilter('hasParseError', e.target.value || undefined)}
+                  >
+                    <option value="">All</option>
+                    <option value="true">Parse errors only</option>
+                  </Select>
+                </FormField>
+              </div>
+              {activeFilterCount > 0 ? (
+                <div className="mt-3 flex items-center justify-between border-t border-[var(--color-surface-border)] pt-2 text-xs text-[var(--color-fg-muted)]">
+                  <span>{activeFilterCount} active</span>
+                  <button
+                    type="button"
+                    className="rounded px-2 py-1 text-xs text-[var(--color-brand-600)] hover:bg-[var(--color-surface-muted)]"
+                    onClick={clearPopoverFilters}
+                  >
+                    Clear filters
+                  </button>
+                </div>
+              ) : null}
+            </Popover.Content>
+          </Popover>
+
           <FormField label="Sort">
             <Select
               size="sm"
@@ -523,26 +609,6 @@ export function LifecyclesPage(): JSX.Element {
             >
               <option value="startedAt:desc">Started — newest first</option>
               <option value="startedAt:asc">Started — oldest first</option>
-            </Select>
-          </FormField>
-          <FormField label="Alerts">
-            <Select
-              size="sm"
-              value={filters.hasAlerts ? 'true' : ''}
-              onChange={(e) => setFilter('hasAlerts', e.target.value || undefined)}
-            >
-              <option value="">All</option>
-              <option value="true">With open alerts</option>
-            </Select>
-          </FormField>
-          <FormField label="Parse errors">
-            <Select
-              size="sm"
-              value={filters.hasParseError ? 'true' : ''}
-              onChange={(e) => setFilter('hasParseError', e.target.value || undefined)}
-            >
-              <option value="">All</option>
-              <option value="true">Parse errors only</option>
             </Select>
           </FormField>
         </div>

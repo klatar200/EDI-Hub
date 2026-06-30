@@ -17,6 +17,16 @@ export { EmptyState } from './EmptyState.tsx';
 export { ErrorState } from './ErrorState.tsx';
 export { StatusPill, rawFileTone } from './StatusPill.tsx';
 export type { StatusTone, StatusSize } from './StatusPill.tsx';
+export {
+  alertSeverityTone,
+  alertStatusTone,
+  lifecycleStatusTone,
+  directionTone,
+  outboundStageTone,
+  channelHealthTone,
+  partnerStatusTone,
+  partnerSetupTone,
+} from './status-tones.ts';
 export { Card } from './Card.tsx';
 export { ThemeToggle } from './ThemeToggle.tsx';
 export { DataTable } from './DataTable.tsx';
@@ -27,3 +37,5 @@ export { Skeleton, Shimmer } from './Skeleton.tsx';
 export { Input, Select, Textarea, Switch, Label, FormField } from './forms.tsx';
 export { Modal } from './Modal.tsx';
 export { Sparkline } from './Sparkline.tsx';
+export { Popover } from './Popover.tsx';
+export { DropdownMenu } from './DropdownMenu.tsx';

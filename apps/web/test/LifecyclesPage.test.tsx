@@ -189,9 +189,17 @@ test('changing parse-error filter updates fetch query', async () => {
   vi.stubGlobal('fetch', fetchMock);
   renderPage();
   await screen.findByTestId('lifecycle-row-PO-100');
-  const parseSelect = screen.getAllByRole('combobox').find((el) =>
-    Array.from(el.querySelectorAll('option')).some((o) => o.textContent === 'Parse errors only'),
-  )!;
+  // T1 — narrow-the-list filters now live inside a Filters popover so the
+  // bar isn't ten controls wide. Open the popover before reaching for the
+  // Parse errors select.
+  fireEvent.click(screen.getByTestId('filters-popover-trigger'));
+  const parseSelect = await waitFor(() => {
+    const match = screen.getAllByRole('combobox').find((el) =>
+      Array.from(el.querySelectorAll('option')).some((o) => o.textContent === 'Parse errors only'),
+    );
+    if (!match) throw new Error('Parse errors select not in DOM yet');
+    return match;
+  });
   fireEvent.change(parseSelect, { target: { value: 'true' } });
   await waitFor(() => {
     const calls = fetchMock.mock.calls.filter((c) => String(c[0]).includes('/lifecycles'));

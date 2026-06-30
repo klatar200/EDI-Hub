@@ -1,27 +1,33 @@
 /**
- * Layout shell — grouped, responsive top navigation.
+ * Layout shell — slim primary nav with overflow menu.
  *
- * Nav is organized into three intent-based groups so the hierarchy is legible
- * to a new user instead of 12 flat peers:
- *   - Monitor   (Lifecycles, Dashboard, Alerts)   — the day-to-day watch surface
- *   - Explore   (Transactions, Ingestions, Metrics) — drill into the raw data
- *   - Configure (Partners, Channels, Settings, Help, Users, Audit) — setup/admin
+ * U1/N1: the primary bar is cut to ~5 destinations so the day-to-day watch
+ * surface is unambiguous; everything else lives under a single labeled
+ * "More" menu (Radix `DropdownMenu`), grouped by intent (Explore / Configure
+ * / Admin) so the menu still tells a new user how to find things.
  *
- * Desktop (lg+): Monitor + Explore render inline (divider between); Configure
- * collapses into a labeled disclosure so the bar never overflows. Below lg the
- * whole nav collapses behind a single menu button. Both disclosures use native
- * <details> — no extra state, keyboard-accessible by default.
+ *   Primary (always visible on lg+):
+ *     Lifecycles · Dashboard · Alerts · Transactions · Partners
  *
- * Header is `sticky top-0 z-30` so it persists while data tables scroll.
+ *   More ▾:
+ *     Explore   — Ingestions, Metrics
+ *     Configure — Channels, Settings, Help
+ *     Admin     — Users, Audit  (admin only)
+ *
+ * Below lg the whole nav collapses behind a single menu button using the
+ * existing native `<details>` disclosure (kept for zero extra deps on the
+ * mobile path). Header is `sticky top-0 z-30` so it persists while data
+ * tables scroll.
  */
 import type { MouseEvent } from 'react';
-import { NavLink, Outlet } from 'react-router-dom';
+import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { OrganizationSwitcher, UserButton } from '@clerk/react';
-import { RequireRole, useApiReady } from '../lib/useRole.tsx';
+import { RequireRole, useApiReady, useHasRole } from '../lib/useRole.tsx';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
 import { SearchBox } from './SearchBox.tsx';
+import { DropdownMenu } from './ui';
 
 interface NavItem {
   to: string;
@@ -76,12 +82,15 @@ function NavItemLink({ item }: { item: NavItem }): JSX.Element {
 const summaryClass =
   'flex cursor-pointer list-none items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] [&::-webkit-details-marker]:hidden';
 
+const triggerClass =
+  'inline-flex cursor-pointer items-center gap-1 rounded-md px-2.5 py-1.5 text-sm font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 data-[state=open]:bg-[var(--color-surface-muted)] data-[state=open]:text-[var(--color-fg)]';
+
 function Caret(): JSX.Element {
   return (
     <svg
       aria-hidden
       viewBox="0 0 12 12"
-      className="h-3 w-3 transition-transform group-open:rotate-180"
+      className="h-3 w-3 transition-transform group-open:rotate-180 group-data-[state=open]:rotate-180"
       fill="none"
       stroke="currentColor"
       strokeWidth="1.5"
@@ -93,6 +102,8 @@ function Caret(): JSX.Element {
 
 export function Layout(): JSX.Element {
   const apiReady = useApiReady();
+  const navigate = useNavigate();
+  const isAdmin = useHasRole('admin');
   // Unread badge — refreshed every 30s; falls back silently when the API is down.
   const alertsBadgeKey = useTenantQueryKey('alerts', 'active', 'unread-badge');
   const activeAlerts = useQuery({
@@ -118,6 +129,17 @@ export function Layout(): JSX.Element {
     setupQ.data.hasIngested === false &&
     setupQ.data.dropFolderPath;
 
+  // Primary nav — 5 destinations covering the day-to-day watch + the two
+  // most-used drill-ins. Everything else moves into the More menu below.
+  const primaryNav: NavItem[] = [
+    { to: '/lifecycles', label: 'Lifecycles' },
+    { to: '/dashboard', label: 'Dashboard' },
+    { to: '/alerts', label: 'Alerts', badge: unread },
+    { to: '/transactions', label: 'Transactions' },
+    { to: '/partners-config', label: 'Partners' },
+  ];
+  // Mobile keeps the old "Monitor / Explore / Configure" grouping for the
+  // small-screen disclosure — the dropdown menu collapses to that there.
   const monitorNav: NavItem[] = [
     { to: '/lifecycles', label: 'Lifecycles' },
     { to: '/dashboard', label: 'Dashboard' },
@@ -137,7 +159,21 @@ export function Layout(): JSX.Element {
     { to: '/admin/audit', label: 'Audit', adminOnly: true, testId: 'nav-audit' },
   ];
 
-  const divider = <span aria-hidden className="h-5 w-px bg-[var(--color-surface-border)]" />;
+  // Overflow menu contents (desktop) — same items, regrouped to match what
+  // is NOT already in the primary bar.
+  const moreExplore: NavItem[] = [
+    { to: '/ingestions', label: 'Ingestions' },
+    { to: '/metrics', label: 'Metrics' },
+  ];
+  const moreConfigure: NavItem[] = [
+    { to: '/channels', label: 'Channels' },
+    { to: '/settings', label: 'Settings' },
+    { to: '/help', label: 'Help' },
+  ];
+  const moreAdmin: NavItem[] = [
+    { to: '/users', label: 'Users', testId: 'nav-users' },
+    { to: '/admin/audit', label: 'Audit', testId: 'nav-audit' },
+  ];
 
   return (
     <div className="min-h-screen bg-[var(--color-surface-bg)] text-[var(--color-fg)]">
@@ -157,30 +193,55 @@ export function Layout(): JSX.Element {
             EDI Hub
           </NavLink>
 
-          {/* Desktop nav — grouped, hidden on small screens */}
+          {/* Desktop nav — 5 primary destinations + More overflow, hidden on small screens */}
           <nav className="hidden items-center gap-1 lg:flex" aria-label="Primary">
-            {monitorNav.map((item) => (
+            {primaryNav.map((item) => (
               <NavItemLink key={item.to} item={item} />
             ))}
-            {divider}
-            {exploreNav.map((item) => (
-              <NavItemLink key={item.to} item={item} />
-            ))}
-            {divider}
-            <details className="group relative">
-              <summary className={summaryClass}>
-                Configure
-                <Caret />
-              </summary>
-              <div
-                className="absolute left-0 z-40 mt-1 flex min-w-[160px] flex-col gap-0.5 rounded-md border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] p-1 shadow-lg"
-                onClick={closeEnclosingDetails}
-              >
-                {configureNav.map((item) => (
-                  <NavItemLink key={item.to} item={item} />
+            <DropdownMenu>
+              <DropdownMenu.Trigger asChild>
+                <button type="button" className={`group ${triggerClass}`} data-testid="nav-more">
+                  More
+                  <Caret />
+                </button>
+              </DropdownMenu.Trigger>
+              <DropdownMenu.Content align="start" sideOffset={4} className="min-w-[200px]">
+                <DropdownMenu.Label>Explore</DropdownMenu.Label>
+                {moreExplore.map((item) => (
+                  <DropdownMenu.Item
+                    key={item.to}
+                    onSelect={() => navigate(item.to)}
+                  >
+                    {item.label}
+                  </DropdownMenu.Item>
                 ))}
-              </div>
-            </details>
+                <DropdownMenu.Separator />
+                <DropdownMenu.Label>Configure</DropdownMenu.Label>
+                {moreConfigure.map((item) => (
+                  <DropdownMenu.Item
+                    key={item.to}
+                    onSelect={() => navigate(item.to)}
+                  >
+                    {item.label}
+                  </DropdownMenu.Item>
+                ))}
+                {isAdmin ? (
+                  <>
+                    <DropdownMenu.Separator />
+                    <DropdownMenu.Label>Admin</DropdownMenu.Label>
+                    {moreAdmin.map((item) => (
+                      <DropdownMenu.Item
+                        key={item.to}
+                        data-testid={item.testId}
+                        onSelect={() => navigate(item.to)}
+                      >
+                        {item.label}
+                      </DropdownMenu.Item>
+                    ))}
+                  </>
+                ) : null}
+              </DropdownMenu.Content>
+            </DropdownMenu>
           </nav>
 
           {/* Search + identity on the right */}
