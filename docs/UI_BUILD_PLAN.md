@@ -1,12 +1,25 @@
 # UI/UX Build Plan
 
-**Owner:** Keagan
-**Status:** Live — **U0–U4 shipped · U5 shipped**. All three decision gates resolved.
-**Purpose:** Implement the UI/UX review recommendations as a sequenced, demoable plan, consistent with the project's existing phase conventions.
+**Owner:** Keagan  
+**Status:** ✅ **Complete** — all phases **U0–U5** shipped (2026-06-30). No open UI phases.  
+**Purpose:** Historical traceability for the UI/UX review recommendations. **Do not add new UI sprint work here.**
 
-> Companion to [`BUILD_PLAN.md`](../BUILD_PLAN.md). This plan is **UI-only unless an item is explicitly flagged "backend"**. Most items reuse the existing CSS-var tokens and `apps/web/src/components/ui` primitives.
+> **Shipped evidence:** [`docs/SHIPPED.md` §4.1](SHIPPED.md#41-ui-build-plan-refresh--u0u5) · **What's next (product):** [`BUILD_PLAN.md`](../BUILD_PLAN.md) · **Optional future polish:** [`BUILD_PLAN.md` §5](../BUILD_PLAN.md#5-future--optional-features)
 
-**Shipped items are also indexed in [`docs/SHIPPED.md` §4.1](SHIPPED.md#41-ui-build-plan-refresh--u0--u1).**
+---
+
+## What's left
+
+The UI Build Plan is **finished**. Remaining work is **not UI-plan scoped**:
+
+| Track | Where | Examples |
+|-------|--------|----------|
+| Local validation | [`BUILD_PLAN.md` §2](../BUILD_PLAN.md#2-active-track--local-validation-0) | `npm run validate:local`, end-to-end ingest smoke |
+| Go-live / staging | [`BUILD_PLAN.md` §4](../BUILD_PLAN.md#4-deploy-track--go-live-gate-deferred) | Terraform, RDS, M5 ops proof |
+| Commercial | [`BUILD_PLAN.md` §6](../BUILD_PLAN.md#6-phase-11--12--go-to-market) | Phase 11–12 |
+| Optional polish | [`BUILD_PLAN.md` §5](../BUILD_PLAN.md#5-future--optional-features) | W4.2 raw viewing, desktop boot noise, Tier C sets |
+
+Only item **declined** from this plan (not deferred): **ST2** role-aware landing (superseded by UI-1 default-landing preference).
 
 ---
 
@@ -46,7 +59,7 @@
 | **O2** | Persistent setup-progress indicator | ✅ |
 | **AC1** | Accessibility pass | ✅ |
 | **AC2** | Mobile card-view fallback for dense tables | ✅ |
-| **ST1** | Standardize on one component layer (shadcn/Radix) | ✅ — pragmatic mix: Radix (`Popover`, `DropdownMenu`) + hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`) under `apps/web/src/components/ui`. |
+| **ST1** | Standardize on one component layer (shadcn/Radix) | ✅ — Radix (`Popover`, `DropdownMenu`, `Tooltip`) + hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`) under `apps/web/src/components/ui`. |
 | **ST2** | Role-aware landing page | ⛔ — declined per UI-1 (global default = Monitoring; user opt-in via Settings). |
 | **ST3** | Header alert bell | ✅ |
 
@@ -54,10 +67,10 @@
 
 ## Decision Gates
 
-All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPED.md#41-ui-build-plan-refresh--u0--u1).
+All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPED.md#41-ui-build-plan-refresh--u0u5).
 
 - **Gate UI-1 — Monitoring landing.** ✅ Resolved 2026-06-30. Keep BOTH Dashboard and Lifecycles as landing pages; each user picks via Settings; default = Monitoring (`/dashboard`). Reshapes N2 into a per-user preference instead of collapsing surfaces. Implementation: `apps/web/src/AppRoutes.tsx` `DefaultLanding` + `SettingsPage.tsx` `DefaultLandingCard` + `defaultLanding` field on the existing `/preferences` API.
-- **Gate UI-2 — Component layer.** ✅ Resolved de-facto during U0/U1/U2. Radix (`Popover`, `DropdownMenu`) for components where Radix already has us covered; hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`, `Skeleton`) for the rest. No new Radix deps added after U0. All primitives live under `apps/web/src/components/ui/`.
+- **Gate UI-2 — Component layer.** ✅ Resolved during U0–U5. Radix (`Popover`, `DropdownMenu`, `Tooltip`) for interactive primitives; hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`, `Skeleton`) for the rest. All primitives live under `apps/web/src/components/ui/`.
 - **Gate UI-3 — Transactions + Ingestions.** ✅ Resolved 2026-06-30. Merge into one `/documents` explorer with a `view=parsed\|raw` query toggle. Old `/transactions` and `/ingestions` routes redirect (preserving filter query params). Detail routes (`/transactions/:id`) unchanged.
 
 ---
@@ -130,7 +143,7 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 
 ---
 
-## Phase U4 — Power features 🚧
+## Phase U4 — Power features ✅
 
 **Goal:** speed for daily operators; reduce reliance on the nav bar.
 **Effort:** ~1.5 weeks.
@@ -147,7 +160,7 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 
 ---
 
-## Phase U5 — Guidance, accessibility & responsive ⏳
+## Phase U5 — Guidance, accessibility & responsive ✅
 
 **Goal:** lower the EDI learning curve and meet a11y / mobile basics.
 **Effort:** ~1.5–2 weeks.
@@ -158,7 +171,7 @@ All three gates resolved. Decisions captured in [`docs/SHIPPED.md` §4.1](SHIPPE
 | **O1** | Inline jargon tooltips | Hover-definitions for 850/855/856/810/997, ISA, AK5 inline (uses ST1 Tooltip + existing glossary content). | M | ✅ `@radix-ui/react-tooltip` + `EdiTerm`; canonical `EDI_GLOSSARY` in `@edi/shared`; wired into timeline, transaction detail, mobile cards, Help glossary. |
 | **O2** | Setup-progress indicator | Persistent "Setup: 2/4" until partner + ISA IDs + channel configured; builds on the onboarding checklist + `partnerSetupStatus`. | S–M | ✅ `hubSetupStatus` + `SetupProgressIndicator` in layout header; popover checklist links to fix routes. |
 | **AC1** | Accessibility pass | Focus rings, aria-labels on icon-only buttons, dark-mode contrast, keyboard nav for tables/menus/dialogs. | M–L | ✅ Global `focus-visible` already in `index.css`; added aria-labels on table column menu, saved-view delete, ingestion mobile actions; Radix Tooltip keyboard-focusable. |
-| **AC2** | Mobile table fallback | Card-view layout (or explicit horizontal-scroll affordance) for dense tables below `md`. | M–L | ✅ `LifecycleMobileCards`, `TransactionMobileCards`, `IngestionMobileCards` below `md`; tables `hidden md:block`. |
+| **AC2** | Mobile table fallback | Card-view layout for dense tables below `md`. | M–L | ✅ `LifecycleMobileCards`, `TransactionMobileCards`, `IngestionMobileCards` via `useMaxMd()`; desktop keeps `DataTable`. |
 
 **Exit:** jargon explained inline; visible setup progress; a11y + mobile basics in place.
 

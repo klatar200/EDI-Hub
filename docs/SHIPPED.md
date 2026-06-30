@@ -4,7 +4,7 @@
 
 **Planning new work:** [`BUILD_PLAN.md`](../BUILD_PLAN.md) · **Product overview:** [`README.md`](../README.md#features) · **AI rules:** [`AGENTS.md`](../AGENTS.md)
 
-**Last updated:** 2026-06-30 · All **PS-0–PS-12**, **PB-1–PB-8**, phases **0–10**, **desktop D1–D9**, and **UI Build Plan U0–U2** complete.
+**Last updated:** 2026-06-30 · All **PS-0–PS-12**, **PB-1–PB-8**, phases **0–10**, **desktop D1–D9**, and **UI Build Plan U0–U5** complete.
 
 ---
 
@@ -14,7 +14,7 @@
 2. [Product sprints (PS-0–PS-12)](#2-product-sprints-ps-0ps-12)
 3. [Backlog sprints (PB-1–PB-8)](#3-backlog-sprints-pb-1pb-8)
 4. [UI overhaul (Sprint A3)](#4-ui-overhaul-sprint-a3)
-   - [4.1 UI Build Plan refresh — U0 / U1](#41-ui-build-plan-refresh--u0--u1)
+   - [4.1 UI Build Plan refresh — U0–U5](#41-ui-build-plan-refresh--u0u5)
 5. [Remediation & ADRs (accepted)](#5-remediation--adrs-accepted)
 6. [Feature matrix (F1–F62)](#6-feature-matrix-f1f62)
 7. [Product backlog history](#7-product-backlog-history)
@@ -36,7 +36,7 @@
 | 10 | **M5** *code* | ✅ Code complete (deploy proof deferred — [`BUILD_PLAN.md` §4](../BUILD_PLAN.md#4-deploy-track--go-live-gate-deferred)) |
 | Desktop | D1–D9 | ✅ LAN server installer, auto-update |
 | UI overhaul | Sprint A3 | ✅ [§4](#4-ui-overhaul-sprint-a3) |
-| UI Build Plan | U0, U1, U2 | ✅ [§4.1](#41-ui-build-plan-refresh--u0--u1) (U3 gated on UI-1 ✅ / UI-3 ⏳; U4–U5 open in [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md)) |
+| UI Build Plan | U0–U5 | ✅ [§4.1](#41-ui-build-plan-refresh--u0u5) — all phases shipped 2026-06-30; desktop releases **v0.0.36-alpha** (U4), **v0.0.37-alpha** (U5) |
 | 11–12 | **M6** | ⏳ Not started — [`BUILD_PLAN.md` §6](../BUILD_PLAN.md#6-phase-11--12--go-to-market) |
 
 ---
@@ -88,15 +88,15 @@
 
 **Deliverables:** Vertical lifecycle timeline (gaps, duplicates, AK detail, inline raw); alerts row (partner chip, SLA pill, lifecycle link, ack/snooze).
 
-### 4.1 UI Build Plan refresh — U0 / U1
+### 4.1 UI Build Plan refresh — U0–U5
 
-**Status:** ✅ Done (2026-06-30). Companion plan: [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md). U2–U5 deferred.
+**Status:** ✅ Done (2026-06-30). Full traceability index: [`docs/UI_BUILD_PLAN.md`](UI_BUILD_PLAN.md) (archive — no open phases).
 
 **U0 — Foundations & decisions:**
 
 | ID | Item | Evidence |
 |----|------|----------|
-| **ST1** | Radix `Popover` + `DropdownMenu` wrappers under `apps/web/src/components/ui` | `Popover.tsx`, `DropdownMenu.tsx` |
+| **ST1** | Radix `Popover`, `DropdownMenu`, and `Tooltip` wrappers under `apps/web/src/components/ui` | `Popover.tsx`, `DropdownMenu.tsx`, `Tooltip.tsx` |
 | **S1**  | Status-tone semantic map (one meaning per color) extracted from `StatusPill` | `apps/web/src/components/ui/status-tones.ts` |
 | — | IA + component-layer ADR | [`adr/0003`](adr/0003-ui-foundations-and-component-layer.md) |
 
@@ -104,27 +104,57 @@
 
 | ID | Item | Evidence |
 |----|------|----------|
-| **N1** | Primary nav cut to 5 destinations (Lifecycles, Dashboard, Alerts, Transactions, Partners); overflow → `More` dropdown grouped Explore / Configure / Admin | `apps/web/src/components/Layout.tsx` |
-| **T1** | Lifecycles' 8 narrow-the-list filters collapsed into a Filters popover with active-count badge; Sort + Needs-attention stay inline | `apps/web/src/pages/LifecyclesPage.tsx` |
-| **T5** | Sticky `DataTable` headers — `overflow-clip` outer + `lg:overflow-x-visible` inner so sticky engages with page scroll; `top-12` to clear the layout nav | `apps/web/src/components/ui/DataTable.tsx` |
+| **N1** | Primary nav cut to 5 destinations (Lifecycles, Dashboard, Alerts, Documents, Partners); overflow → `More` dropdown grouped Explore / Configure / Admin | `apps/web/src/components/Layout.tsx` |
+| **T1** | Lifecycles' 8 narrow-the-list filters collapsed into a Filters popover with active-count badge; Sort stays inline | `apps/web/src/pages/LifecyclesPage.tsx` |
+| **T5** | Sticky `DataTable` headers — `overflow-clip` outer + `lg:overflow-x-visible` inner; `top-12` to clear the layout nav | `apps/web/src/components/ui/DataTable.tsx` |
 | **S2** | Branched empty states on Alerts (narrowed / caught-up / pivoted-status) and inline Add-partner CTA in Partners | `AlertsPage.tsx`, `PartnersConfigPage.tsx` |
-| **S3** | Single loading idiom — `Skeleton.Row` shims on every in-page data fetch (list counters, expanded timelines, raw EDI panes, server-address fetches). Boot/auth splashes deliberately exempted. | Multiple |
+| **S3** | Single loading idiom — `Skeleton.Row` shims on every in-page data fetch | Multiple |
 
 **U2 — Forms & detail polish:**
 
 | ID | Item | Evidence |
 |----|------|----------|
-| **N5**  | Breadcrumbs primitive (`<nav><ol>` with `aria-current="page"`, arrow on first link) wired into Lifecycle and Transaction detail pages | `apps/web/src/components/ui/Breadcrumbs.tsx`, `LifecyclePage.tsx`, `TransactionDetailPage.tsx` |
-| **T4**  | Edit/Delete on Partners and Remove on Users hidden behind `[@media(hover:hover)]:opacity-0 group-hover:opacity-100 focus-within:opacity-100`; visible always on touch + in the a11y tree | `PartnersConfigPage.tsx`, `UsersPage.tsx` |
-| **FO1** | Custom Tabs primitive (WAI-ARIA + arrow / Home / End nav) + partner editor regrouped into 5 tabs (Identity / Sets & flow / SLAs & alerts / Connectivity / Notes & contacts) + sticky save bar | `apps/web/src/components/ui/Tabs.tsx`, `PartnersConfigPage.tsx` |
-| **FO2** | `Field` helper extended with `required` markers + inline `error`. Client `validateDraft` mirrors the server validator; API errors map server's `field` path back to the matching tab. Tab triggers carry error-count badges. | `PartnersConfigPage.tsx` |
-| **FO3** | Unsaved-changes guard: `JSON.stringify` baseline of the draft, `isDirty` `useMemo`, `beforeunload` listener while dirty, `confirmDiscard()` on Cancel / Edit-another / New / Delete-current. Warn-tone "Unsaved changes" pill. | `PartnersConfigPage.tsx` |
+| **N5**  | Breadcrumbs primitive wired into Lifecycle and Transaction detail pages | `Breadcrumbs.tsx`, `LifecyclePage.tsx`, `TransactionDetailPage.tsx` |
+| **T4**  | Edit/Delete on Partners and Remove on Users hidden on hover; always visible on touch + in the a11y tree | `PartnersConfigPage.tsx`, `UsersPage.tsx` |
+| **FO1** | Custom Tabs primitive + partner editor regrouped into 5 tabs + sticky save bar | `Tabs.tsx`, `PartnersConfigPage.tsx` |
+| **FO2** | Inline field validation + required markers; tab error-count badges | `PartnersConfigPage.tsx` |
+| **FO3** | Unsaved-changes guard (`beforeunload` + `confirmDiscard` on explicit close paths) | `PartnersConfigPage.tsx` |
 
-**Gate decisions:**
+**U3 — Information architecture consolidation:**
 
-- **UI-1** (monitoring landing): resolved 2026-06-30 — keep BOTH Dashboard and Lifecycles as landing pages; each user picks via Settings; default Monitoring (`/dashboard`). Reshapes N2 into a per-user preference rather than collapsing the surfaces; partially supersedes ST2.
-- **UI-2** (component layer): de facto resolved — Radix (`Popover`, `DropdownMenu`) + hand-rolled (`Tabs`, `Breadcrumbs`) primitives co-exist under `apps/web/src/components/ui`. No new Radix deps added in U2.
-- **UI-3** (Transactions + Ingestions): still open — N3 blocked until resolved.
+| ID | Item | Evidence |
+|----|------|----------|
+| **N2** | Per-user default landing preference (Dashboard vs Lifecycles); monitoring surfaces stay as peers | `AppRoutes.tsx` `DefaultLanding`, `SettingsPage.tsx`, `UserPreferences.defaultLanding` |
+| **N3** | Documents explorer — `/documents` with `view=parsed\|raw` toggle; legacy routes redirect | `DocumentsPage.tsx`, `AppRoutes.tsx` |
+| **ST2** | Role-aware landing | ⛔ Declined per UI-1 |
+
+**U4 — Power features** (desktop **v0.0.36-alpha**):
+
+| ID | Item | Evidence |
+|----|------|----------|
+| **N4** | Global Cmd-K command palette (pages + debounced `/search`) | `CommandPalette.tsx`, `Layout.tsx` |
+| **T2** | Lifecycle view tabs: All / Needs attention / Mine | `LifecycleViewTabs` in `LifecyclePreferencesBar.tsx` |
+| **T3** | Per-user column hide/show + comfortable/compact density on Lifecycles & Transactions | `TableDisplayMenu.tsx`, `UserPreferences.tablePrefs` |
+| **ST3** | Header alert bell with unread count + quick peek + inline ack | `AlertBell.tsx`, `Layout.tsx` |
+
+**U5 — Guidance, accessibility & responsive** (desktop **v0.0.37-alpha**):
+
+| ID | Item | Evidence |
+|----|------|----------|
+| **O1** | Inline EDI jargon tooltips (850–997, ISA, AK5) | `@radix-ui/react-tooltip`, `EdiTerm.tsx`, `packages/shared/src/edi-glossary.ts` |
+| **O2** | Persistent header setup progress (Setup: n/4) until partner + ISA IDs + channel + ingest | `hubSetupStatus`, `SetupProgressIndicator.tsx` |
+| **AC1** | Accessibility pass — `focus-visible` rings, aria-labels on icon-only controls, keyboard-focusable tooltips | `index.css`, `TableDisplayMenu.tsx`, `LifecyclePreferencesBar.tsx` |
+| **AC2** | Mobile card-view fallback for Lifecycles, Transactions, Ingestions below `md` | `MobileTableCards.tsx`, `useMaxMd()` in `useMediaQuery.ts` |
+
+**Gate decisions (all resolved 2026-06-30):**
+
+- **UI-1** (monitoring landing): keep BOTH Dashboard and Lifecycles; per-user default landing in Settings; default Monitoring (`/dashboard`).
+- **UI-2** (component layer): Radix (`Popover`, `DropdownMenu`, `Tooltip`) + hand-rolled (`Tabs`, `Breadcrumbs`, `CommandPalette`, `Skeleton`) under `apps/web/src/components/ui`.
+- **UI-3** (Transactions + Ingestions): merged into `/documents` with parsed/raw toggle; detail routes unchanged.
+
+**Declined (not shipped):** **ST2** role-aware landing (superseded by UI-1 default-landing preference).
+
+**Nothing left in the UI Build Plan.** Optional future UI polish lives in [`BUILD_PLAN.md` §5](../BUILD_PLAN.md#5-future--optional-features).
 
 ---
 
@@ -247,3 +277,4 @@ F41–F62 — see [§6](#6-feature-matrix-f1f62).
 - Export (txt/csv/pdf, bulk ZIP, raw EDI); audit viewer; email digest; ops notes
 - Transaction sets: 850, 855, 856, 810, 997 + Tier B 860/875/880
 - Desktop: LAN wizard, Help hub, Clerk in releases, auto-update
+- **UI overhaul (U0–U5):** slim nav, Documents explorer, Cmd-K palette, saved-view tabs, table column/density prefs, alert bell, EDI jargon tooltips, setup progress indicator, mobile card tables

@@ -1,7 +1,7 @@
 # EDI Data Hub — Build Plan
 
 **Owner:** Keagan  
-**Last updated:** 2026-06-28  
+**Last updated:** 2026-06-30  
 **Purpose:** **Forward-looking work only** — active track, deferred go-live sprints, future/optional backlog, open checklists.
 
 > **Completed work** → [`docs/SHIPPED.md`](docs/SHIPPED.md) · **Product context** → [`docs/WIKI.md`](docs/WIKI.md) · **AI builder rules** → [`AGENTS.md`](AGENTS.md) · **Security sign-off** → [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) · **Local how-to** → [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md)
@@ -35,10 +35,11 @@
 | Area | Status |
 |------|--------|
 | Product (phases 0–10, desktop, PS/PB sprints) | ✅ Complete — [`docs/SHIPPED.md`](docs/SHIPPED.md) |
+| UI Build Plan (U0–U5) | ✅ Complete — [`docs/SHIPPED.md` §4.1](docs/SHIPPED.md#41-ui-build-plan-refresh--u0u5) · archive [`docs/UI_BUILD_PLAN.md`](docs/UI_BUILD_PLAN.md) |
 | Security remediation SEC-1–5 | ✅ — [`docs/SECURITY_AUDIT.md`](docs/SECURITY_AUDIT.md) |
 | **Active** | Local dev validation — [§2](#2-active-track--local-validation-0) |
 | **Deferred** | AWS staging, M5 ops proof, Phase 11–12 — [§4](#4-deploy-track--go-live-gate-deferred) |
-| Tests / CI | 436 tests · `npm run test:ci` green |
+| Tests / CI | `npm run test:ci` green on `main` |
 
 **M5 in code ≠ M5 in production.** Restore drill, k6 baseline, runbook cold-read run at **go-live**, not during local-only dev.
 
@@ -53,6 +54,7 @@
 ### Exit criteria
 
 - [x] `npm run test:ci` green
+- [x] UI Build Plan U0–U5 shipped (desktop **v0.0.37-alpha**)
 - [ ] `npm run validate:local` green (Docker Postgres + MinIO — ingest, lifecycle, detection)
 - [ ] Sign in (Clerk or dev-fallback) and see lifecycles UI
 - [ ] Upload or SFTP-drop test 850 → appears in lifecycle list
@@ -177,6 +179,7 @@ Stripe self-serve, marketing site, per-tenant quotas, Linux desktop (AppImage).
 | [`FUTURE_FEATURES.md`](FUTURE_FEATURES.md) | [§5](#5-future--optional-features) |
 | [`docs/FEATURE_STATUS.md`](docs/FEATURE_STATUS.md) | [`docs/SHIPPED.md` §6](docs/SHIPPED.md#6-feature-matrix-f1f62) |
 | [`PRODUCT_BACKLOG.md`](PRODUCT_BACKLOG.md) | [`docs/SHIPPED.md` §7](docs/SHIPPED.md#7-product-backlog-history) |
+| UI Build Plan (complete) | [`docs/SHIPPED.md` §4.1](docs/SHIPPED.md#41-ui-build-plan-refresh--u0u5) · [`docs/UI_BUILD_PLAN.md`](docs/UI_BUILD_PLAN.md) (archive) |
 | Security sign-off | [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) |
 
 **Do not add completed work to this file** — append to `docs/SHIPPED.md` when a sprint ships.
