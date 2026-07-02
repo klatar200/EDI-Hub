@@ -76,7 +76,7 @@ export function SearchPage(): JSX.Element {
       ) : nothing ? (
         <EmptyState
           title="No matches"
-          description={`No transactions or raw files match “${q}”. Try a PO number, invoice number, shipment ID, or ISA control number.`}
+          description={`No transactions or raw files match “${q}”. Try a PO number, invoice number, shipment ID, or ISA control number (file ID).`}
         />
       ) : (
         <>

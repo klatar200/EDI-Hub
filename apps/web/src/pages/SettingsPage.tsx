@@ -92,7 +92,7 @@ export function SettingsPage(): JSX.Element {
         </label>
       </Card>
 
-      <Card className="p-4 space-y-4">
+      <Card id="notifications" className="p-4 space-y-4 scroll-mt-20">
         <h2 className="text-sm font-semibold">Notifications</h2>
         <label className="flex items-center gap-2 text-sm">
           <input

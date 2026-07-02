@@ -22,7 +22,7 @@ const VIEW_COPY: Record<DocumentsView, { label: string; subtitle: string }> = {
     subtitle: 'Decoded EDI transactions across your trading partners.',
   },
   raw: {
-    label: 'Raw ingestions',
+    label: 'Received files',
     subtitle: 'Every raw EDI transmission received by the hub, newest first.',
   },
 };
@@ -56,7 +56,7 @@ export function DocumentsPage(): JSX.Element {
               Parsed transactions
             </Tabs.Trigger>
             <Tabs.Trigger value="raw" testId="documents-view-raw">
-              Raw ingestions
+              Received files
             </Tabs.Trigger>
           </Tabs.List>
         </Tabs>

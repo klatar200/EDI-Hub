@@ -3,10 +3,10 @@
  *
  * UR1 — responsive header wrap, progressive chrome collapse, mobile nav drawer.
  */
-import { useRef, useState, useCallback } from 'react';
-import { NavLink, Outlet, useNavigate } from 'react-router-dom';
+import { useEffect, useRef, useState, useCallback } from 'react';
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { OrganizationSwitcher, UserButton } from '@clerk/react';
+import { UserMenu } from './UserMenu.tsx';
 import { RequireRole, useApiReady, useHasRole } from '../lib/useRole.tsx';
 import { api } from '../lib/api.ts';
 import { useTenantQueryKey } from '../lib/useTenantQuery.ts';
@@ -20,6 +20,7 @@ import { SetupProgressIndicator } from './SetupProgressIndicator.tsx';
 import { MobileNavDrawer } from './MobileNavDrawer.tsx';
 import type { MobileNavItem } from './MobileNavDrawer.tsx';
 import { DesktopSidebar } from './DesktopSidebar.tsx';
+import { OrgIndicator } from './OrgIndicator.tsx';
 import { DropdownMenu } from './ui';
 
 interface NavItem {
@@ -86,12 +87,27 @@ export function Layout(): JSX.Element {
   useSyncHeaderHeight(headerRef);
   const apiReady = useApiReady();
   const navigate = useNavigate();
+  const location = useLocation();
   const isAdmin = useHasRole('admin');
   const [paletteOpen, setPaletteOpen] = useCommandPaletteHotkey();
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const openShortcuts = useCallback(() => setShortcutsOpen(true), []);
   useGlobalKeyboardHotkeys({ onOpenShortcuts: openShortcuts });
   const modKey = modKeyLabel();
+
+  // Client-side navigation to /some-path#anchor doesn't trigger the browser's
+  // native hash-scroll. Nudge it manually after the route resolves so links
+  // like /settings#notifications (from the user menu) land at the right card.
+  useEffect(() => {
+    if (!location.hash) return;
+    const id = location.hash.slice(1);
+    // rAF gives React time to render the target before we look for it.
+    const raf = requestAnimationFrame(() => {
+      const el = document.getElementById(id);
+      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+    return () => cancelAnimationFrame(raf);
+  }, [location.pathname, location.hash]);
 
   const alertsBadgeKey = useTenantQueryKey('alerts', 'active', 'unread-badge');
   const activeAlerts = useQuery({
@@ -141,6 +157,7 @@ export function Layout(): JSX.Element {
     { to: '/help', label: 'Help' },
     { to: '/users', label: 'Users', adminOnly: true, testId: 'nav-users' },
     { to: '/admin/audit', label: 'Audit', adminOnly: true, testId: 'nav-audit' },
+    { to: '/documentation', label: 'Documentation', testId: 'nav-documentation' },
   ];
 
   const moreExplore: NavItem[] = [{ to: '/metrics', label: 'Metrics' }];
@@ -148,6 +165,7 @@ export function Layout(): JSX.Element {
     { to: '/channels', label: 'Channels' },
     { to: '/settings', label: 'Settings' },
     { to: '/help', label: 'Help' },
+    { to: '/documentation', label: 'Documentation', testId: 'nav-documentation' },
   ];
   const moreAdmin: NavItem[] = [
     { to: '/users', label: 'Users', testId: 'nav-users' },
@@ -155,7 +173,7 @@ export function Layout(): JSX.Element {
   ];
 
   return (
-    <div className="min-h-screen bg-[var(--color-surface-bg)] text-[var(--color-fg)]">
+    <div className="min-h-screen overflow-x-clip bg-[var(--color-surface-bg)] text-[var(--color-fg)]">
       <a href="#main-content" className="skip-link">
         Skip to content
       </a>
@@ -170,7 +188,7 @@ export function Layout(): JSX.Element {
         ref={headerRef}
         className="sticky top-0 z-30 border-b border-[var(--color-surface-border)] bg-[var(--color-surface-card)]/95 backdrop-blur"
       >
-        <div className="layout-shell flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:gap-x-4 2xl:justify-end">
+        <div className="layout-shell flex flex-wrap items-center gap-x-3 gap-y-2 py-2.5 sm:gap-x-4 2xl:h-14 2xl:flex-nowrap 2xl:py-0">
           <NavLink
             to="/"
             className="flex min-w-0 shrink-0 items-center gap-2 text-[15px] font-semibold tracking-tight text-[var(--color-fg)] hover:text-[var(--color-brand-700)] 2xl:hidden"
@@ -183,6 +201,10 @@ export function Layout(): JSX.Element {
             </span>
             <span className="truncate sm:max-w-none">EDI Hub</span>
           </NavLink>
+
+          <div className="min-w-0 flex-1 sm:max-w-[32rem]">
+            <SearchBox />
+          </div>
 
           <nav className="hidden min-w-0 items-center gap-1 lg:flex 2xl:hidden" aria-label="Primary">
             {primaryNav.map((item) => (
@@ -256,34 +278,19 @@ export function Layout(): JSX.Element {
                 {modKey}K
               </kbd>
             </button>
+            <AlertBell />
             <button
               type="button"
               onClick={openShortcuts}
               data-testid="open-keyboard-shortcuts"
               aria-label="Keyboard shortcuts"
-              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md border border-[var(--color-surface-border)] text-sm font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex md:h-9 md:w-9"
+              className="hidden h-11 w-11 shrink-0 items-center justify-center rounded-md text-sm font-medium text-[var(--color-fg-muted)] transition hover:bg-[var(--color-surface-muted)] hover:text-[var(--color-fg)] focus:outline-none focus:ring-2 focus:ring-[var(--color-brand-500)]/30 sm:inline-flex"
             >
-              <span aria-hidden>?</span>
+              <span aria-hidden className="text-xl leading-none">?</span>
             </button>
-            <SearchBox />
-            <AlertBell />
             <span aria-hidden className="hidden h-5 w-px shrink-0 bg-[var(--color-surface-border)] md:block" />
-            <div className="min-w-0 max-w-[min(10rem,100%)] shrink md:max-w-[10rem] lg:max-w-none">
-              <OrganizationSwitcher
-                hidePersonal
-                afterSelectOrganizationUrl="/"
-                appearance={{
-                  elements: {
-                    organizationSwitcherTrigger:
-                      'max-w-full truncate rounded-md px-2 py-1 text-sm hover:bg-[var(--color-surface-muted)]',
-                    organizationPreviewText: 'truncate',
-                  },
-                }}
-              />
-            </div>
-            <div className="shrink-0">
-              <UserButton />
-            </div>
+            <OrgIndicator />
+            <UserMenu />
             <MobileNavDrawer
               monitorNav={monitorNav}
               exploreNav={exploreNav}
@@ -306,7 +313,7 @@ export function Layout(): JSX.Element {
             <code className="rounded bg-white/60 px-1.5 py-0.5 font-mono text-xs break-all">
               {setupQ.data!.dropFolderPath}
             </code>
-            <span>to ingest it.</span>
+            <span>to bring it in automatically.</span>
           </p>
         </div>
       ) : null}

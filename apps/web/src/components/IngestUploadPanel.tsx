@@ -62,7 +62,7 @@ export function IngestUploadPanel(): JSX.Element {
     <Card className="mb-3">
       <div className="p-3 space-y-3">
         <div>
-          <h2 className="text-sm font-semibold text-[var(--color-fg)]">Import EDI files</h2>
+          <h2 className="text-sm font-semibold text-[var(--color-fg)]">Upload EDI files</h2>
           <p className="text-xs text-[var(--color-fg-muted)]">
             Drop one or more files here or browse. Each file runs through the same pipeline as SFTP drops.
           </p>
@@ -119,7 +119,7 @@ export function IngestUploadPanel(): JSX.Element {
                 ) : (
                   <>
                     <StatusPill tone={r.outcome === 'duplicate' ? 'warn' : 'success'} size="sm">
-                      {r.outcome === 'duplicate' ? 'Duplicate' : 'Imported'}
+                      {r.outcome === 'duplicate' ? 'Duplicate' : 'Uploaded'}
                     </StatusPill>
                     {r.response?.isaControlNumber ? (
                       <span className="font-mono text-xs text-[var(--color-fg-muted)]">
@@ -141,7 +141,7 @@ export function IngestUploadPanel(): JSX.Element {
                     ) : null}
                     {r.outcome === 'duplicate' && r.response?.duplicateOf ? (
                       <p className="w-full text-xs text-[var(--color-fg-muted)]" data-testid="duplicate-explanation">
-                        Same ISA control number as file ingested{' '}
+                        Same ISA control number (file ID) as file received{' '}
                         {new Date(r.response.duplicateOf.ingestedAt).toLocaleString()} ({r.response.duplicateOf.source}
                         ).{' '}
                         <Link

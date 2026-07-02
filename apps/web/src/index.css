@@ -85,10 +85,14 @@
   --ease-in-out:    cubic-bezier(0.65, 0, 0.35, 1);  /* symmetric, default */
 
   /* Layout — UR0/R1–R3. Shell grows with viewport up to max; gutters scale
-     via :root breakpoints below. --header-height defaults until Layout syncs it. */
+     via :root breakpoints below. --header-height defaults until Layout syncs it.
+     --sidebar-width is 0 until the 2xl breakpoint activates the DesktopSidebar
+     (see :root override below); .full-bleed subtracts it so viewport-width
+     bands don't overflow past the sidebar. */
   --layout-max-width: 100rem; /* 1600px */
   --layout-gutter-x:  1rem;
   --header-height:    3rem;
+  --sidebar-width:    0px;
 }
 
 /* ─────────────────────────────────────────────────────────────────────
@@ -147,6 +151,13 @@
   @media (min-width: 1024px) {
     :root {
       --layout-gutter-x: 2rem;
+    }
+  }
+  /* UR5/R34 — DesktopSidebar (w-56 = 14rem) becomes visible at Tailwind's
+     2xl breakpoint. Publish its width so .full-bleed can subtract it. */
+  @media (min-width: 1536px) {
+    :root {
+      --sidebar-width: 14rem;
     }
   }
   body {
@@ -218,15 +229,18 @@
     margin-inline: auto;
     padding-inline: var(--layout-gutter-x);
   }
-  /* UR5/R4 — break out of .layout-shell to viewport edges. */
+  /* UR5/R4 — break out of .layout-shell to the edges of the main content
+     column. When the DesktopSidebar is visible (2xl+), --sidebar-width
+     shrinks the bleed so it stops at the sidebar edge instead of
+     overflowing past the viewport's right edge. */
   .full-bleed {
-    width: 100vw;
-    max-width: 100vw;
+    width: calc(100vw - var(--sidebar-width));
+    max-width: calc(100vw - var(--sidebar-width));
     position: relative;
     left: 50%;
     right: 50%;
-    margin-left: -50vw;
-    margin-right: -50vw;
+    margin-left: calc((var(--sidebar-width) - 100vw) / 2);
+    margin-right: calc((var(--sidebar-width) - 100vw) / 2);
     padding-inline: var(--layout-gutter-x);
   }
   /* UR5/R35 — container-query panels (dashboard stats, filter popovers). */

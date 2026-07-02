@@ -53,11 +53,11 @@ export function DashboardPage(): JSX.Element {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Ops dashboard"
-        subtitle="Traffic, alerts, ingest health, and partner status at a glance."
+        title="Operations dashboard"
+        subtitle="Traffic, alerts, inbound health, and partner status at a glance."
         actions={
           <div className="flex flex-wrap items-end gap-3">
-            <FormField label="Ingest window">
+            <FormField label="Inbound window">
               <Select
                 size="sm"
                 value={ingestWindow}
@@ -96,7 +96,7 @@ export function DashboardPage(): JSX.Element {
             <div className="dashboard-stat-grid">
             <Card>
               <Card.Content className="!p-4">
-                <h2 className="text-sm font-medium text-[var(--color-fg-muted)]">Traffic silence</h2>
+                <h2 className="text-sm font-medium text-[var(--color-fg-muted)]">No Recent Activity</h2>
                 {d.trafficSilence.isGloballyStale ? (
                   <p className="mt-2 text-sm text-[var(--color-warn-700)]" data-testid="traffic-stale">
                     No EDI from any partner in {d.trafficSilence.staleWindowHours}h
@@ -136,7 +136,7 @@ export function DashboardPage(): JSX.Element {
 
             <Card>
               <Card.Content className="!p-4">
-                <h2 className="text-sm font-medium text-[var(--color-fg-muted)]">Ingest health</h2>
+                <h2 className="text-sm font-medium text-[var(--color-fg-muted)]">Inbound health</h2>
                 <p className="mt-2 text-sm" data-testid="ingest-health">
                   <span className="text-[var(--color-success-700)]">{d.ingestHealth.parsed} parsed</span>
                   {' · '}
@@ -145,7 +145,7 @@ export function DashboardPage(): JSX.Element {
                   <span>{d.ingestHealth.duplicate} dup</span>
                 </p>
                 <Link to="/ingestions" className="mt-2 inline-block text-xs text-[var(--color-brand-600)] hover:underline">
-                  Triage ingestions →
+                  Triage received files →
                 </Link>
               </Card.Content>
             </Card>
@@ -176,14 +176,14 @@ export function DashboardPage(): JSX.Element {
           {d.recentFailures.length > 0 ? (
             <FullBleed className="bg-[var(--color-surface-muted)]/30 py-4">
             <section className="layout-shell" data-testid="recent-failures">
-              <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Recent ingest failures</h2>
+              <h2 className="mb-3 text-sm font-semibold text-[var(--color-fg)]">Recent inbound failures</h2>
               {preferMobileCards ? (
                 <DashboardFailureMobileCards items={d.recentFailures} />
               ) : (
               <DataTable>
                 <DataTable.Thead>
                   <DataTable.Tr>
-                    <DataTable.Th>ISA</DataTable.Th>
+                    <DataTable.Th title="Unique file ID assigned by the sender's system">ISA (File ID)</DataTable.Th>
                     <DataTable.Th>Status</DataTable.Th>
                     <DataTable.Th>Error</DataTable.Th>
                     <DataTable.Th>When</DataTable.Th>
@@ -218,7 +218,7 @@ export function DashboardPage(): JSX.Element {
               <DataTable.Thead>
                 <DataTable.Tr>
                   <DataTable.Th>Partner</DataTable.Th>
-                  <DataTable.Th>Last ingest</DataTable.Th>
+                  <DataTable.Th>Last received</DataTable.Th>
                   <DataTable.Th>Last ack</DataTable.Th>
                   <DataTable.Th>Rejection % (30d)</DataTable.Th>
                   <DataTable.Th>Missing acks</DataTable.Th>

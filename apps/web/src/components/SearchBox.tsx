@@ -12,7 +12,7 @@ export function SearchBox(): JSX.Element {
   const narrow = useMaxMd();
   return (
     <form
-      className="min-w-0 shrink"
+      className="w-full min-w-0"
       onSubmit={(e) => {
         e.preventDefault();
         const term = q.trim();
@@ -21,7 +21,7 @@ export function SearchBox(): JSX.Element {
     >
       <input
         id={HEADER_SEARCH_INPUT_ID}
-        className="input w-[min(16rem,100%)] max-w-full"
+        className="input w-full"
         placeholder={narrow ? PLACEHOLDER_SHORT : PLACEHOLDER_FULL}
         value={q}
         onChange={(e) => setQ(e.target.value)}

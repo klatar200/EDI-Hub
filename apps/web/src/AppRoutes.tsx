@@ -19,6 +19,7 @@ import { ChannelsPage } from './pages/ChannelsPage.tsx';
 import { AuditPage } from './pages/AuditPage.tsx';
 import { TransactionSetsHelpPage } from './pages/TransactionSetsHelpPage.tsx';
 import { HelpPage } from './pages/HelpPage.tsx';
+import { DocumentationPage } from './pages/DocumentationPage.tsx';
 import { FirstRunWizardPage } from './pages/FirstRunWizardPage.tsx';
 import { UsersPage } from './pages/UsersPage.tsx';
 import { api } from './lib/api.ts';
@@ -119,6 +120,8 @@ export function AppRoutes(): JSX.Element {
         <Route path="/channels" element={<ChannelsPage />} />
         <Route path="/help" element={<HelpPage />} />
         <Route path="/help/transaction-sets" element={<TransactionSetsHelpPage />} />
+        <Route path="/documentation" element={<Navigate to="/documentation/getting-started" replace />} />
+        <Route path="/documentation/:sectionId" element={<DocumentationPage />} />
         <Route path="/admin/audit" element={<RequireRole role="admin"><AuditPage /></RequireRole>} />
         <Route path="/users" element={<RequireRole role="admin"><UsersPage /></RequireRole>} />
         <Route path="*" element={<Navigate to="/" replace />} />

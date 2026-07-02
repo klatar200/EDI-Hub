@@ -73,7 +73,7 @@ export function DesktopSidebar({
       data-testid="desktop-sidebar"
       aria-label="Application"
     >
-      <div className="border-b border-[var(--color-surface-border)] px-4 py-4">
+      <div className="flex h-14 items-center border-b border-[var(--color-surface-border)] px-4">
         <NavLink
           to="/"
           className="flex items-center gap-2 text-[15px] font-semibold tracking-tight text-[var(--color-fg)] hover:text-[var(--color-brand-700)]"

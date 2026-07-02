@@ -84,7 +84,7 @@ export function TransactionDetailPage(): JSX.Element {
         </div>
         <p className="mt-1 text-sm text-[var(--color-fg-muted)]">
           {t.senderId ?? '—'} → {t.receiverId ?? '—'}
-          {t.ingestedAt ? ` · ingested ${new Date(t.ingestedAt).toLocaleString()}` : ''}
+          {t.ingestedAt ? ` · received ${new Date(t.ingestedAt).toLocaleString()}` : ''}
         </p>
       </div>
 

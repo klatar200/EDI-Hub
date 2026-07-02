@@ -90,7 +90,7 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
     <div>
       {hideHeader ? null : (
         <PageHeader
-          title="Ingestions"
+          title="Received Files"
           subtitle="Every raw EDI transmission received by the hub, newest first."
           actions={
             <span className="text-sm text-[var(--color-fg-muted)] tabular-nums">
@@ -165,17 +165,17 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
         <Skeleton.List rows={6} columnWidths={['30%', '14%', '14%', '20%']} />
       ) : q.isError ? (
         <ErrorState
-          title="Could not load ingestions"
+          title="Could not load received files"
           description="The API isn't responding. Make sure the server is running and try again."
           action={<button className="btn" onClick={() => q.refetch()}>Retry</button>}
         />
       ) : items.length === 0 ? (
         <EmptyState
-          title={hasAnyFilter ? 'No ingestions match these filters' : 'No ingestions yet'}
+          title={hasAnyFilter ? 'No received files match these filters' : 'No files received yet'}
           description={
             hasAnyFilter
               ? 'Try widening the filters above or clear them entirely.'
-              : 'Drop an EDI file into the configured SFTP folder, use Import above, or POST to /api/ingest/upload.'
+              : 'Drop an EDI file into the configured SFTP folder, use Upload above, or POST to /api/ingest/upload.'
           }
           action={hasAnyFilter ? <button className="btn" onClick={clearAll}>Clear filters</button> : null}
         />
@@ -192,11 +192,11 @@ export function IngestionsPage({ hideHeader = false }: IngestionsPageProps = {})
         <DataTable>
           <DataTable.Thead>
             <DataTable.Tr>
-              <DataTable.Th>ISA control #</DataTable.Th>
+              <DataTable.Th title="Unique file ID assigned by the sender's system">ISA control # (File ID)</DataTable.Th>
               <DataTable.Th>Source</DataTable.Th>
               <DataTable.Th>Status</DataTable.Th>
               <DataTable.Th>Error</DataTable.Th>
-              <DataTable.Th>Ingested</DataTable.Th>
+              <DataTable.Th>Received</DataTable.Th>
               <DataTable.Th>Actions</DataTable.Th>
             </DataTable.Tr>
           </DataTable.Thead>

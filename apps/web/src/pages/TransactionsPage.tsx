@@ -48,7 +48,7 @@ const TRANSACTION_COLUMNS: TableColumnDef[] = [
   { id: 'sender', label: 'Sender' },
   { id: 'receiver', label: 'Receiver' },
   { id: 'status', label: 'Status' },
-  { id: 'ingested', label: 'Ingested' },
+  { id: 'ingested', label: 'Received' },
   { id: 'lifecycle', label: 'Lifecycle' },
 ];
 const SETS = ['850', '855', '856', '860', '875', '880', '810', '997'];
@@ -271,7 +271,7 @@ export function TransactionsPage({ hideHeader = false }: TransactionsPageProps =
               {isColumnVisible('sender') ? <DataTable.Th>Sender</DataTable.Th> : null}
               {isColumnVisible('receiver') ? <DataTable.Th>Receiver</DataTable.Th> : null}
               {isColumnVisible('status') ? <DataTable.Th>Status</DataTable.Th> : null}
-              {isColumnVisible('ingested') ? <DataTable.Th>Ingested</DataTable.Th> : null}
+              {isColumnVisible('ingested') ? <DataTable.Th>Received</DataTable.Th> : null}
               {isColumnVisible('lifecycle') ? <DataTable.Th>Lifecycle</DataTable.Th> : null}
             </DataTable.Tr>
           </DataTable.Thead>

@@ -84,7 +84,7 @@ export function MetricsPage(): JSX.Element {
         />
       ) : !q.data || q.data.rows.length === 0 ? (
         <EmptyState
-          title="No 997s ingested in this window"
+          title="No 997s received in this window"
           description="As acknowledgments arrive, partners and rejection rates will appear here."
         />
       ) : preferMobileCards ? (

@@ -56,4 +56,4 @@ apps/desktop/resources/clerk-runtime.json
 
 # Allow .auth/ structure (README + .gitignore) but block the captured
 # Clerk session blob.
-# (The .auth/.gitignore already 
+# (The .auth/.gitignore already excludes state.json.)

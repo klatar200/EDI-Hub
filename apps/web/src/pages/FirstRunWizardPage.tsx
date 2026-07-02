@@ -134,12 +134,12 @@ export function FirstRunWizardPage(): JSX.Element {
           {step === 0 ? (
             <div className="space-y-4">
               <p className="text-sm text-[var(--color-fg)]">
-                EDI Hub ingests your trading partners&apos; X12 files, parses them into structured
+                EDI Hub receives your trading partners&apos; X12 files, parses them into structured
                 data, and gives you one place to monitor transactions, troubleshoot errors, and
                 stitch purchase-order lifecycles.
               </p>
               <p className="text-sm text-[var(--color-fg-muted)]">
-                This short wizard gets your first file ingesting. Let&apos;s get your first file in.
+                This short wizard gets your first file uploaded. Let&apos;s get your first file in.
               </p>
               <button
                 type="button"
@@ -229,7 +229,7 @@ export function FirstRunWizardPage(): JSX.Element {
           {step === 2 ? (
             <div className="space-y-4">
               <p className="text-sm text-[var(--color-fg)]">
-                Choose a folder on this machine. Copy EDI files here and the hub ingests them
+                Choose a folder on this machine. Copy EDI files here and the hub receives them
                 automatically.
               </p>
               <FormField label="Drop folder path" error={folderError}>

@@ -14,12 +14,16 @@ import type { ReactNode } from 'react';
 export function Card({
   className = '',
   children,
+  id,
 }: {
   className?: string;
   children: ReactNode;
+  /** Optional DOM id — used for hash-scroll anchors (e.g. /settings#notifications). */
+  id?: string;
 }): JSX.Element {
   return (
     <div
+      id={id}
       className={`rounded-lg border border-[var(--color-surface-border)] bg-[var(--color-surface-card)] shadow-xs ${className}`}
     >
       {children}

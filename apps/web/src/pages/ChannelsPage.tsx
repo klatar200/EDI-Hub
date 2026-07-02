@@ -22,7 +22,7 @@ export function ChannelsPage(): JSX.Element {
     <div className="space-y-6">
       <PageHeader
         title="Channels"
-        subtitle="SFTP, AS2, and upload ingestion health."
+        subtitle="SFTP, AS2, and upload — inbound health by channel."
       />
       {q.isLoading ? <Skeleton.Table rows={3} columnWidths={['40%', '30%', '30%']} /> : null}
       {q.isError ? (
@@ -32,7 +32,7 @@ export function ChannelsPage(): JSX.Element {
         />
       ) : null}
       {q.data?.channels.length === 0 ? (
-        <EmptyState title="No channels" description="No ingestion channels are registered on this hub." />
+        <EmptyState title="No channels" description="No inbound channels are registered on this hub." />
       ) : null}
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
         {q.data?.channels.map((ch) => (
@@ -54,7 +54,7 @@ export function ChannelsPage(): JSX.Element {
               to={`/ingestions?source=${ch.source}`}
               className="text-sm text-[var(--color-brand-600)] hover:underline"
             >
-              View ingestions →
+              View received files →
             </Link>
           </Card>
         ))}

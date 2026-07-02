@@ -18,6 +18,7 @@ import {
 import { useToast } from '../lib/useToast.tsx';
 
 const ROLE_OPTIONS: UserRole[] = ['viewer', 'ops', 'admin'];
+const ROLE_LABELS: Record<UserRole, string> = { viewer: 'Viewer', ops: 'Operations', admin: 'Admin' };
 
 export function UsersPage(): JSX.Element {
   const qc = useQueryClient();
@@ -105,7 +106,7 @@ export function UsersPage(): JSX.Element {
                   <DataTable.Td>
                     <RequireRole
                       role="admin"
-                      fallback={<span className="text-[var(--color-fg-muted)]">{u.role}</span>}
+                      fallback={<span className="text-[var(--color-fg-muted)]">{ROLE_LABELS[u.role]}</span>}
                     >
                       <Select
                         size="sm"
@@ -115,7 +116,7 @@ export function UsersPage(): JSX.Element {
                         onChange={(e) => update.mutate({ id: u.id, role: e.target.value as UserRole })}
                       >
                         {ROLE_OPTIONS.map((r) => (
-                          <option key={r} value={r}>{r}</option>
+                          <option key={r} value={r}>{ROLE_LABELS[r]}</option>
                         ))}
                       </Select>
                     </RequireRole>

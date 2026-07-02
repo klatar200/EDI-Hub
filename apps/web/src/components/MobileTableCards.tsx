@@ -27,6 +27,8 @@ const DIRECTION_LABEL: Record<string, string> = {
   unknown: 'Unknown',
 };
 
+const ROLE_LABEL: Record<UserRole, string> = { viewer: 'Viewer', ops: 'Operations', admin: 'Admin' };
+
 function Truncated({
   text,
   className = '',
@@ -267,7 +269,7 @@ export function UserMobileCards({
               <div className="mt-2 flex flex-wrap items-center gap-2">
                 <RequireRole
                   role="admin"
-                  fallback={<span className="text-sm text-[var(--color-fg-muted)]">{u.role}</span>}
+                  fallback={<span className="text-sm text-[var(--color-fg-muted)]">{ROLE_LABEL[u.role]}</span>}
                 >
                   <Select
                     size="sm"
@@ -277,7 +279,7 @@ export function UserMobileCards({
                     onChange={(e) => onRoleChange(u.id, e.target.value as UserRole)}
                   >
                     {(['viewer', 'ops', 'admin'] as UserRole[]).map((r) => (
-                      <option key={r} value={r}>{r}</option>
+                      <option key={r} value={r}>{ROLE_LABEL[r]}</option>
                     ))}
                   </Select>
                 </RequireRole>
@@ -428,7 +430,7 @@ export function DashboardPartnerHealthMobileCards({
               {row.displayName}
             </Link>
             <p className="mt-1 text-xs text-[var(--color-fg-muted)]">
-              Last ingest: {formatDateTime(row.lastIngestAt, { compact: true })}
+              Last received: {formatDateTime(row.lastIngestAt, { compact: true })}
             </p>
             <div className="mt-2 flex flex-wrap gap-2 text-xs">
               <span className="tabular-nums">Rejection {(row.rejectionRate30d * 100).toFixed(1)}%</span>

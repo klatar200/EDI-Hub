@@ -56,7 +56,7 @@ const PAGES: PageItem[] = [
   { kind: 'page', label: 'Dashboard',            hint: 'Monitoring',                       to: '/dashboard',       haystack: 'dashboard monitoring home' },
   { kind: 'page', label: 'Alerts',               hint: 'Open + acknowledged',              to: '/alerts',          haystack: 'alerts missing ack rejection spike' },
   { kind: 'page', label: 'Documents · parsed',   hint: 'Decoded transactions',             to: '/documents?view=parsed', haystack: 'documents transactions parsed' },
-  { kind: 'page', label: 'Documents · raw',      hint: 'Ingested files',                   to: '/documents?view=raw',    haystack: 'documents ingestions raw files' },
+  { kind: 'page', label: 'Documents · raw',      hint: 'Received files',                   to: '/documents?view=raw',    haystack: 'documents ingestions received raw files' },
   { kind: 'page', label: 'Partners',             hint: 'Trading partner config',           to: '/partners-config', haystack: 'partners trading partner config' },
   { kind: 'page', label: 'Channels',             hint: 'Connectivity + health',            to: '/channels',        haystack: 'channels connectivity health' },
   { kind: 'page', label: 'Metrics',              hint: 'Rejection rate + traffic',         to: '/metrics',         haystack: 'metrics rejection rate traffic' },
@@ -219,7 +219,7 @@ export function CommandPalette({ open, onClose }: CommandPaletteProps): JSX.Elem
             type="text"
             value={rawQuery}
             onChange={(e) => { setRawQuery(e.target.value); setSelectedIndex(0); }}
-            placeholder="Jump to a page, PO, invoice, or ISA control #…"
+            placeholder="Jump to a page, PO, invoice, or ISA control # (file ID)…"
             className="w-full bg-transparent text-sm text-[var(--color-fg)] placeholder:text-[var(--color-fg-subtle)] focus:outline-none"
             data-testid="command-palette-input"
             aria-label="Command palette search"

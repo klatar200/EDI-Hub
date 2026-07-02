@@ -228,4 +228,3 @@ Stripe self-serve, marketing site, per-tenant quotas, Linux desktop (AppImage).
 | Security sign-off | [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) |
 
 **Do not add completed work to this file** — append to `docs/SHIPPED.md` when a sprint ships.
-                              

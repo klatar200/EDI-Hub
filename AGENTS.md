@@ -384,4 +384,3 @@ This file absorbed builder rules from the locations below. **Do not duplicate th
 | Planning doc split (`BUILD_PLAN` / `SHIPPED` / `WIKI`) | §11 |
 
 **Cursor still loads `.cursor/rules/*.mdc` automatically** (`alwaysApply: true`). Those files are kept in sync with this document; if they diverge, **update `AGENTS.md` first**, then mirror to `.mdc`.
-                                             

@@ -106,13 +106,13 @@ function LifecycleNotes({ po }: { po: string }): JSX.Element {
   });
   return (
     <div className="mt-4 rounded-md border border-[var(--color-surface-border)] p-3" data-testid={`notes-${po}`}>
-      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">Ops notes</h4>
+      <h4 className="text-xs font-semibold uppercase tracking-wide text-[var(--color-fg-muted)]">Operations notes</h4>
       <ul className="mt-2 space-y-2 text-sm">
         {(notesQ.data?.items ?? []).map((n) => (
           <li key={n.id} className="flex items-start gap-2 text-[var(--color-fg-muted)]">
             <span className="flex-1">
               <span className="text-[var(--color-fg)]">{n.body}</span>
-              <span className="ml-2 text-xs">— {n.authorDisplayName ?? 'ops'}</span>
+              <span className="ml-2 text-xs">— {n.authorDisplayName ?? 'Operations'}</span>
             </span>
             {isOps ? (
               <button

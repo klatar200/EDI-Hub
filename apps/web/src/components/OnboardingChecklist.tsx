@@ -71,7 +71,7 @@ export function OnboardingChecklist({
     },
     {
       done: ingestDone,
-      title: 'Ingest your first EDI file',
+      title: 'Upload your first EDI file',
       body: 'Upload an X12 file directly, or drop one into a watched SFTP / AS2 folder. The hub stores the raw transmission, parses it, and starts stitching the lifecycle.',
       to: '/ingestions',
       cta: 'Upload a file',

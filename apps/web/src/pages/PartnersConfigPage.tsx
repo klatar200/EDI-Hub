@@ -497,7 +497,7 @@ export function PartnersConfigPage(): JSX.Element {
           <DataTable.Thead>
             <DataTable.Tr>
               <DataTable.Th>Name</DataTable.Th>
-              <DataTable.Th>ISA senders</DataTable.Th>
+              <DataTable.Th title="Unique file IDs assigned by the partner's system">ISA senders (File IDs)</DataTable.Th>
               <DataTable.Th>Sets</DataTable.Th>
               <DataTable.Th>SLAs</DataTable.Th>
               <DataTable.Th>Setup</DataTable.Th>
@@ -655,7 +655,7 @@ export function PartnersConfigPage(): JSX.Element {
                       aria-required="true"
                     />
                   </Field>
-                  <Field label="ISA sender IDs (comma-separated)" error={fieldErrors.isaSenderIds}>
+                  <Field label="ISA sender IDs — file IDs (comma-separated)" error={fieldErrors.isaSenderIds}>
                     <input
                       className="input font-mono"
                       value={editing.draft.isaSenderIds}
@@ -663,7 +663,7 @@ export function PartnersConfigPage(): JSX.Element {
                       aria-invalid={fieldErrors.isaSenderIds ? true : undefined}
                     />
                   </Field>
-                  <Field label="ISA receiver IDs (comma-separated)" error={fieldErrors.isaReceiverIds}>
+                  <Field label="ISA receiver IDs — file IDs (comma-separated)" error={fieldErrors.isaReceiverIds}>
                     <input
                       className="input font-mono"
                       value={editing.draft.isaReceiverIds}
@@ -1315,7 +1315,7 @@ function ContactsEditor({
           <div className="grid grid-cols-1 gap-2 md:grid-cols-6 lg:grid-cols-12">
             <input
               className="input col-span-full md:col-span-6 lg:col-span-8 font-mono"
-              placeholder="Slack incoming-webhook URL (optional)"
+              placeholder="Slack alert link (optional)"
               value={c.slackWebhook ?? ''}
               onChange={(e) => {
                 const next = [...contacts];
