@@ -193,9 +193,30 @@ Tier C transaction sets; line-level multi-PO on 810.
 
 | ID | Item | Status |
 |----|------|--------|
+| **BUG-ONB-1** | First Clerk sign-in → `TENANT_NOT_PROVISIONED` / org not provisioned in hub — [detail](#bug-onb-1--first-sign-in-tenant-not-provisioned) | Open |
 | **W4.2** | Authenticated raw-file viewing (fetch+blob under Clerk) | Open |
 | **OPTIONAL-D1** | Desktop boot log noise | Optional |
 | **OPTIONAL-D2** | Desktop update sequence polish | Optional |
+
+#### BUG-ONB-1 — First sign-in: tenant not provisioned
+
+**Reported:** 2026-07-02 (owner, first app launch)
+
+**Symptom:** On first open, after signing into Clerk, the hub shows an authentication error. The API returns `403` with code `TENANT_NOT_PROVISIONED` or `USER_NOT_PROVISIONED`. UI copy resembles *"Organization exists in Clerk but is not yet provisioned in the hub"* (or membership not provisioned).
+
+**Where it shows up:** Desktop installer first run; local dev with real Clerk keys (`pk_test_` / `sk_test_`) when webhooks are not wired; possibly SaaS if Clerk webhook delivery lags behind first login.
+
+**Root cause (suspected):** Clerk has the org and membership, but the hub database has no matching `Tenant` / `User` rows yet. Desktop relies on boot-time `bootstrapDesktopClerk` (no localhost webhooks); local web dev needs ngrok + webhook or manual scripts. A race is possible if the UI calls `/me` before bootstrap finishes.
+
+**Workarounds today:**
+
+- **Desktop:** Quit and relaunch (boot sync runs again) — see `HubApiAccessError.tsx`.
+- **Local dev:** `npm run reconcile-clerk --workspace=@edi/api`, or `attach-pilot-org` + `seed-pilot-admin` — see [`CLERK_SETUP.md`](CLERK_SETUP.md).
+- **SaaS:** Verify Clerk webhook deliveries to `/webhooks/clerk` — see [`ops/RUNBOOKS.md`](ops/RUNBOOKS.md) § Clerk webhook drift.
+
+**Desired fix:** Block or retry the signed-in shell until provisioned; clearer first-run onboarding; ensure desktop bootstrap completes before authenticated routes; optional in-app "Syncing your organization…" state.
+
+**Code refs:** `apps/api/src/plugins/tenant.ts`, `apps/api/src/services/clerk-desktop-bootstrap.ts`, `apps/web/src/components/HubApiAccessError.tsx`
 
 ### Commercial (Phase 11+)
 

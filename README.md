@@ -1,11 +1,18 @@
 # EDI Data Hub
 
-An EDI observability platform. Ingests inbound/outbound X12 EDI transactions,
-decomposes them into structured data, and presents a single hub for monitoring,
-searching, troubleshooting, and alerting.
+**EDI Data Hub** is an observability platform for X12 EDI. It ingests copies of
+your trading-partner files, parses them into structured data, and gives your team
+one place to monitor document flow, troubleshoot rejections, and catch missing
+acknowledgments before they become chargebacks or SLA misses.
 
-**North Star:** Transaction lifecycle stitching — pull up a PO number and see
-the 850, 855, 856, 810, and all 997s in one chronological view.
+The hub sits **beside** your live EDI path — it never replaces your VAN, AS2
+gateway, or ERP integration. You (or your partners) drop files via upload, SFTP,
+or AS2; the hub stores the raw interchange, decomposes it, and surfaces what
+happened in plain language.
+
+**North Star:** **Transaction lifecycle stitching** — enter one PO number and see
+the 850, 855, 856, 810, and every related 997 in chronological, status-aware
+order.
 
 **Planning:** **What's next** → [`BUILD_PLAN.md`](BUILD_PLAN.md) · **What's shipped** → [`docs/SHIPPED.md`](docs/SHIPPED.md) · **Product wiki** → [`docs/WIKI.md`](docs/WIKI.md) · **Security sign-off** → [`SECURITY_CHECKLIST.md`](SECURITY_CHECKLIST.md) · **AI builder rules** → [`AGENTS.md`](AGENTS.md) · **Local dev** → [`docs/LOCAL_DEV.md`](docs/LOCAL_DEV.md)
 
@@ -13,9 +20,58 @@ the 850, 855, 856, 810, and all 997s in one chronological view.
 
 ---
 
-## Features
+## What is this application for?
 
-What is **shipped in the repo today** (Phases 0–10 + desktop track).
+EDI teams spend too much time hunting across mailboxes, folders, and logs to
+answer simple questions: *Did the 855 arrive? Why did the 997 reject? Which POs
+are stuck waiting for an ASN?* EDI Data Hub answers those questions from the
+files you already receive.
+
+| You want to… | The hub helps by… |
+|--------------|-------------------|
+| See end-to-end PO flow | **Lifecycle view** — 850 → 855 → 856 → 810 + 997s on one timeline |
+| Find a specific document | **Search** by PO, invoice, shipment ID, or ISA control number |
+| Understand a 997 rejection | **AK segment decoder** — AK3/AK4 errors in plain English |
+| Know when a partner goes quiet | **Alerts** for missing acks vs partner SLA, rejection spikes, stale traffic |
+| Prove what was received | **Raw file storage** — verbatim interchange kept before parse (SHA-256, dedup on ISA control #) |
+| Onboard a new trading partner | **Partner profiles** — ISA IDs, supported sets, per-type SLA windows, escalation contacts |
+
+Built for **operations, EDI analysts, and support leads** at distributors,
+retail suppliers, and 3PLs running X12 (primarily 4010; 5010 handled gracefully).
+
+---
+
+## What can it do today?
+
+Everything below is **implemented and shipped** in this repo (Phases 0–10,
+desktop track, UI refresh U0–U5). Two deployment shapes share the same React UI
+and API:
+
+| Shape | How you run it | Best for |
+|-------|----------------|----------|
+| **Web / SaaS** | API + UI (local dev or AWS at go-live) | Multi-tenant hosted hub, browser access |
+| **Desktop LAN** | Windows installer — embedded Postgres + API on a server PC | On-prem / LAN; users browse `http://<server-ip>:3000` |
+
+**Today you can:**
+
+- **Ingest** EDI via authenticated upload, SFTP folder-watch, or AS2 (OpenAS2 sandbox locally)
+- **Parse** 850, 855, 856, 810, 860, 875, 880, 997/999 into typed headers, lines, and labeled segments
+- **Stitch lifecycles** — standard retail (850-based) and grocery (875→880) flows; link 997 acks to referenced sets
+- **Browse and filter** transactions, ingestions, partners, and outbound stage (generated → transmitted → confirmed)
+- **Monitor** rejection rates by partner, active alerts, and channel health on `/health`
+- **Notify** via email (SES) or Slack when alerts fire
+- **Secure multi-tenant SaaS** — Clerk orgs → tenants, RBAC (`viewer` / `ops` / `admin`), audit log on every mutation
+- **Run on Windows desktop** — installer, auto-update, trial/licensing, backup/restore ZIP, first-run wizard (in progress)
+
+**Not in scope for v1:** sitting in the live transmission path, replacing your ERP, or editing/resending EDI on behalf of partners. See [`docs/WIKI.md`](docs/WIKI.md) for product principles.
+
+**Known issue:** First Clerk sign-in may show *organization not provisioned* before the hub syncs — tracked as **BUG-ONB-1** in [`BUILD_PLAN.md`](BUILD_PLAN.md#bug-onb-1--first-sign-in-tenant-not-provisioned). Workaround: restart the app or run `reconcile-clerk` locally.
+
+---
+
+## Features (detail)
+
+Full capability list for **shipped** functionality (Phases 0–10 + desktop track).
 
 ### Ingestion & storage
 
