@@ -33,8 +33,14 @@ import { DropdownMenu, ThemeToggle } from './ui';
 function initialsFor(name: string | null | undefined, email: string | null | undefined): string {
   if (name) {
     const parts = name.trim().split(/\s+/).filter(Boolean);
-    if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
-    if (parts.length === 1 && parts[0].length > 0) return parts[0].slice(0, 2).toUpperCase();
+    const first = parts[0];
+    const last = parts[parts.length - 1];
+    if (parts.length >= 2 && first && last) {
+      return (first[0]! + last[0]!).toUpperCase();
+    }
+    if (parts.length === 1 && first && first.length > 0) {
+      return first.slice(0, 2).toUpperCase();
+    }
   }
   if (email) {
     const local = email.split('@')[0] ?? '';

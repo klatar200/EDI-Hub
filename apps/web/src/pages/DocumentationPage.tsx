@@ -75,6 +75,10 @@ export function DocumentationPage(): JSX.Element {
     DOC_SECTIONS.find((s) => s.id === DEFAULT_DOC_SECTION) ??
     DOC_SECTIONS[0];
 
+  if (!active) {
+    throw new Error('DOC_SECTIONS must define at least one section');
+  }
+
   const activeIndex = DOC_SECTIONS.findIndex((s) => s.id === active.id);
   const prev = activeIndex > 0 ? DOC_SECTIONS[activeIndex - 1] : null;
   const next =
