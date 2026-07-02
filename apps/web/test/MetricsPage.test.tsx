@@ -62,5 +62,5 @@ test('empty rows fall back to the empty state', async () => {
     jsonResponse({ windowFrom: '2026-05-19T00:00:00.000Z', windowTo: '2026-06-18T00:00:00.000Z', rows: [] }),
   ));
   renderPage();
-  expect(await screen.findByText(/No 997s ingested/)).toBeInTheDocument();
+  expect(await screen.findByText(/No 997s received in this window/)).toBeInTheDocument();
 });

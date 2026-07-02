@@ -77,8 +77,11 @@ test('viewer sees the table but no role dropdowns and no remove buttons', async 
   expect(screen.queryByTestId('role-select-u-1')).toBeNull();
   expect(screen.queryByTestId('role-select-u-2')).toBeNull();
   expect(screen.queryByTestId('remove-user-u-2')).toBeNull();
-  // Plain-text roles still visible (read-only).
-  expect(screen.getByText('admin')).toBeInTheDocument();
+  // Plain-text role labels still visible (read-only) — use unique labels to avoid
+  // matching the display-name column ("Admin" appears there and in Role).
+  expect(screen.getAllByText('Admin').length).toBeGreaterThanOrEqual(1);
+  expect(screen.getByText('Operations')).toBeInTheDocument();
+  expect(screen.getByText('Viewer')).toBeInTheDocument();
 });
 
 test('ops also gets the read-only view (admin-only affordances hidden)', async () => {

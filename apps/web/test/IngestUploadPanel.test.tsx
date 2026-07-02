@@ -1,4 +1,4 @@
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, afterEach, test, expect, vi } from 'vitest';
@@ -46,9 +46,10 @@ test('upload sends multipart file to ingest endpoint', async () => {
   const input = screen.getByTestId('ingest-file-input') as HTMLInputElement;
   const file = new File(['ISA*00*TEST~'], 'sample.edi', { type: 'application/edi-x12' });
   fireEvent.change(input, { target: { files: [file] } });
-  await waitFor(() => expect(screen.getByTestId('ingest-upload-results')).toBeInTheDocument());
+  await screen.findByTestId('ingest-upload-results');
   expect(screen.getByText('sample.edi')).toBeInTheDocument();
-  expect(screen.getByText('Imported')).toBeInTheDocument();
+  expect(screen.getByText('Uploaded')).toBeInTheDocument();
+  expect(screen.getByText('PARSED')).toBeInTheDocument();
   const fetchMock = vi.mocked(fetch);
   expect(fetchMock).toHaveBeenCalled();
   const uploadCall = fetchMock.mock.calls.find((c) => String(c[0]).includes('/ingest/upload'));
